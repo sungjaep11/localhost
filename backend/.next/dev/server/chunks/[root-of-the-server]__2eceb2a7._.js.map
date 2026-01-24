@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 46, "column": 0}, "map": {"version":3,"sources":["file:///Users/jakepark/Documents/madcamp/localhost/backend/app/api/test/create-user/route.ts"],"sourcesContent":["import { NextResponse } from 'next/server'\nimport { prisma } from '../../../../backend/lib/prisma'\n\nexport async function POST() {\n  try {\n    // 테스트용 사용자 생성\n    const user = await prisma.user.create({\n      data: {\n        snsId: `test-${Date.now()}`,\n        provider: 'test',\n        nickname: 'Test User',\n      },\n    })\n\n    return NextResponse.json(\n      { success: true, user },\n      { status: 201 }\n    )\n  } catch (error) {\n    console.error('Error creating user:', error)\n    return NextResponse.json(\n      { success: false, error: 'Failed to create user' },\n      { status: 500 }\n    )\n  }\n}\n"],"names":[],"mappings":";;;;AAAA;;;;;;;;AAGO,eAAe;IACpB,IAAI;QACF,cAAc;QACd,MAAM,OAAO,MAAM,OAAO,IAAI,CAAC,MAAM,CAAC;YACpC,MAAM;gBACJ,OAAO,CAAC,KAAK,EAAE,KAAK,GAAG,IAAI;gBAC3B,UAAU;gBACV,UAAU;YACZ;QACF;QAEA,OAAO,gJAAY,CAAC,IAAI,CACtB;YAAE,SAAS;YAAM;QAAK,GACtB;YAAE,QAAQ;QAAI;IAElB,EAAE,OAAO,OAAO;QACd,QAAQ,KAAK,CAAC,wBAAwB;QACtC,OAAO,gJAAY,CAAC,IAAI,CACtB;YAAE,SAAS;YAAO,OAAO;QAAwB,GACjD;YAAE,QAAQ;QAAI;IAElB;AACF"}}]
+}

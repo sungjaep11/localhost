@@ -1,0 +1,15 @@
+[00:00:01.606] Server  LOG     ✓ Ready in 1424ms
+[00:00:08.574] Server  ERROR   ⨯ ./app/api/test/create-user/route.ts:2:1
+Module not found: Can't resolve '../../../../backend/lib/prisma'
+  1 | import { NextResponse } from 'next/server'
+> 2 | import { prisma } from '../../../../backend/lib/prisma'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 |
+  4 | export async function POST() {
+  5 |   try {
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
