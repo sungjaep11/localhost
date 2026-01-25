@@ -3,6 +3,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { useEffect, useState } from "react";
 
 function Model({ url }: { url: string }) {
   // GLB 파일 불러오기
@@ -12,7 +13,30 @@ function Model({ url }: { url: string }) {
   return <primitive object={scene} scale={3} position={[0, -1.5, 0]} />;
 }
 
-export default function ModelViewer() {
+interface ModelViewerProps {
+  modelUrl?: string;
+}
+
+export default function ModelViewer({ modelUrl }: ModelViewerProps) {
+  const [equippedCharacter, setEquippedCharacter] = useState<string>('/character1.glb');
+
+  useEffect(() => {
+    // 전달받은 modelUrl이 있으면 그것을 사용
+    if (modelUrl) {
+      setEquippedCharacter(modelUrl);
+      return;
+    }
+    
+    // 없으면 localStorage에서 장착된 캐릭터 불러오기
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      const equipped = localStorage.getItem(`equipped-character-${userId}`);
+      if (equipped) {
+        setEquippedCharacter(equipped);
+      }
+    }
+  }, [modelUrl]);
+
   return (
     // Canvas: 3D가 그려지는 영역
     <div style={{ width: "100%", height: "100%" }}>
@@ -25,7 +49,7 @@ export default function ModelViewer() {
         <Environment preset="city" />
 
         {/* 모델 렌더링 */}
-        <Model url="/character1.glb" />
+        <Model url={equippedCharacter} />
 
         {/* 마우스로 돌려보기 */}
         <OrbitControls 

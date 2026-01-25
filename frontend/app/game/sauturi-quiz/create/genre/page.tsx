@@ -103,12 +103,16 @@ export default function GenreSelectionPage() {
       rooms.push(newRoom);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
 
+      // 방장의 장착된 캐릭터 가져오기
+      const hostCharacter = localStorage.getItem(`equipped-character-${currentUser.id}`) || '/character1.glb';
+
       // 방장을 참가자 목록에 추가
       const playersKey = `sauturi-quiz-room-${newRoom.id}-players`;
       const hostPlayer = {
         id: currentUser.id,
         name: currentUser.name,
         isHost: true,
+        characterUrl: hostCharacter,
         joinedAt: Date.now(),
       };
       localStorage.setItem(playersKey, JSON.stringify([hostPlayer]));

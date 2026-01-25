@@ -2,15 +2,44 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 
 interface Player {
   id: string;
   name: string;
   isHost: boolean;
+  characterUrl?: string; // 사용자의 캐릭터 모델 URL
   joinedAt?: number;
 }
 
 const STORAGE_KEY = 'sauturi-quiz-rooms';
+
+// 3D 모델 컴포넌트
+function Model({ url }: { url: string }) {
+  const { scene } = useGLTF(url);
+  return <primitive object={scene} scale={2.5} position={[0, -1.2, 0]} />;
+}
+
+// 캐릭터 뷰어 컴포넌트
+function CharacterViewer({ modelUrl }: { modelUrl: string }) {
+  return (
+    <div style={{ width: "100%", height: "100%" }}>
+      <Canvas camera={{ position: [0, 1.5, 4], fov: 50 }}>
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <Environment preset="city" />
+        <Model url={modelUrl} />
+        <OrbitControls 
+          autoRotate={false}
+          enableZoom={false}
+          enablePan={false}
+          enableRotate={true}
+        />
+      </Canvas>
+    </div>
+  );
+}
 
 export default function WaitingRoomPage() {
   const router = useRouter();
@@ -20,7 +49,7 @@ export default function WaitingRoomPage() {
   const [isHost, setIsHost] = useState(false);
 
   // 현재 사용자 정보
-  const currentUserId = localStorage.getItem('userId') || '';
+  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
 
   // 참가자 목록 불러오기
   useEffect(() => {
@@ -30,7 +59,12 @@ export default function WaitingRoomPage() {
       if (storedPlayers) {
         try {
           const parsedPlayers = JSON.parse(storedPlayers);
-          setPlayers(parsedPlayers);
+          // 각 플레이어의 캐릭터 정보 확인 (없으면 기본 캐릭터)
+          const playersWithCharacters = parsedPlayers.map((player: Player) => ({
+            ...player,
+            characterUrl: player.characterUrl || '/character1.glb',
+          }));
+          setPlayers(playersWithCharacters);
           
           // 방장 여부 확인
           const room = getRoomInfo();
@@ -79,8 +113,7 @@ export default function WaitingRoomPage() {
         backgroundRepeat: "no-repeat",
         overflow: "hidden",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        flexDirection: "column",
         padding: "2rem",
         position: "relative",
       }}
@@ -96,11 +129,24 @@ export default function WaitingRoomPage() {
         ))}
       </div>
 
+      {/* 헤더 - 현재 방 참가자 */}
+      <h2
+        style={{
+          color: "#ffffff",
+          fontSize: "1.5rem",
+          fontWeight: 700,
+          marginBottom: "1.5rem",
+          textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+          textAlign: "center",
+        }}
+      >
+        현재 방 참가자
+      </h2>
+
       <div
         style={{
           display: "flex",
-          width: "100%",
-          maxWidth: "1200px",
+          flex: 1,
           gap: "3rem",
           alignItems: "center",
         }}
@@ -108,24 +154,24 @@ export default function WaitingRoomPage() {
         {/* 왼쪽 - Start 버튼 */}
         <div
           style={{
-            flex: 1,
+            width: "300px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: "2rem",
+            justifyContent: "center",
           }}
         >
-          {isHost && (
+          {isHost ? (
             <button
               onClick={handleStart}
               style={{
-                width: "200px",
-                height: "200px",
+                width: "220px",
+                height: "220px",
                 borderRadius: "50%",
                 background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))",
                 border: "4px solid rgba(0, 255, 255, 0.8)",
                 color: "#00ffff",
-                fontSize: "2rem",
+                fontSize: "2.5rem",
                 fontWeight: 800,
                 cursor: "pointer",
                 transition: "all 0.3s ease",
@@ -148,122 +194,126 @@ export default function WaitingRoomPage() {
             >
               Start!
             </button>
+          ) : (
+            <div
+              style={{
+                width: "220px",
+                height: "220px",
+                borderRadius: "50%",
+                background: "rgba(0, 0, 0, 0.5)",
+                border: "4px solid rgba(255, 255, 255, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "rgba(255, 255, 255, 0.6)",
+                fontSize: "1rem",
+                textAlign: "center",
+                padding: "1rem",
+              }}
+            >
+              방장이 게임을<br />시작할 때까지<br />기다려주세요
+            </div>
           )}
         </div>
 
-        {/* 오른쪽 - 참가자들 */}
+        {/* 오른쪽 - 참가자들 (3D 캐릭터) */}
         <div
           style={{
             flex: 1,
             display: "flex",
-            flexDirection: "column",
-            gap: "2rem",
+            flexWrap: "wrap",
+            gap: "1.5rem",
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            alignContent: "flex-start",
           }}
         >
-          <h2
-            style={{
-              color: "#ffffff",
-              fontSize: "1.5rem",
-              fontWeight: 700,
-              marginBottom: "1rem",
-              textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
-            }}
-          >
-            현재 방 참가자
-          </h2>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: "1.5rem",
-            }}
-          >
-            {players.length === 0 ? (
-              <div
-                style={{
-                  gridColumn: "1 / -1",
-                  textAlign: "center",
-                  padding: "2rem",
-                  color: "rgba(255, 255, 255, 0.6)",
-                  fontSize: "1rem",
-                }}
-              >
-                아직 참가자가 없습니다. 다른 사용자들이 입장할 때까지 기다려주세요.
-              </div>
-            ) : (
-              players.map((player) => (
+          {players.length === 0 ? (
+            <div
+              style={{
+                width: "100%",
+                textAlign: "center",
+                padding: "2rem",
+                color: "rgba(255, 255, 255, 0.6)",
+                fontSize: "1rem",
+              }}
+            >
+              아직 참가자가 없습니다. 다른 사용자들이 입장할 때까지 기다려주세요.
+            </div>
+          ) : (
+            players.map((player) => (
               <div
                 key={player.id}
                 style={{
-                  background: "rgba(0, 0, 0, 0.6)",
-                  backdropFilter: "blur(10px)",
-                  border: "2px solid rgba(0, 255, 255, 0.5)",
-                  borderRadius: "16px",
-                  padding: "1.5rem",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: "1rem",
+                  gap: "0.5rem",
                   position: "relative",
                 }}
               >
-                {/* 방장 표시 */}
+                {/* 방장 왕관 표시 */}
                 {player.isHost && (
                   <div
                     style={{
                       position: "absolute",
-                      top: "-10px",
+                      top: "-30px",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      gap: "0.5rem",
-                      background: "rgba(255, 215, 0, 0.9)",
-                      padding: "0.25rem 0.75rem",
-                      borderRadius: "20px",
-                      color: "#000",
-                      fontSize: "0.85rem",
-                      fontWeight: 700,
+                      zIndex: 10,
                     }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#ffd700" style={{ filter: "drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))" }}>
+                      <path d="M12 1L9 9l-8 2 6 5-2 8 7-4 7 4-2-8 6-5-8-2-3-8z" />
                     </svg>
-                    방장
+                    <span
+                      style={{
+                        color: "#ffd700",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textShadow: "0 0 8px rgba(255, 215, 0, 0.8)",
+                      }}
+                    >
+                      방장
+                    </span>
                   </div>
                 )}
 
-                {/* 캐릭터 아이콘 */}
+                {/* 3D 캐릭터 */}
                 <div
                   style={{
-                    width: "80px",
-                    height: "80px",
-                    background: "rgba(0, 255, 255, 0.1)",
-                    borderRadius: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "1px solid rgba(0, 255, 255, 0.3)",
+                    width: "150px",
+                    height: "200px",
+                    background: "rgba(0, 0, 0, 0.4)",
+                    backdropFilter: "blur(10px)",
+                    border: player.isHost 
+                      ? "3px solid rgba(255, 215, 0, 0.8)" 
+                      : "2px solid rgba(0, 255, 255, 0.5)",
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    boxShadow: player.isHost
+                      ? "0 0 30px rgba(255, 215, 0, 0.4)"
+                      : "0 0 20px rgba(0, 255, 255, 0.3)",
                   }}
                 >
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <CharacterViewer modelUrl={player.characterUrl || '/character1.glb'} />
                 </div>
 
                 {/* 이름 */}
                 <div
                   style={{
                     color: "#ffffff",
-                    fontSize: "1.1rem",
+                    fontSize: "1rem",
                     fontWeight: 600,
+                    textShadow: "0 0 10px rgba(0, 0, 0, 0.8)",
                   }}
                 >
                   {player.name}
                 </div>
               </div>
-              ))
-            )}
-          </div>
+            ))
+          )}
         </div>
       </div>
     </main>

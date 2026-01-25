@@ -99,11 +99,15 @@ export default function SongGuessPage() {
       return;
     }
 
+    // 사용자의 장착된 캐릭터 가져오기
+    const equippedCharacter = localStorage.getItem(`equipped-character-${player.id}`) || '/character1.glb';
+
     // 참가자 추가
     const newPlayer = {
       id: player.id,
       name: player.name,
       isHost: false,
+      characterUrl: equippedCharacter,
       joinedAt: Date.now(),
     };
     players.push(newPlayer);

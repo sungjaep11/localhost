@@ -49,8 +49,10 @@ export default function ShopPage() {
   const router = useRouter();
   const [coins, setCoins] = useState(2000);
   const [activeTab, setActiveTab] = useState<'character' | 'action'>('character');
+  const [purchasedCharacters, setPurchasedCharacters] = useState<string[]>([]);
+  const [equippedCharacter, setEquippedCharacter] = useState<string>('');
 
-  // 코인 불러오기
+  // 코인 및 구매 정보 불러오기
   useEffect(() => {
     const savedCoins = localStorage.getItem('userCoins');
     if (savedCoins) {
@@ -59,11 +61,22 @@ export default function ShopPage() {
       setCoins(2000);
       localStorage.setItem('userCoins', '2000');
     }
+
+    // 구매한 캐릭터 불러오기
+    const purchased = JSON.parse(localStorage.getItem('purchasedCharacters') || '["char1"]'); // char1은 기본 캐릭터
+    setPurchasedCharacters(purchased);
+
+    // 장착한 캐릭터 불러오기
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      const equipped = localStorage.getItem(`equipped-character-${userId}`);
+      setEquippedCharacter(equipped || '/character1.glb');
+    }
   }, []);
 
   // 캐릭터 데이터 (나중에 API나 데이터베이스에서 가져올 수 있음)
   const characters: Character[] = [
-    { id: 'char1', name: '캐릭터 1', price: 1500, modelUrl: '/character1.glb' },
+    { id: 'char1', name: '기본 캐릭터', price: 0, modelUrl: '/character1.glb' },
     { id: 'char2', name: '캐릭터 2', price: 1000, modelUrl: '/character1.glb' },
     { id: 'char3', name: '캐릭터 3', price: 850, modelUrl: '/character1.glb' },
     { id: 'char4', name: '캐릭터 4', price: 2000, modelUrl: '/character1.glb' },
@@ -75,7 +88,7 @@ export default function ShopPage() {
     // 조만간 추가 예정
   ];
 
-  const handlePurchase = (item: Character | Action, type: 'character' | 'action') => {
+  const handlePurchase = (item: Character) => {
     if (coins < item.price) {
       alert('코인이 부족합니다!');
       return;
@@ -86,13 +99,29 @@ export default function ShopPage() {
     setCoins(newCoins);
     localStorage.setItem('userCoins', newCoins.toString());
 
-    // 구매한 아이템 저장 (나중에 사용)
-    const purchasedKey = type === 'character' ? 'purchasedCharacters' : 'purchasedActions';
-    const purchased = JSON.parse(localStorage.getItem(purchasedKey) || '[]');
-    purchased.push(item.id);
-    localStorage.setItem(purchasedKey, JSON.stringify(purchased));
+    // 구매한 아이템 저장
+    const newPurchased = [...purchasedCharacters, item.id];
+    setPurchasedCharacters(newPurchased);
+    localStorage.setItem('purchasedCharacters', JSON.stringify(newPurchased));
 
     alert(`${item.name}을(를) 구매했습니다!`);
+  };
+
+  const handleEquip = (character: Character) => {
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      localStorage.setItem(`equipped-character-${userId}`, character.modelUrl);
+      setEquippedCharacter(character.modelUrl);
+      alert(`${character.name}을(를) 장착했습니다!`);
+    }
+  };
+
+  const isOwned = (characterId: string) => {
+    return purchasedCharacters.includes(characterId);
+  };
+
+  const isEquipped = (character: Character) => {
+    return equippedCharacter === character.modelUrl;
   };
 
   return (
@@ -384,7 +413,11 @@ export default function ShopPage() {
                 container.scrollLeft += e.deltaY;
               }}
             >
-            {characters.map((character) => (
+            {characters.map((character) => {
+              const owned = isOwned(character.id);
+              const equipped = isEquipped(character);
+              
+              return (
               <div
                 key={character.id}
                 style={{
@@ -392,7 +425,9 @@ export default function ShopPage() {
                   width: "250px",
                   background: "rgba(0, 0, 0, 0.6)",
                   backdropFilter: "blur(10px)",
-                  border: "2px solid rgba(0, 255, 255, 0.5)",
+                  border: equipped 
+                    ? "3px solid rgba(0, 255, 0, 0.8)" 
+                    : "2px solid rgba(0, 255, 255, 0.5)",
                   borderRadius: "16px",
                   padding: "1.5rem",
                   display: "flex",
@@ -402,18 +437,65 @@ export default function ShopPage() {
                   position: "relative",
                   transition: "all 0.3s ease",
                   flexShrink: 0,
+                  boxShadow: equipped ? "0 0 30px rgba(0, 255, 0, 0.4)" : "none",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
-                  e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.4)";
+                  if (!equipped) {
+                    e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
+                    e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.4)";
+                  }
                   e.currentTarget.style.transform = "translateY(-5px)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
-                  e.currentTarget.style.boxShadow = "none";
+                  if (!equipped) {
+                    e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
+                {/* 장착중 표시 */}
+                {equipped && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "-12px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      background: "linear-gradient(135deg, #00ff00, #00cc00)",
+                      padding: "0.25rem 1rem",
+                      borderRadius: "20px",
+                      color: "#000",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      boxShadow: "0 0 15px rgba(0, 255, 0, 0.5)",
+                    }}
+                  >
+                    장착중
+                  </div>
+                )}
+
+                {/* 소유 표시 */}
+                {owned && !equipped && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "-12px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      background: "linear-gradient(135deg, #00ffff, #00cccc)",
+                      padding: "0.25rem 1rem",
+                      borderRadius: "20px",
+                      color: "#000",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      boxShadow: "0 0 15px rgba(0, 255, 255, 0.5)",
+                    }}
+                  >
+                    보유중
+                  </div>
+                )}
+
                 {/* 3D 캐릭터 */}
                 <div
                   style={{
@@ -439,80 +521,120 @@ export default function ShopPage() {
                   {character.name}
                 </div>
 
-                {/* 가격 및 구매 버튼 */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    marginTop: "auto",
-                  }}
-                >
-                  <svg 
-                    width="20" 
-                    height="20" 
-                    viewBox="0 0 24 24" 
-                    fill="currentColor"
+                {/* 가격 표시 (소유하지 않은 경우만) */}
+                {!owned && (
+                  <div
                     style={{
-                      color: "#ffd700",
-                      filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
                     }}
                   >
-                    <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
-                    <path 
-                      d="M12 6v12M8 10h8M8 14h8" 
-                      stroke="#000" 
-                      strokeWidth="1.5" 
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span
-                    style={{
-                      color: "#ffd700",
-                      fontSize: "1.1rem",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {character.price.toLocaleString()}p
-                  </span>
-                </div>
+                    <svg 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 24 24" 
+                      fill="currentColor"
+                      style={{
+                        color: "#ffd700",
+                        filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))",
+                      }}
+                    >
+                      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
+                      <path 
+                        d="M12 6v12M8 10h8M8 14h8" 
+                        stroke="#000" 
+                        strokeWidth="1.5" 
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span
+                      style={{
+                        color: "#ffd700",
+                        fontSize: "1.1rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {character.price.toLocaleString()}p
+                    </span>
+                  </div>
+                )}
 
-                <button
-                  onClick={() => handlePurchase(character, 'character')}
-                  disabled={coins < character.price}
-                  style={{
-                    width: "100%",
-                    padding: "0.75rem",
-                    background: coins >= character.price
-                      ? "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))"
-                      : "rgba(0, 0, 0, 0.3)",
-                    border: coins >= character.price
-                      ? "2px solid rgba(0, 255, 255, 0.8)"
-                      : "2px solid rgba(255, 0, 0, 0.5)",
-                    borderRadius: "8px",
-                    color: coins >= character.price ? "#00ffff" : "rgba(255, 0, 0, 0.8)",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    cursor: coins >= character.price ? "pointer" : "not-allowed",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (coins >= character.price) {
-                      e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.4), rgba(255, 0, 255, 0.4))";
-                      e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (coins >= character.price) {
-                      e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))";
-                      e.currentTarget.style.boxShadow = "none";
-                    }
-                  }}
-                >
-                  구매하기
-                </button>
+                {/* 버튼 */}
+                {owned ? (
+                  <button
+                    onClick={() => handleEquip(character)}
+                    disabled={equipped}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      background: equipped
+                        ? "rgba(0, 255, 0, 0.2)"
+                        : "linear-gradient(135deg, rgba(0, 255, 0, 0.3), rgba(0, 200, 0, 0.3))",
+                      border: equipped
+                        ? "2px solid rgba(0, 255, 0, 0.5)"
+                        : "2px solid rgba(0, 255, 0, 0.8)",
+                      borderRadius: "8px",
+                      color: equipped ? "rgba(0, 255, 0, 0.6)" : "#00ff00",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      cursor: equipped ? "default" : "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!equipped) {
+                        e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 0, 0.4), rgba(0, 200, 0, 0.4))";
+                        e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 0, 0.5)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!equipped) {
+                        e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 0, 0.3), rgba(0, 200, 0, 0.3))";
+                        e.currentTarget.style.boxShadow = "none";
+                      }
+                    }}
+                  >
+                    {equipped ? '장착됨' : '장착하기'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handlePurchase(character)}
+                    disabled={coins < character.price}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      background: coins >= character.price
+                        ? "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))"
+                        : "rgba(0, 0, 0, 0.3)",
+                      border: coins >= character.price
+                        ? "2px solid rgba(0, 255, 255, 0.8)"
+                        : "2px solid rgba(255, 0, 0, 0.5)",
+                      borderRadius: "8px",
+                      color: coins >= character.price ? "#00ffff" : "rgba(255, 0, 0, 0.8)",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      cursor: coins >= character.price ? "pointer" : "not-allowed",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (coins >= character.price) {
+                        e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.4), rgba(255, 0, 255, 0.4))";
+                        e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (coins >= character.price) {
+                        e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))";
+                        e.currentTarget.style.boxShadow = "none";
+                      }
+                    }}
+                  >
+                    구매하기
+                  </button>
+                )}
               </div>
-            ))}
+              );
+            })}
             </div>
 
             {/* 오른쪽 화살표 */}
