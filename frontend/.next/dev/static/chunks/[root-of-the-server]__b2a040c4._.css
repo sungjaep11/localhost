@@ -127,32 +127,96 @@ body {
   width: 380px;
 }
 
+.cyberpunk-3d-btn-parallelogram:before {
+  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
+  border-width: 3px;
+  border-radius: 6px;
+}
+
+.cyberpunk-3d-btn-parallelogram .cyberpunk-btn-glow {
+  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
+  filter: blur(15px);
+  opacity: .8;
+}
+
+.cyberpunk-3d-btn-parallelogram .cyberpunk-btn-pattern {
+  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
+}
+
+.cyberpunk-3d-btn-parallelogram .cyberpunk-btn-wave {
+  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
+  border-radius: 0 0 6px 6px;
+}
+
+.cyberpunk-3d-btn-parallelogram .cyberpunk-btn-shine {
+  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
+  border-radius: 6px;
+}
+
+.cyberpunk-3d-btn-parallelogram-reverse:before {
+  clip-path: polygon(0% 0%, 92% 0%, 100% 100%, 8% 100%);
+  border-width: 3px;
+  border-radius: 6px;
+}
+
+.cyberpunk-3d-btn-parallelogram-reverse .cyberpunk-btn-glow {
+  clip-path: polygon(0% 0%, 92% 0%, 100% 100%, 8% 100%);
+  filter: blur(15px);
+  opacity: .8;
+}
+
+.cyberpunk-3d-btn-parallelogram-reverse .cyberpunk-btn-pattern {
+  clip-path: polygon(0% 0%, 92% 0%, 100% 100%, 8% 100%);
+}
+
+.cyberpunk-3d-btn-parallelogram-reverse .cyberpunk-btn-wave {
+  clip-path: polygon(0% 0%, 92% 0%, 100% 100%, 8% 100%);
+  border-radius: 0 0 6px 6px;
+}
+
+.cyberpunk-3d-btn-parallelogram-reverse .cyberpunk-btn-shine {
+  clip-path: polygon(0% 0%, 92% 0%, 100% 100%, 8% 100%);
+  border-radius: 6px;
+}
+
+.cyberpunk-3d-btn-parallelogram-reverse .cyberpunk-btn-content {
+  justify-content: center;
+  align-items: center;
+  transform: none;
+}
+
 .cyberpunk-3d-btn-right {
   width: 300px;
   height: 100px;
 }
 
 .cyberpunk-3d-btn-round {
-  border-radius: 50%;
-  width: 200px;
-  height: 200px;
+  transform: translateY(-10px)perspective(1000px)rotateX(3deg);
+  border-radius: 50% !important;
+  width: 200px !important;
+  height: 200px !important;
 }
 
 .cyberpunk-3d-btn-round:before, .cyberpunk-3d-btn-round .cyberpunk-btn-glow, .cyberpunk-3d-btn-round .cyberpunk-btn-pattern {
-  border-radius: 50%;
+  clip-path: none !important;
+  border-radius: 50% !important;
 }
 
 .cyberpunk-3d-btn-round .cyberpunk-btn-wave {
-  border-radius: 50%;
   height: 50%;
+  clip-path: none !important;
+  border-radius: 50% !important;
 }
 
 .cyberpunk-3d-btn-round .cyberpunk-btn-shine {
-  border-radius: 50%;
+  clip-path: none !important;
+  border-radius: 50% !important;
 }
 
 .cyberpunk-3d-btn-round .cyberpunk-btn-content {
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 10px;
 }
 
@@ -173,10 +237,14 @@ body {
   box-shadow: inset 0 0 30px #0006, inset 0 2px 10px #ffffff26, inset 0 -1px #ffffff1a;
 }
 
+.cyberpunk-3d-btn-parallelogram:before, .cyberpunk-3d-btn-parallelogram-reverse:before {
+  border-radius: 6px;
+}
+
 .cyberpunk-3d-btn-music:before {
-  background: linear-gradient(135deg, #0a0a14b3 0%, #05050fcc 50%, #0a0a14b3 100%);
-  border: 2px solid #0ff9;
-  box-shadow: 0 0 0 1px #f0f9, inset 0 0 0 1px #00ffff4d, inset 0 0 0 1px #ff00ff4d, 0 0 40px #0ff6, 0 0 60px #f0f6, 0 0 80px #0ff3, inset 0 0 30px #0000004d, inset 0 2px 10px #ffffff26, 0 15px 40px #0009, inset 0 -2px 20px #00ffff26, inset 0 -2px 20px #ff00ff26;
+  background: linear-gradient(135deg, #05050fe6 0%, #00000af2 50%, #05050fe6 100%);
+  border: 3px solid #0ffc;
+  box-shadow: 0 0 0 2px #f0fc, inset 0 0 0 1px #00ffff80, inset 0 0 0 1px #ff00ff80, 0 0 50px #0ff9, 0 0 80px #f0f9, 0 0 120px #00ffff4d, inset 0 0 40px #00000080, inset 0 2px 15px #fff3, 0 20px 50px #000c, inset 0 -2px 25px #0ff3, inset 0 -2px 25px #f0f3;
 }
 
 .cyberpunk-3d-btn:hover:before {
@@ -184,9 +252,9 @@ body {
 }
 
 .cyberpunk-3d-btn-music:hover:before {
-  border-width: 3px;
-  border-color: #00ffffe6;
-  box-shadow: 0 0 0 2px #f0fc, inset 0 0 0 1px #00ffff80, inset 0 0 0 1px #ff00ff80, 0 0 50px #00ffffb3, 0 0 70px #ff00ffb3, 0 0 100px #0ff6, 0 0 120px #f0f6, inset 0 0 40px #0006, inset 0 2px 15px #fff3, 0 18px 45px #000000bf, inset 0 -2px 25px #00ffff40, inset 0 -2px 25px #ff00ff40;
+  border-width: 4px;
+  border-color: #0ff;
+  box-shadow: 0 0 0 3px #f0f, inset 0 0 0 2px #00ffffb3, inset 0 0 0 2px #ff00ffb3, 0 0 70px #00ffffe6, 0 0 100px #ff00ffe6, 0 0 150px #0ff9, 0 0 200px #ff00ff80, inset 0 0 50px #0009, inset 0 2px 20px #ffffff4d, 0 25px 60px #000000e6, inset 0 -2px 30px #00ffff4d, inset 0 -2px 30px #ff00ff4d;
 }
 
 .cyberpunk-btn-pattern {
@@ -226,20 +294,31 @@ body {
 }
 
 .cyberpunk-btn-glow {
-  opacity: .7;
+  opacity: .9;
   pointer-events: none;
   z-index: 0;
-  filter: blur(12px);
-  background: radial-gradient(#00ffff4d 0%, #ff00ff4d 50%, #0000 70%);
+  filter: blur(15px);
+  background: radial-gradient(#00ffff80 0%, #ff00ff80 40%, #00ffff4d 60%, #0000 75%);
   border-radius: 20px;
   animation: 2.5s ease-in-out infinite glowPulse;
   position: absolute;
-  inset: -8px;
+  inset: -10px;
+}
+
+.cyberpunk-3d-btn-parallelogram .cyberpunk-btn-glow, .cyberpunk-3d-btn-parallelogram-reverse .cyberpunk-btn-glow {
+  opacity: 1;
+  filter: blur(18px);
 }
 
 .cyberpunk-3d-btn:hover .cyberpunk-btn-glow {
   opacity: 1;
-  filter: blur(15px);
+  filter: blur(20px);
+}
+
+.cyberpunk-3d-btn-parallelogram:hover .cyberpunk-btn-glow, .cyberpunk-3d-btn-parallelogram-reverse:hover .cyberpunk-btn-glow {
+  opacity: 1.2;
+  filter: blur(25px);
+  transform: scale(1.1);
 }
 
 @keyframes glowPulse {
@@ -258,45 +337,49 @@ body {
   z-index: 3;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
   height: 100%;
-  padding: 20px 28px;
+  margin: 0 auto;
+  padding: 0;
   display: flex;
   position: relative;
 }
 
 .cyberpunk-btn-icon {
-  background: #0006;
-  border: 1px solid;
-  border-radius: 12px;
+  background: none;
+  border: none;
+  border-radius: 0;
   flex-shrink: 0;
   justify-content: center;
   align-items: center;
   width: 48px;
   height: 48px;
-  padding: 10px;
+  margin: 0;
+  padding: 0;
   transition: all .3s;
   display: flex;
 }
 
 .cyberpunk-3d-btn-music .cyberpunk-btn-icon {
-  color: #0ff;
-  filter: drop-shadow(0 0 8px #0ffc) drop-shadow(0 0 4px #f0f9);
-  border-color: #00ffff80;
+  color: #fff;
+  filter: none;
+  border-color: #0000;
 }
 
 .cyberpunk-3d-btn:hover .cyberpunk-btn-icon {
-  background: #0009;
+  box-shadow: none;
+  background: none;
   transform: scale(1.05)rotate(3deg);
-  box-shadow: 0 0 20px #0ffc, 0 0 10px #f0f9;
 }
 
 .cyberpunk-btn-text {
   flex-direction: column;
   flex: 0 auto;
+  justify-content: center;
   align-items: center;
   gap: 4px;
+  margin: 0;
   display: flex;
 }
 
@@ -321,12 +404,13 @@ body {
 }
 
 .cyberpunk-3d-btn-music .cyberpunk-btn-title {
-  background: linear-gradient(135deg, #0ff, #f0f);
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 10px #0ffc, 0 0 20px #f0fc, 0 2px 4px #000c;
-  filter: drop-shadow(0 0 8px #0ff9) drop-shadow(0 0 4px #f0f9);
-  -webkit-background-clip: text;
-  background-clip: text;
+  color: #fff;
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #fff;
+  background-clip: unset;
+  text-shadow: 0 0 10px #ffffff80;
+  filter: none;
 }
 
 .cyberpunk-btn-shine {
@@ -493,6 +577,10 @@ body {
     opacity: .8;
     transform: translateY(-40px)translateX(10px)rotate(5deg)scale(1.05);
   }
+}
+
+button[title="STORE"]:hover .door-hint {
+  opacity: 1 !important;
 }
 
 /*# sourceMappingURL=%5Broot-of-the-server%5D__b2a040c4._.css.map*/

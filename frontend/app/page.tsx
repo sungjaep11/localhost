@@ -1,9 +1,21 @@
+"use client";
+
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // 처음 시작할 때 로그인 페이지로 리다이렉트
+    router.push('/auth/login');
+  }, [router]);
+
   return (
     <main
       style={{
         height: "100vh",
-        backgroundImage: "url('/images/background.avif')",
+        backgroundImage: "url('/images/background.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -17,18 +29,13 @@ export default function Home() {
     >
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "1.5rem",
+          color: "#00ffff",
+          fontSize: "1.5rem",
+          fontWeight: 600,
+          textShadow: "0 0 20px rgba(0, 255, 255, 0.8)",
         }}
       >
-        <button type="button" className="cyberpunk-btn">
-          노래 맞추기
-        </button>
-        <button type="button" className="cyberpunk-btn cyberpunk-btn-pink">
-          사투리 가사 맞추기
-        </button>
+        로딩 중...
       </div>
     </main>
   );

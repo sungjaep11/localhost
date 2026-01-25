@@ -15,6 +15,11 @@ var _s = __turbopack_context__.k.signature();
 function MyPage() {
     _s();
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    const handleLogout = ()=>{
+        // TODO: 로그아웃 로직 구현 (세션 제거, 토큰 삭제 등)
+        console.log('Logout');
+        router.push('/auth/login');
+    };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
         style: {
             height: "100vh",
@@ -58,7 +63,7 @@ function MyPage() {
                     children: "Myhome"
                 }, void 0, false, {
                     fileName: "[project]/frontend/app/main/mypage/page.tsx",
-                    lineNumber: 38,
+                    lineNumber: 44,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -71,56 +76,116 @@ function MyPage() {
                     children: "나의 홈 페이지입니다. 프로필과 통계를 확인하세요!"
                 }, void 0, false, {
                     fileName: "[project]/frontend/app/main/mypage/page.tsx",
-                    lineNumber: 54,
+                    lineNumber: 60,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     style: {
                         display: "flex",
                         gap: "1rem",
-                        justifyContent: "center"
+                        justifyContent: "center",
+                        flexWrap: "wrap"
                     },
-                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                        onClick: ()=>router.push("/main/lobby"),
-                        style: {
-                            padding: "1rem 2rem",
-                            background: "rgba(0, 255, 255, 0.2)",
-                            border: "2px solid rgba(0, 255, 255, 0.6)",
-                            borderRadius: "12px",
-                            color: "#00ffff",
-                            fontSize: "1.1rem",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            transition: "all 0.3s ease"
-                        },
-                        onMouseEnter: (e)=>{
-                            e.currentTarget.style.background = "rgba(0, 255, 255, 0.3)";
-                            e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
-                        },
-                        onMouseLeave: (e)=>{
-                            e.currentTarget.style.background = "rgba(0, 255, 255, 0.2)";
-                            e.currentTarget.style.boxShadow = "none";
-                        },
-                        children: "로비로 돌아가기"
-                    }, void 0, false, {
-                        fileName: "[project]/frontend/app/main/mypage/page.tsx",
-                        lineNumber: 72,
-                        columnNumber: 11
-                    }, this)
-                }, void 0, false, {
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            onClick: ()=>router.push("/main/lobby"),
+                            style: {
+                                padding: "1rem 2rem",
+                                background: "rgba(0, 255, 255, 0.2)",
+                                border: "2px solid rgba(0, 255, 255, 0.6)",
+                                borderRadius: "12px",
+                                color: "#00ffff",
+                                fontSize: "1.1rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                transition: "all 0.3s ease"
+                            },
+                            onMouseEnter: (e)=>{
+                                e.currentTarget.style.background = "rgba(0, 255, 255, 0.3)";
+                                e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
+                            },
+                            onMouseLeave: (e)=>{
+                                e.currentTarget.style.background = "rgba(0, 255, 255, 0.2)";
+                                e.currentTarget.style.boxShadow = "none";
+                            },
+                            children: "로비로 돌아가기"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/app/main/mypage/page.tsx",
+                            lineNumber: 79,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            onClick: handleLogout,
+                            style: {
+                                padding: "1rem 2rem",
+                                background: "rgba(255, 0, 0, 0.2)",
+                                border: "2px solid rgba(255, 0, 0, 0.6)",
+                                borderRadius: "12px",
+                                color: "#ff4444",
+                                fontSize: "1.1rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                transition: "all 0.3s ease",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem"
+                            },
+                            onMouseEnter: (e)=>{
+                                e.currentTarget.style.background = "rgba(255, 0, 0, 0.3)";
+                                e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.9)";
+                                e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.5)";
+                                e.currentTarget.style.transform = "translateY(-2px)";
+                            },
+                            onMouseLeave: (e)=>{
+                                e.currentTarget.style.background = "rgba(255, 0, 0, 0.2)";
+                                e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.6)";
+                                e.currentTarget.style.boxShadow = "none";
+                                e.currentTarget.style.transform = "translateY(0)";
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                                    width: "18",
+                                    height: "18",
+                                    viewBox: "0 0 24 24",
+                                    fill: "none",
+                                    stroke: "currentColor",
+                                    strokeWidth: 2,
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                                        strokeLinecap: "round",
+                                        strokeLinejoin: "round",
+                                        d: "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/app/main/mypage/page.tsx",
+                                        lineNumber: 134,
+                                        columnNumber: 15
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/app/main/mypage/page.tsx",
+                                    lineNumber: 133,
+                                    columnNumber: 13
+                                }, this),
+                                "로그아웃"
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/app/main/mypage/page.tsx",
+                            lineNumber: 104,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
                     fileName: "[project]/frontend/app/main/mypage/page.tsx",
-                    lineNumber: 65,
+                    lineNumber: 71,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/frontend/app/main/mypage/page.tsx",
-            lineNumber: 26,
+            lineNumber: 32,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/frontend/app/main/mypage/page.tsx",
-        lineNumber: 9,
+        lineNumber: 15,
         columnNumber: 5
     }, this);
 }

@@ -15,6 +15,11 @@ var _s = __turbopack_context__.k.signature();
 function LobbyPage() {
     _s();
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    const handleLogout = ()=>{
+        // TODO: 로그아웃 로직 구현 (세션 제거, 토큰 삭제 등)
+        console.log('Logout');
+        router.push('/auth/login');
+    };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
         style: {
             height: "100vh",
@@ -31,6 +36,69 @@ function LobbyPage() {
             position: "relative"
         },
         children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                onClick: handleLogout,
+                style: {
+                    position: "absolute",
+                    top: "2rem",
+                    right: "2rem",
+                    padding: "0.75rem 1.5rem",
+                    background: "rgba(255, 0, 0, 0.2)",
+                    border: "2px solid rgba(255, 0, 0, 0.6)",
+                    borderRadius: "12px",
+                    color: "#ff4444",
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    zIndex: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem"
+                },
+                onMouseEnter: (e)=>{
+                    e.currentTarget.style.background = "rgba(255, 0, 0, 0.3)";
+                    e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.9)";
+                    e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.5)";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                },
+                onMouseLeave: (e)=>{
+                    e.currentTarget.style.background = "rgba(255, 0, 0, 0.2)";
+                    e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.6)";
+                    e.currentTarget.style.boxShadow = "none";
+                    e.currentTarget.style.transform = "translateY(0)";
+                },
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                        width: "16",
+                        height: "16",
+                        viewBox: "0 0 24 24",
+                        fill: "none",
+                        stroke: "currentColor",
+                        strokeWidth: 2,
+                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            d: "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/app/main/lobby/page.tsx",
+                            lineNumber: 69,
+                            columnNumber: 11
+                        }, this)
+                    }, void 0, false, {
+                        fileName: "[project]/frontend/app/main/lobby/page.tsx",
+                        lineNumber: 68,
+                        columnNumber: 9
+                    }, this),
+                    "LOGOUT"
+                ]
+            }, void 0, true, {
+                fileName: "[project]/frontend/app/main/lobby/page.tsx",
+                lineNumber: 33,
+                columnNumber: 7
+            }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "floating-notes",
                 children: [
@@ -46,22 +114,22 @@ function LobbyPage() {
                                 d: "M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                lineNumber: 30,
+                                lineNumber: 78,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                            lineNumber: 29,
+                            lineNumber: 77,
                             columnNumber: 13
                         }, this)
                     }, i, false, {
                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                        lineNumber: 28,
+                        lineNumber: 76,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                lineNumber: 26,
+                lineNumber: 74,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -93,21 +161,21 @@ function LobbyPage() {
                                         className: "cyberpunk-btn-glow"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 62,
+                                        lineNumber: 110,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-pattern"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 63,
+                                        lineNumber: 111,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-wave"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 64,
+                                        lineNumber: 112,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -125,12 +193,12 @@ function LobbyPage() {
                                                     d: "M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 67,
+                                                    lineNumber: 115,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 66,
+                                                lineNumber: 114,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -140,31 +208,31 @@ function LobbyPage() {
                                                     children: "노래 전주 듣고 맞추기"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 70,
+                                                    lineNumber: 118,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 69,
+                                                lineNumber: 117,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 65,
+                                        lineNumber: 113,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-shine"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 73,
+                                        lineNumber: 121,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                lineNumber: 57,
+                                lineNumber: 105,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -176,21 +244,21 @@ function LobbyPage() {
                                         className: "cyberpunk-btn-glow"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 81,
+                                        lineNumber: 129,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-pattern"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 82,
+                                        lineNumber: 130,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-wave"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 83,
+                                        lineNumber: 131,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -208,12 +276,12 @@ function LobbyPage() {
                                                     d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 86,
+                                                    lineNumber: 134,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 85,
+                                                lineNumber: 133,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -223,31 +291,31 @@ function LobbyPage() {
                                                     children: "사투리로 게임하기"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 89,
+                                                    lineNumber: 137,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 88,
+                                                lineNumber: 136,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 84,
+                                        lineNumber: 132,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-shine"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 92,
+                                        lineNumber: 140,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                lineNumber: 76,
+                                lineNumber: 124,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -259,21 +327,21 @@ function LobbyPage() {
                                         className: "cyberpunk-btn-glow"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 100,
+                                        lineNumber: 148,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-pattern"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 101,
+                                        lineNumber: 149,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-wave"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 102,
+                                        lineNumber: 150,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -291,12 +359,12 @@ function LobbyPage() {
                                                     d: "M4 6h16M4 12h16M4 18h16"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 105,
+                                                    lineNumber: 153,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 104,
+                                                lineNumber: 152,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -306,37 +374,37 @@ function LobbyPage() {
                                                     children: "Our Playlist"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 108,
+                                                    lineNumber: 156,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 107,
+                                                lineNumber: 155,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 103,
+                                        lineNumber: 151,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-shine"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 111,
+                                        lineNumber: 159,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                lineNumber: 95,
+                                lineNumber: 143,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                        lineNumber: 48,
+                        lineNumber: 96,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -357,21 +425,21 @@ function LobbyPage() {
                                         className: "cyberpunk-btn-glow"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 130,
+                                        lineNumber: 178,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-pattern"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 131,
+                                        lineNumber: 179,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-wave"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 132,
+                                        lineNumber: 180,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -389,12 +457,12 @@ function LobbyPage() {
                                                     d: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 135,
+                                                    lineNumber: 183,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 134,
+                                                lineNumber: 182,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -404,31 +472,31 @@ function LobbyPage() {
                                                     children: "Myhome"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 138,
+                                                    lineNumber: 186,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 137,
+                                                lineNumber: 185,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 133,
+                                        lineNumber: 181,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-shine"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 141,
+                                        lineNumber: 189,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                lineNumber: 125,
+                                lineNumber: 173,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -440,21 +508,21 @@ function LobbyPage() {
                                         className: "cyberpunk-btn-glow"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 149,
+                                        lineNumber: 197,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-pattern"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 150,
+                                        lineNumber: 198,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-wave"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 151,
+                                        lineNumber: 199,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -472,12 +540,12 @@ function LobbyPage() {
                                                     d: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 154,
+                                                    lineNumber: 202,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 153,
+                                                lineNumber: 201,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -487,49 +555,49 @@ function LobbyPage() {
                                                     children: "STORE"
                                                 }, void 0, false, {
                                                     fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                    lineNumber: 157,
+                                                    lineNumber: 205,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                                lineNumber: 156,
+                                                lineNumber: 204,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 152,
+                                        lineNumber: 200,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "cyberpunk-btn-shine"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                        lineNumber: 160,
+                                        lineNumber: 208,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                                lineNumber: 144,
+                                lineNumber: 192,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                        lineNumber: 116,
+                        lineNumber: 164,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/frontend/app/main/lobby/page.tsx",
-                lineNumber: 36,
+                lineNumber: 84,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/frontend/app/main/lobby/page.tsx",
-        lineNumber: 9,
+        lineNumber: 16,
         columnNumber: 5
     }, this);
 }

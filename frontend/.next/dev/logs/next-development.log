@@ -1702,3 +1702,3583 @@ Import traces:
 [21:40:45.263] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
 [21:40:45.406] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/game/[roomId]/page"
 [21:40:46.551] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:42:55.712] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:46:41.406] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:46:43.362] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:46:44.238] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:46:48.773] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:47:36.703] Server  LOG     ✓ Compiled in 43ms
+[21:47:57.108] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:48:03.206] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:48:10.284] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:48:18.453] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:48:41.512] Browser LOG     Signup: {"email":"alicebsy@naver.com","password":"baeseoyeon329","username":"배서연"}
+[21:49:09.861] Server  LOG     ✓ Compiled in 14ms
+[21:52:49.972] Server  LOG     ✓ Compiled in 34ms
+[21:52:50.987] Browser ERROR   uncaughtError: ReferenceError: ModelViewer is not defined
+[21:52:50.987] Browser ERROR   uncaughtError: ReferenceError: ModelViewer is not defined
+[21:53:04.967] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.968] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.970] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.971] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.975] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.978] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.981] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.984] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.988] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.991] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.994] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:04.997] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.005] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.006] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.008] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.010] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.012] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.014] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.017] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.018] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.021] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.023] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.025] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.026] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.028] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.030] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.031] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.032] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.034] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.035] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.037] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.038] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.040] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.042] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.043] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.044] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.045] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.047] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.048] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.049] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.051] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.052] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.053] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.054] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.056] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.057] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.058] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.059] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.061] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.062] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.064] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.065] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.067] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.068] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.069] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.070] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.071] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.073] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.074] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.075] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[21:53:05.077] Server  LOG     ✓ Compiled in 45ms
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:05.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:4:1
+Module not found: Can't resolve '@/components/ModelViewer'
+  2 |
+  3 | import { useRouter } from 'next/navigation';
+> 4 | import ModelViewer from '@/components/ModelViewer';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function LobbyPage() {
+  7 |   const router = useRouter();
+
+Import map: aliased to relative './components/ModelViewer' inside of [project]/frontend
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[21:53:30.137] Server  LOG     ✓ Compiled in 1521ms
+[21:53:31.280] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:53:31.527] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[21:53:31.722] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:53:35.045] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:35.045] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:35.318] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:53:35.855] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:35.855] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:36.302] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[21:53:36.540] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:53:37.095] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:37.095] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:37.606] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[21:53:38.545] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:53:39.104] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:39.104] Browser ERROR   uncaughtError: Error: Could not load /character.glb: fetch for "http://localhost:3000/character.glb" responded with 404: Not Found
+[21:53:39.613] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[21:56:07.967] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[21:56:07.982] Server  LOG     ✓ Compiled in 27ms
+[21:56:08.594] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:11.997] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:13.270] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:14.380] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:15.990] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:16.342] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:17.662] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:24.644] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:25.438] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:56:26.526] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:57:47.754] Server  LOG     ✓ Compiled in 1242ms
+[21:57:48.368] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[21:57:52.985] Browser WARN    THREE.WARNING: Multiple instances of Three.js being imported.
+[21:57:52.985] Browser WARN    THREE.WARNING: Multiple instances of Three.js being imported.
+[21:57:53.333] Server  LOG     ✓ Compiled in 8ms
+[21:58:00.131] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:58:10.116] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:58:20.121] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[21:58:30.371] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[21:58:50.343] Server  LOG     ✓ Compiled in 13ms
+[21:58:52.837] Server  LOG     ✓ Compiled in 4ms
+[21:59:04.423] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:00:12.329] Server  LOG     ✓ Compiled in 16ms
+[22:00:12.812] Server  LOG     ✓ Compiled in 12ms
+[22:00:17.938] Server  LOG     ✓ Compiled in 11ms
+[22:00:19.512] Server  LOG     ✓ Compiled in 17ms
+[22:00:28.605] Server  LOG     ✓ Compiled in 5ms
+[22:00:36.827] Server  LOG     ✓ Compiled in 5ms
+[22:00:43.312] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:00:47.004] Browser LOG     Logout
+[22:00:47.465] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:00:56.688] Browser LOG     Login: {"email":"alicebsy@naver.com","password":"baeseoyeon329"}
+[22:00:59.825] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:01:04.898] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:01:06.527] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:02:10.606] Server  LOG     ✓ Compiled in 18ms
+[22:02:14.254] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:02:18.980] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:02:34.284] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:35.550] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:36.349] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:36.890] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:37.178] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:39.409] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:39.629] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:39.736] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:02:41.746] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:03:17.500] Server  LOG     ✓ Compiled in 17ms
+[22:03:18.567] Server  LOG     ✓ Compiled in 12ms
+[22:03:25.594] Server  LOG     ✓ Compiled in 5ms
+[22:04:25.632] Server  LOG     ✓ Compiled in 16ms
+[22:04:26.389] Server  LOG     ✓ Compiled in 10ms
+[22:04:27.265] Server  LOG     ✓ Compiled in 8ms
+[22:04:28.750] Server  LOG     ✓ Compiled in 7ms
+[22:04:42.094] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:05:02.696] Server  LOG     ✓ Compiled in 28ms
+[22:05:07.792] Server  LOG     ✓ Compiled in 18ms
+[22:05:08.916] Server  LOG     ✓ Compiled in 22ms
+[22:05:10.397] Server  LOG     ✓ Compiled in 23ms
+[22:05:14.232] Browser LOG     Logout
+[22:05:14.706] Server  LOG     ✓ Compiled in 8ms
+[22:05:14.851] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:05:52.409] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:07:17.702] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:07:31.742] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:10:40.590] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:10:44.581] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:10:46.132] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:10:47.711] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:10:48.258] Server  ERROR   ⨯ Error: The default export is not a React Component in "/game/[roomId]/page"
+[22:10:48.930] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:15:12.923] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:15:20.230] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:15:22.041] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:15:49.698] Server  LOG     ✓ Compiled in 39ms
+[22:15:49.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:15:49.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:15:49.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:15:49.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:15:59.253] Server  LOG     ✓ Compiled in 10ms
+[22:15:59.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:15:59.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:15:59.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:15:59.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:08.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:08.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:08.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:08.986] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:21.839] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+
+./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:22.076] Browser ERROR   uncaughtError: Error: ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:22.224] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.224] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.224] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.224] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:22.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.662] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+
+./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:23.780] Browser ERROR   uncaughtError: Error: ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:23.934] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.934] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.934] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.934] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:23.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.156] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+
+./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:30.273] Browser ERROR   uncaughtError: Error: ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:30.417] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.417] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.417] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.417] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.987] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.987] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.987] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.987] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.987] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:30.987] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.345] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+
+./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:44.460] Browser ERROR   uncaughtError: Error: ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:44.603] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.603] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.603] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.603] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:44.985] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.161] Server  ERROR   ⨯ ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+
+./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:45.272] Browser ERROR   uncaughtError: Error: ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+
+[22:17:45.421] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.421] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.421] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.421] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.988] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:5
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |     ^
+  258 |   );
+  259 | }
+  260 |
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:17:45.989] Browser ERROR   ./frontend/app/main/lobby/page.tsx:257:6
+Parsing ecmascript source code failed
+  255 |       </button>
+  256 |       </div>
+> 257 |     </main>
+      |      ^^^^^^
+  258 |   );
+  259 | }
+  260 |
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/main/lobby/page.tsx [Client Component Browser]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/main/lobby/page.tsx [Client Component SSR]
+    ./frontend/app/main/lobby/page.tsx [Server Component]
+[22:18:13.249] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[22:18:14.555] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:18:58.590] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:19:39.705] Server  LOG     ✓ Compiled in 15ms
+[22:19:44.678] Server  LOG     ✓ Compiled in 8ms
+[22:21:58.380] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:22:01.664] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:22:51.668] Server  LOG     ✓ Compiled in 28ms
+[22:22:53.387] Server  LOG     ✓ Compiled in 21ms
+[22:23:07.875] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:23:09.365] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:23:12.978] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:23:54.853] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:26:25.176] Server  LOG     ✓ Compiled in 57ms
+[22:26:26.167] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:26:29.759] Server  LOG     ✓ Compiled in 14ms
+[22:28:34.154] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:28:34.795] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:28:47.633] Server  LOG     ✓ Compiled in 22ms
+[22:28:47.678] Server  LOG     ✓ Compiled in 30ms
+[22:30:12.075] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:30:32.468] Server  LOG     ✓ Compiled in 34ms
+[22:30:35.001] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:30:37.799] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:30:39.205] Server  LOG     ✓ Compiled in 16ms
+[22:31:10.622] Server  LOG     ✓ Compiled in 72ms
+[22:32:02.692] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:32:09.347] Server  LOG     ✓ Compiled in 33ms
+[22:32:44.667] Server  LOG     ✓ Compiled in 18ms
+[22:34:09.110] Server  LOG     ✓ Compiled in 34ms
+[22:34:10.895] Server  LOG     ✓ Compiled in 19ms
+[22:34:33.317] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:35:17.230] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:35:52.627] Server  LOG     ✓ Compiled in 25ms
+[22:35:58.581] Server  LOG     ✓ Compiled in 22ms
+[22:36:02.575] Server  LOG     ✓ Compiled in 11ms
+[22:36:04.327] Server  LOG     ✓ Compiled in 10ms
+[22:36:09.230] Server  LOG     ✓ Compiled in 7ms
+[22:36:18.282] Server  LOG     ✓ Compiled in 8ms
+[22:36:23.980] Server  LOG     ✓ Compiled in 11ms
+[22:36:32.560] Server  LOG     ✓ Compiled in 10ms
+[22:36:35.189] Server  LOG     ✓ Compiled in 8ms
+[22:36:40.340] Server  LOG     ✓ Compiled in 28ms
+[22:37:51.291] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:37:53.318] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:37:55.218] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:37:58.180] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:38:23.643] Server  LOG     ✓ Compiled in 29ms
+[22:38:28.603] Server  LOG     ✓ Compiled in 16ms
+[22:38:46.038] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:39:50.733] Server  LOG     ✓ Compiled in 22ms
+[22:39:57.879] Server  LOG     ✓ Compiled in 10ms
+[22:40:20.743] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:40:27.929] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:40:29.521] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:41:01.344] Server  LOG     ✓ Compiled in 17ms
+[22:41:07.883] Server  LOG     ✓ Compiled in 11ms
+[22:42:13.148] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:43:04.779] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:43:07.550] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:50:59.814] Server  LOG     ✓ Compiled in 84ms
+[22:51:11.801] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:51:13.340] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:51:14.006] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:51:19.639] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:51:21.432] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:51:22.547] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:51:24.189] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:51:46.159] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:52:31.962] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:53:15.709] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:53:18.523] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[22:53:27.855] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[22:54:35.345] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[23:05:22.717] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[23:08:24.421] Server  LOG     ✓ Compiled in 62ms
+[23:08:27.818] Server  LOG     ✓ Compiled in 37ms
+[23:08:31.211] Server  LOG     ✓ Compiled in 12ms
+[23:08:31.316] Browser ERROR   ./frontend/app/game/song-guess/page.tsx:385:13
+Parsing ecmascript source code failed
+  383 |               )}
+  384 |             </button>
+> 385 |           ))}
+      |             ^
+  386 |         </div>
+  387 |       </div>
+  388 |     </main>
+
+Expected '</', got '}'
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/game/song-guess/page.tsx [Client Component Browser]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/game/song-guess/page.tsx [Client Component SSR]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+[23:08:31.988] Browser ERROR   ./frontend/app/game/song-guess/page.tsx:385:13
+Parsing ecmascript source code failed
+  383 |               )}
+  384 |             </button>
+> 385 |           ))}
+      |             ^
+  386 |         </div>
+  387 |       </div>
+  388 |     </main>
+
+Expected '</', got '}'
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/game/song-guess/page.tsx [Client Component Browser]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/game/song-guess/page.tsx [Client Component SSR]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+[23:08:32.486] Browser ERROR   ./frontend/app/game/song-guess/page.tsx:383:13
+Parsing ecmascript source code failed
+  381 |               )}
+  382 |             </button>
+> 383 |           ))}
+      |             ^
+  384 |         </div>
+  385 |       </div>
+  386 |     </main>
+
+Expected '</', got '}'
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/game/song-guess/page.tsx [Client Component Browser]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/game/song-guess/page.tsx [Client Component SSR]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+[23:08:32.988] Browser ERROR   ./frontend/app/game/song-guess/page.tsx:383:13
+Parsing ecmascript source code failed
+  381 |               )}
+  382 |             </button>
+> 383 |           ))}
+      |             ^
+  384 |         </div>
+  385 |       </div>
+  386 |     </main>
+
+Expected '</', got '}'
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/game/song-guess/page.tsx [Client Component Browser]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/game/song-guess/page.tsx [Client Component SSR]
+    ./frontend/app/game/song-guess/page.tsx [Server Component]
+[23:08:33.183] Server  LOG     ✓ Compiled in 27ms
+[23:08:37.306] Server  LOG     ✓ Compiled in 37ms
+[23:08:42.477] Server  LOG     ✓ Compiled in 20ms
+[23:08:57.210] Server  LOG     ✓ Compiled in 58ms
+[23:09:12.086] Server  LOG     ✓ Compiled in 14ms
+[23:09:12.790] Server  LOG     ✓ Compiled in 18ms
+[23:10:06.159] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[23:10:08.609] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[23:10:14.795] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[23:10:55.970] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[23:15:44.790] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[23:16:40.875] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[23:16:53.600] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[23:17:01.222] Browser LOG     Login: {"email":"alicebsy@naver.com","password":"baeseoyeon329"}
+[23:17:06.602] Browser LOG     THREE.WebGLRenderer: Context Lost.
+[23:18:41.010] Server  LOG     ✓ Compiled in 94ms
+[23:18:48.776] Server  LOG     ✓ Compiled in 82ms
+[23:19:00.981] Server  LOG     ✓ Compiled in 16ms
+[23:19:01.085] Browser ERROR   ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx:264:15
+Parsing ecmascript source code failed
+  262 |                 </div>
+  263 |               </div>
+> 264 |             ))}
+      |               ^
+  265 |           </div>
+  266 |         </div>
+  267 |       </div>
+
+Expected '</', got '}'
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Client Component Browser]
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Client Component SSR]
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Server Component]
+[23:19:01.987] Browser ERROR   ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx:264:15
+Parsing ecmascript source code failed
+  262 |                 </div>
+  263 |               </div>
+> 264 |             ))}
+      |               ^
+  265 |           </div>
+  266 |         </div>
+  267 |       </div>
+
+Expected '</', got '}'
+
+Import traces:
+  Client Component Browser:
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Client Component Browser]
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Client Component SSR]
+    ./frontend/app/game/song-guess/[roomId]/waiting/page.tsx [Server Component]
+[23:20:40.706] Browser LOG     Login: {"email":"alicebsy@naver.com","password":"baeseoyeon329"}

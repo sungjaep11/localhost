@@ -1,9 +1,31 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import ModelViewer from '@/components/ModelViewer';
 
 export default function LobbyPage() {
   const router = useRouter();
+  const [coins, setCoins] = useState(0);
+
+  // TODO: 실제 코인 데이터를 API나 store에서 가져오기
+  useEffect(() => {
+    // 임시로 로컬 스토리지에서 코인 가져오기
+    const savedCoins = localStorage.getItem('userCoins');
+    if (savedCoins) {
+      setCoins(parseInt(savedCoins, 10));
+    } else {
+      // 기본값 설정
+      setCoins(1000);
+      localStorage.setItem('userCoins', '1000');
+    }
+  }, []);
+
+  const handleLogout = () => {
+    // TODO: 로그아웃 로직 구현 (세션 제거, 토큰 삭제 등)
+    console.log('Logout');
+    router.push('/auth/login');
+  };
 
   return (
     <main
@@ -22,6 +44,149 @@ export default function LobbyPage() {
         position: "relative",
       }}
     >
+      {/* 로그아웃 버튼과 Myhome - 우측 상단 */}
+      <div
+        style={{
+          position: "absolute",
+          top: "2rem",
+          right: "2rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "1.5rem",
+          zIndex: 10,
+        }}
+      >
+        <button
+          onClick={() => router.push("/main/mypage")}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#ffffff",
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            textShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
+            fontFamily: "inherit",
+            lineHeight: "1.5",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#00ffff";
+            e.currentTarget.style.textShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
+          }}
+        >
+          Myhome
+        </button>
+
+        <button
+          onClick={() => router.push("/main/shop")}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#ffffff",
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            textShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
+            fontFamily: "inherit",
+            lineHeight: "1.5",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#00ffff";
+            e.currentTarget.style.textShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
+          }}
+        >
+          Store
+        </button>
+
+        {/* 코인 표시 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.5rem 1rem",
+            background: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255, 215, 0, 0.5)",
+            borderRadius: "20px",
+            color: "#ffd700",
+            fontSize: "0.9rem",
+            fontWeight: 700,
+            textShadow: "0 0 10px rgba(255, 215, 0, 0.8)",
+            boxShadow: "0 0 15px rgba(255, 215, 0, 0.3)",
+          }}
+        >
+          <svg 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            fill="currentColor"
+            style={{
+              filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))",
+            }}
+          >
+            <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
+            <path 
+              d="M12 6v12M8 10h8M8 14h8" 
+              stroke="#000" 
+              strokeWidth="1.5" 
+              strokeLinecap="round"
+            />
+          </svg>
+          <span>{coins.toLocaleString()}</span>
+        </div>
+        
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: "0.75rem 1.5rem",
+            background: "rgba(255, 0, 0, 0.2)",
+            border: "2px solid rgba(255, 0, 0, 0.6)",
+            borderRadius: "12px",
+            color: "#ff4444",
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255, 0, 0, 0.3)";
+            e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.9)";
+            e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.5)";
+            e.currentTarget.style.transform = "translateY(-2px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255, 0, 0, 0.2)";
+            e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.6)";
+            e.currentTarget.style.boxShadow = "none";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          LOGOUT
+        </button>
+      </div>
       {/* 떠다니는 음표들 */}
       <div className="floating-notes">
         {[...Array(8)].map((_, i) => (
@@ -31,6 +196,22 @@ export default function LobbyPage() {
             </svg>
           </div>
         ))}
+      </div>
+
+      {/* 3D 캐릭터 - 화면 정중앙 */}
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "55%",
+          transform: "translate(-50%, -50%)",
+          width: "600px",
+          height: "700px",
+          zIndex: 5,
+          pointerEvents: "none",
+        }}
+      >
+        <ModelViewer />
       </div>
       
       <div
@@ -44,20 +225,24 @@ export default function LobbyPage() {
           gap: "4rem",
         }}
       >
-        {/* 왼쪽 버튼 3개 */}
+        {/* 왼쪽 버튼 2개 */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "flex-start",
-            gap: "1.5rem",
+            gap: "5rem",
             flex: 1,
+            paddingTop: "4rem",
           }}
         >
           <button 
             type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-left"
+            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-left cyberpunk-3d-btn-parallelogram-reverse"
             onClick={() => router.push("/game/song-guess")}
+            style={{
+              marginLeft: "2rem",
+            }}
           >
             <div className="cyberpunk-btn-glow" />
             <div className="cyberpunk-btn-pattern" />
@@ -75,8 +260,11 @@ export default function LobbyPage() {
           
           <button 
             type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-left"
+            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-left cyberpunk-3d-btn-parallelogram"
             onClick={() => router.push("/game/sauturi-quiz")}
+            style={{
+              marginRight: "2rem",
+            }}
           >
             <div className="cyberpunk-btn-glow" />
             <div className="cyberpunk-btn-pattern" />
@@ -92,9 +280,22 @@ export default function LobbyPage() {
             <div className="cyberpunk-btn-shine" />
           </button>
           
+        </div>
+
+        {/* 오른쪽 Our Playlist */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            gap: "2rem",
+            flex: 1,
+          }}
+        >
           <button 
             type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-left cyberpunk-3d-btn-round"
+            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-round"
             onClick={() => router.push("/main/playlist")}
           >
             <div className="cyberpunk-btn-glow" />
@@ -106,55 +307,6 @@ export default function LobbyPage() {
               </svg>
               <div className="cyberpunk-btn-text">
                 <span className="cyberpunk-btn-title">Our Playlist</span>
-              </div>
-            </div>
-            <div className="cyberpunk-btn-shine" />
-          </button>
-        </div>
-
-        {/* 오른쪽 Myhome과 Store */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: "2rem",
-            flex: 1,
-          }}
-        >
-          <button 
-            type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-right"
-            onClick={() => router.push("/main/mypage")}
-          >
-            <div className="cyberpunk-btn-glow" />
-            <div className="cyberpunk-btn-pattern" />
-            <div className="cyberpunk-btn-wave" />
-            <div className="cyberpunk-btn-content">
-              <svg className="cyberpunk-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              <div className="cyberpunk-btn-text">
-                <span className="cyberpunk-btn-title">Myhome</span>
-              </div>
-            </div>
-            <div className="cyberpunk-btn-shine" />
-          </button>
-          
-          <button 
-            type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-right"
-            onClick={() => router.push("/main/shop")}
-          >
-            <div className="cyberpunk-btn-glow" />
-            <div className="cyberpunk-btn-pattern" />
-            <div className="cyberpunk-btn-wave" />
-            <div className="cyberpunk-btn-content">
-              <svg className="cyberpunk-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              <div className="cyberpunk-btn-text">
-                <span className="cyberpunk-btn-title">STORE</span>
               </div>
             </div>
             <div className="cyberpunk-btn-shine" />

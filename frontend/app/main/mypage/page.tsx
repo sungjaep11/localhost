@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 export default function MyPage() {
   const router = useRouter();
 
+  const handleLogout = () => {
+    // TODO: 로그아웃 로직 구현 (세션 제거, 토큰 삭제 등)
+    console.log('Logout');
+    router.push('/auth/login');
+  };
+
   return (
     <main
       style={{
@@ -67,6 +73,7 @@ export default function MyPage() {
             display: "flex",
             gap: "1rem",
             justifyContent: "center",
+            flexWrap: "wrap",
           }}
         >
           <button
@@ -92,6 +99,41 @@ export default function MyPage() {
             }}
           >
             로비로 돌아가기
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "1rem 2rem",
+              background: "rgba(255, 0, 0, 0.2)",
+              border: "2px solid rgba(255, 0, 0, 0.6)",
+              borderRadius: "12px",
+              color: "#ff4444",
+              fontSize: "1.1rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255, 0, 0, 0.3)";
+              e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.9)";
+              e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.5)";
+              e.currentTarget.style.transform = "translateY(-2px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255, 0, 0, 0.2)";
+              e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.6)";
+              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            로그아웃
           </button>
         </div>
       </div>

@@ -72,6 +72,51 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../../app/game/song-guess/[roomId]/countdown/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/[roomId]/countdown">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/[roomId]/countdown/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/[roomId]/play/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/[roomId]/play">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/[roomId]/play/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/[roomId]/waiting/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/[roomId]/waiting">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/[roomId]/waiting/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/create/genre/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/create/genre">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/create/genre/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/create/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/create">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/create/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/game/song-guess/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/game/song-guess">> = Specific
