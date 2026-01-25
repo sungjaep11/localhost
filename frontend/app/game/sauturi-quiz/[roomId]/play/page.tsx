@@ -29,6 +29,21 @@ interface BubbleMessage {
   expiresAt: number;
 }
 
+interface Room {
+  id: string;
+  name: string;
+  currentPlayers: number;
+  maxPlayers: number;
+  isLocked: boolean;
+  password?: string;
+  hostId: string;
+  hostName: string;
+  rounds: number;
+  songsPerRound: number;
+  genres: string[];
+  createdAt: number;
+}
+
 // 3D 모델 컴포넌트
 function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
   const { scene } = useGLTF(url);
@@ -58,24 +73,42 @@ export default function GamePlayPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
-  const [currentRound] = useState(1);
-  const [currentSong] = useState(4);
-  const [totalSongs] = useState(10);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [currentSong, setCurrentSong] = useState(1);
+  const [totalRounds, setTotalRounds] = useState(1);
+  const [songsPerRound, setSongsPerRound] = useState(5);
   const [players, setPlayers] = useState<Player[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [bubbleMessages, setBubbleMessages] = useState<BubbleMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [showExitModal, setShowExitModal] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // 현재 사용자 정보 불러오기
+  // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
     if (userId) setCurrentUserId(userId);
     if (userName) setCurrentUserName(userName);
-  }, []);
+
+    // 방 정보 불러오기
+    const STORAGE_KEY = 'sauturi-quiz-rooms';
+    const storedRooms = localStorage.getItem(STORAGE_KEY);
+    if (storedRooms) {
+      try {
+        const rooms: Room[] = JSON.parse(storedRooms);
+        const currentRoom = rooms.find(r => r.id === roomId);
+        if (currentRoom) {
+          setTotalRounds(currentRoom.rounds);
+          setSongsPerRound(currentRoom.songsPerRound);
+        }
+      } catch (e) {
+        console.error('Failed to load room info', e);
+      }
+    }
+  }, [roomId]);
 
   // 참가자 목록 불러오기
   useEffect(() => {
@@ -179,6 +212,79 @@ export default function GamePlayPage() {
         ))}
       </div>
 
+      {/* 나가기 확인 모달 */}
+      {showExitModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+          onClick={() => setShowExitModal(false)}
+        >
+          <div
+            style={{
+              background: "rgba(20, 20, 40, 0.95)",
+              border: "2px solid rgba(0, 255, 255, 0.5)",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "400px",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              style={{
+                color: "#ffffff",
+                fontSize: "1.3rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              게임을 중단하고 돌아가시겠습니까?
+            </h3>
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+              <button
+                onClick={() => setShowExitModal(false)}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  background: "rgba(100, 100, 100, 0.5)",
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={() => router.push('/main/lobby')}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  background: "rgba(255, 100, 100, 0.5)",
+                  border: "2px solid rgba(255, 100, 100, 0.8)",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                나가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div
         style={{
@@ -190,11 +296,22 @@ export default function GamePlayPage() {
         }}
       >
         <div
+          onClick={() => setShowExitModal(true)}
           style={{
             color: "#ffffff",
             fontSize: "1.2rem",
             fontWeight: 700,
             textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#00ffff";
+            e.currentTarget.style.textShadow = "0 0 20px rgba(0, 255, 255, 1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.textShadow = "0 0 10px rgba(0, 255, 255, 0.8)";
           }}
         >
           Localhost
@@ -207,7 +324,7 @@ export default function GamePlayPage() {
             textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
           }}
         >
-          Round {currentRound} {currentSong}/{totalSongs}
+          Round {currentRound} {currentSong}/{songsPerRound}
         </div>
       </div>
 

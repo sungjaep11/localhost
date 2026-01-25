@@ -25,13 +25,15 @@ export default function SauturiQuizPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [rooms, setRooms] = useState<Room[]>([]);
 
-  // localStorage에서 방 목록 불러오기
+  // localStorage에서 방 목록 불러오기 (최신순 정렬)
   useEffect(() => {
     const storedRooms = localStorage.getItem(STORAGE_KEY);
     if (storedRooms) {
       try {
         const parsedRooms = JSON.parse(storedRooms);
-        setRooms(parsedRooms);
+        // 최신순 정렬 (createdAt 내림차순)
+        const sortedRooms = parsedRooms.sort((a: Room, b: Room) => b.createdAt - a.createdAt);
+        setRooms(sortedRooms);
       } catch (e) {
         console.error('Failed to parse rooms from localStorage', e);
       }

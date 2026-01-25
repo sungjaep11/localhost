@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 
@@ -21,6 +21,8 @@ interface ChatMessage {
   playerName: string;
   message: string;
   timestamp: number;
+  isCorrect?: boolean;
+  isSystem?: boolean;
 }
 
 interface BubbleMessage {
@@ -29,6 +31,38 @@ interface BubbleMessage {
   message: string;
   expiresAt: number;
 }
+
+interface Room {
+  id: string;
+  name: string;
+  currentPlayers: number;
+  maxPlayers: number;
+  isLocked: boolean;
+  password?: string;
+  hostId: string;
+  hostName: string;
+  rounds: number;
+  songsPerRound: number;
+  genres: string[];
+  createdAt: number;
+}
+
+// 더미 노래 데이터 (나중에 API로 교체)
+const DUMMY_SONGS = [
+  { id: '1', title: '사건의 지평선', artist: '윤하', answer: ['사건의 지평선', '사건의지평선'] },
+  { id: '2', title: 'Hype Boy', artist: 'NewJeans', answer: ['hype boy', 'hypeboy', '하이프보이', '하입보이'] },
+  { id: '3', title: 'Super Shy', artist: 'NewJeans', answer: ['super shy', 'supershy', '슈퍼샤이'] },
+  { id: '4', title: '에스파', artist: 'aespa', answer: ['에스파', 'aespa', 'supernova', '슈퍼노바'] },
+  { id: '5', title: 'Ditto', artist: 'NewJeans', answer: ['ditto', '디토', '디또'] },
+  { id: '6', title: 'OMG', artist: 'NewJeans', answer: ['omg', '오엠지'] },
+  { id: '7', title: 'Dynamite', artist: 'BTS', answer: ['dynamite', '다이너마이트'] },
+  { id: '8', title: 'Butter', artist: 'BTS', answer: ['butter', '버터'] },
+  { id: '9', title: 'I AM', artist: 'IVE', answer: ['i am', 'iam', '아이엠'] },
+  { id: '10', title: 'LOVE DIVE', artist: 'IVE', answer: ['love dive', 'lovedive', '러브다이브'] },
+];
+
+// 선착순 점수 (1등부터)
+const RANKING_POINTS = [100, 80, 60, 40, 30];
 
 // 3D 모델 컴포넌트
 function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
@@ -59,24 +93,238 @@ export default function GamePlayPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
-  const [currentRound] = useState(1);
-  const [currentSong] = useState(4);
-  const [totalSongs] = useState(10);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [currentSong, setCurrentSong] = useState(1);
+  const [totalRounds, setTotalRounds] = useState(1);
+  const [songsPerRound, setSongsPerRound] = useState(5);
   const [players, setPlayers] = useState<Player[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [bubbleMessages, setBubbleMessages] = useState<BubbleMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [showExitModal, setShowExitModal] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // 현재 사용자 정보 불러오기
+  // 게임 상태
+  const [gamePhase, setGamePhase] = useState<'waiting' | 'playing' | 'answer_revealed' | 'round_end' | 'game_end'>('waiting');
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentSongData, setCurrentSongData] = useState<typeof DUMMY_SONGS[0] | null>(null);
+  const [correctPlayers, setCorrectPlayers] = useState<string[]>([]); // 이번 곡 정답 맞춘 플레이어 ID
+  const [gameSongs, setGameSongs] = useState<typeof DUMMY_SONGS>([]); // 전체 게임에서 사용할 노래들
+  const [showAnswerModal, setShowAnswerModal] = useState(false);
+  const [showRoundEndModal, setShowRoundEndModal] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 게임 초기화 함수
+  const initializeGame = useCallback(() => {
+    // 랜덤하게 노래 선택
+    const shuffled = [...DUMMY_SONGS].sort(() => Math.random() - 0.5);
+    const totalSongsNeeded = totalRounds * songsPerRound;
+    const selectedSongs = shuffled.slice(0, Math.min(totalSongsNeeded, shuffled.length));
+    setGameSongs(selectedSongs);
+    
+    // 첫 번째 노래 설정
+    if (selectedSongs.length > 0) {
+      setCurrentSongData(selectedSongs[0]);
+    }
+    
+    setGamePhase('waiting');
+    setCurrentRound(1);
+    setCurrentSong(1);
+    setCorrectPlayers([]);
+  }, [totalRounds, songsPerRound]);
+
+  // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
     if (userId) setCurrentUserId(userId);
     if (userName) setCurrentUserName(userName);
-  }, []);
+
+    // 방 정보 불러오기
+    const STORAGE_KEY = 'song-guess-rooms';
+    const storedRooms = localStorage.getItem(STORAGE_KEY);
+    if (storedRooms) {
+      try {
+        const rooms: Room[] = JSON.parse(storedRooms);
+        const currentRoom = rooms.find(r => r.id === roomId);
+        if (currentRoom) {
+          setTotalRounds(currentRoom.rounds);
+          setSongsPerRound(currentRoom.songsPerRound);
+        }
+      } catch (e) {
+        console.error('Failed to load room info', e);
+      }
+    }
+  }, [roomId]);
+
+  // 게임 시작 시 초기화
+  useEffect(() => {
+    if (totalRounds > 0 && songsPerRound > 0) {
+      initializeGame();
+    }
+  }, [totalRounds, songsPerRound, initializeGame]);
+
+  // 타이머 로직
+  useEffect(() => {
+    if (isPlaying && timeLeft > 0) {
+      timerRef.current = setTimeout(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (isPlaying && timeLeft === 0) {
+      // 시간 초과 - 정답 공개
+      handleTimeUp();
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [isPlaying, timeLeft]);
+
+  // 시간 초과 처리
+  const handleTimeUp = () => {
+    setIsPlaying(false);
+    setGamePhase('answer_revealed');
+    setShowAnswerModal(true);
+    
+    // 시스템 메시지 추가
+    const systemMsg: ChatMessage = {
+      id: Date.now().toString(),
+      playerId: 'system',
+      playerName: '시스템',
+      message: `⏰ 시간 초과! 정답은 "${currentSongData?.title}" - ${currentSongData?.artist} 입니다!`,
+      timestamp: Date.now(),
+      isSystem: true,
+    };
+    setChatMessages(prev => [...prev, systemMsg]);
+  };
+
+  // 노래 재생 시작
+  const startPlaying = () => {
+    if (gamePhase === 'waiting' || gamePhase === 'answer_revealed') {
+      setIsPlaying(true);
+      setTimeLeft(30);
+      setCorrectPlayers([]);
+      setGamePhase('playing');
+      
+      // 시스템 메시지
+      const systemMsg: ChatMessage = {
+        id: Date.now().toString(),
+        playerId: 'system',
+        playerName: '시스템',
+        message: `🎵 ${currentRound}라운드 ${currentSong}번째 노래가 시작됩니다!`,
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      setChatMessages(prev => [...prev, systemMsg]);
+    }
+  };
+
+  // 정답 체크
+  const checkAnswer = (message: string): boolean => {
+    if (!currentSongData || !isPlaying) return false;
+    
+    const normalizedMsg = message.toLowerCase().trim();
+    return currentSongData.answer.some(ans => normalizedMsg.includes(ans.toLowerCase()));
+  };
+
+  // 점수 부여
+  const awardPoints = (playerId: string) => {
+    const rank = correctPlayers.length; // 0-based (이미 정답 맞춘 사람 수)
+    const points = RANKING_POINTS[rank] || 20; // 기본 20점
+    
+    setPlayers(prev => prev.map(p => {
+      if (p.id === playerId) {
+        return { ...p, score: (p.score || 0) + points };
+      }
+      return p;
+    }));
+
+    // localStorage에도 점수 업데이트
+    const playersKey = `song-guess-room-${roomId}-players`;
+    const storedPlayers = localStorage.getItem(playersKey);
+    if (storedPlayers) {
+      const parsedPlayers = JSON.parse(storedPlayers);
+      const updated = parsedPlayers.map((p: Player) => {
+        if (p.id === playerId) {
+          return { ...p, score: (p.score || 0) + points };
+        }
+        return p;
+      });
+      localStorage.setItem(playersKey, JSON.stringify(updated));
+    }
+
+    return points;
+  };
+
+  // 다음 곡으로 이동
+  const goToNextSong = () => {
+    setShowAnswerModal(false);
+    
+    const songIndex = (currentRound - 1) * songsPerRound + currentSong;
+    
+    if (currentSong >= songsPerRound) {
+      // 라운드 종료
+      if (currentRound >= totalRounds) {
+        // 게임 종료
+        endGame();
+      } else {
+        // 다음 라운드
+        setShowRoundEndModal(true);
+        setGamePhase('round_end');
+      }
+    } else {
+      // 다음 곡
+      setCurrentSong(prev => prev + 1);
+      if (gameSongs[songIndex]) {
+        setCurrentSongData(gameSongs[songIndex]);
+      }
+      setCorrectPlayers([]);
+      setGamePhase('waiting');
+      setTimeLeft(30);
+    }
+  };
+
+  // 다음 라운드 시작
+  const startNextRound = () => {
+    setShowRoundEndModal(false);
+    setCurrentRound(prev => prev + 1);
+    setCurrentSong(1);
+    
+    const songIndex = currentRound * songsPerRound; // 다음 라운드 첫 곡
+    if (gameSongs[songIndex]) {
+      setCurrentSongData(gameSongs[songIndex]);
+    }
+    setCorrectPlayers([]);
+    setGamePhase('waiting');
+    setTimeLeft(30);
+  };
+
+  // 게임 종료
+  const endGame = () => {
+    setGamePhase('game_end');
+    
+    // 결과 저장
+    const resultsKey = `song-guess-room-${roomId}-results`;
+    const results = players.map(p => ({
+      id: p.id,
+      name: p.name,
+      score: p.score || 0,
+      character: p.character || '/character1.glb',
+      coinEarned: 0,
+      rank: 0,
+    }));
+    localStorage.setItem(resultsKey, JSON.stringify(results));
+    
+    // 결과 페이지로 이동
+    setTimeout(() => {
+      router.push(`/game/song-guess/${roomId}/result`);
+    }, 1500);
+  };
 
   // 참가자 목록 불러오기
   useEffect(() => {
@@ -126,12 +374,17 @@ export default function GamePlayPage() {
   const sendChat = () => {
     if (!chatInput.trim()) return;
 
+    const message = chatInput.trim();
+    const isCorrectAnswer = checkAnswer(message);
+    const alreadyCorrect = correctPlayers.includes(currentUserId);
+
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       playerId: currentUserId,
       playerName: currentUserName || '익명',
-      message: chatInput.trim(),
+      message: message,
       timestamp: Date.now(),
+      isCorrect: isCorrectAnswer && !alreadyCorrect && isPlaying,
     };
 
     // 채팅 메시지 추가
@@ -141,10 +394,39 @@ export default function GamePlayPage() {
     const newBubble: BubbleMessage = {
       id: Date.now().toString(),
       playerId: currentUserId,
-      message: chatInput.trim(),
+      message: message,
       expiresAt: Date.now() + 3000,
     };
     setBubbleMessages(prev => [...prev, newBubble]);
+
+    // 정답 체크
+    if (isCorrectAnswer && !alreadyCorrect && isPlaying) {
+      const rank = correctPlayers.length + 1;
+      const points = awardPoints(currentUserId);
+      
+      // 정답 맞춘 플레이어 추가
+      setCorrectPlayers(prev => [...prev, currentUserId]);
+
+      // 정답 시스템 메시지
+      const correctMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        playerId: 'system',
+        playerName: '시스템',
+        message: `🎉 ${currentUserName}님이 ${rank}등으로 정답! (+${points}점)`,
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      setChatMessages(prev => [...prev, correctMsg]);
+
+      // 모든 플레이어가 맞추면 자동으로 다음 곡
+      if (correctPlayers.length + 1 >= players.length) {
+        setTimeout(() => {
+          setIsPlaying(false);
+          setGamePhase('answer_revealed');
+          setShowAnswerModal(true);
+        }, 1000);
+      }
+    }
 
     setChatInput('');
   };
@@ -180,6 +462,271 @@ export default function GamePlayPage() {
         ))}
       </div>
 
+      {/* 정답 공개 모달 */}
+      {showAnswerModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(20, 20, 40, 0.95)",
+              border: "3px solid rgba(255, 215, 0, 0.8)",
+              borderRadius: "20px",
+              padding: "2.5rem",
+              maxWidth: "500px",
+              textAlign: "center",
+              animation: "modalPop 0.3s ease",
+            }}
+          >
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎵</div>
+            <h2
+              style={{
+                color: "#ffd700",
+                fontSize: "1.8rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              정답은...
+            </h2>
+            <h1
+              style={{
+                color: "#ffffff",
+                fontSize: "2rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              {currentSongData?.title}
+            </h1>
+            <p
+              style={{
+                color: "rgba(255, 255, 255, 0.7)",
+                fontSize: "1.2rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              {currentSongData?.artist}
+            </p>
+            
+            {/* 이번 곡 정답자 */}
+            {correctPlayers.length > 0 && (
+              <div style={{ marginBottom: "1.5rem" }}>
+                <p style={{ color: "#00ffff", marginBottom: "0.5rem" }}>정답자:</p>
+                <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+                  {correctPlayers.map((playerId, idx) => {
+                    const player = players.find(p => p.id === playerId);
+                    return (
+                      <span
+                        key={playerId}
+                        style={{
+                          background: idx === 0 ? "rgba(255, 215, 0, 0.3)" : "rgba(0, 255, 255, 0.2)",
+                          border: `1px solid ${idx === 0 ? "rgba(255, 215, 0, 0.8)" : "rgba(0, 255, 255, 0.5)"}`,
+                          borderRadius: "20px",
+                          padding: "0.3rem 0.8rem",
+                          color: idx === 0 ? "#ffd700" : "#00ffff",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        {idx + 1}등 {player?.name}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={goToNextSong}
+              style={{
+                padding: "1rem 2.5rem",
+                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
+                border: "2px solid rgba(0, 255, 255, 0.8)",
+                borderRadius: "12px",
+                color: "#00ffff",
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+            >
+              {currentSong >= songsPerRound 
+                ? (currentRound >= totalRounds ? "결과 보기" : "다음 라운드")
+                : "다음 곡"
+              }
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 라운드 종료 모달 */}
+      {showRoundEndModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(20, 20, 40, 0.95)",
+              border: "3px solid rgba(0, 255, 255, 0.8)",
+              borderRadius: "20px",
+              padding: "2.5rem",
+              maxWidth: "500px",
+              textAlign: "center",
+              animation: "modalPop 0.3s ease",
+            }}
+          >
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🏆</div>
+            <h2
+              style={{
+                color: "#00ffff",
+                fontSize: "1.8rem",
+                marginBottom: "1rem",
+              }}
+            >
+              Round {currentRound} 종료!
+            </h2>
+            
+            {/* 현재 순위 */}
+            <div style={{ marginBottom: "1.5rem" }}>
+              {[...players]
+                .sort((a, b) => (b.score || 0) - (a.score || 0))
+                .slice(0, 3)
+                .map((player, idx) => (
+                  <div
+                    key={player.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "0.5rem 1rem",
+                      marginBottom: "0.5rem",
+                      background: idx === 0 ? "rgba(255, 215, 0, 0.2)" : "rgba(255, 255, 255, 0.1)",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <span style={{ color: idx === 0 ? "#ffd700" : "#ffffff" }}>
+                      {idx + 1}등 {player.name}
+                    </span>
+                    <span style={{ color: "#00ffff", fontWeight: 700 }}>
+                      {player.score || 0}P
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            <button
+              onClick={startNextRound}
+              style={{
+                padding: "1rem 2.5rem",
+                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
+                border: "2px solid rgba(0, 255, 255, 0.8)",
+                borderRadius: "12px",
+                color: "#00ffff",
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+            >
+              Round {currentRound + 1} 시작!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 나가기 확인 모달 */}
+      {showExitModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+          onClick={() => setShowExitModal(false)}
+        >
+          <div
+            style={{
+              background: "rgba(20, 20, 40, 0.95)",
+              border: "2px solid rgba(0, 255, 255, 0.5)",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "400px",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              style={{
+                color: "#ffffff",
+                fontSize: "1.3rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              게임을 중단하고 돌아가시겠습니까?
+            </h3>
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+              <button
+                onClick={() => setShowExitModal(false)}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  background: "rgba(100, 100, 100, 0.5)",
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={() => router.push('/main/lobby')}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  background: "rgba(255, 100, 100, 0.5)",
+                  border: "2px solid rgba(255, 100, 100, 0.8)",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                나가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div
         style={{
@@ -191,24 +738,77 @@ export default function GamePlayPage() {
         }}
       >
         <div
+          onClick={() => setShowExitModal(true)}
           style={{
             color: "#ffffff",
             fontSize: "1.2rem",
             fontWeight: 700,
             textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#00ffff";
+            e.currentTarget.style.textShadow = "0 0 20px rgba(0, 255, 255, 1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.textShadow = "0 0 10px rgba(0, 255, 255, 0.8)";
           }}
         >
           Localhost
         </div>
+
+        {/* 타이머 + 라운드 정보 */}
         <div
           style={{
-            color: "#ffffff",
-            fontSize: "1.2rem",
-            fontWeight: 700,
-            textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            gap: "1.5rem",
           }}
         >
-          Round {currentRound} {currentSong}/{totalSongs}
+          {/* 타이머 */}
+          {isPlaying && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 1rem",
+                background: timeLeft <= 10 ? "rgba(255, 100, 100, 0.3)" : "rgba(0, 255, 255, 0.2)",
+                border: `2px solid ${timeLeft <= 10 ? "rgba(255, 100, 100, 0.8)" : "rgba(0, 255, 255, 0.5)"}`,
+                borderRadius: "20px",
+                animation: timeLeft <= 5 ? "pulse 0.5s infinite" : "none",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={timeLeft <= 10 ? "#ff6b6b" : "#00ffff"} strokeWidth={2}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+              <span
+                style={{
+                  color: timeLeft <= 10 ? "#ff6b6b" : "#00ffff",
+                  fontSize: "1.3rem",
+                  fontWeight: 800,
+                  minWidth: "2rem",
+                  textAlign: "center",
+                }}
+              >
+                {timeLeft}
+              </span>
+            </div>
+          )}
+
+          <div
+            style={{
+              color: "#ffffff",
+              fontSize: "1.2rem",
+              fontWeight: 700,
+              textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            }}
+          >
+            Round {currentRound} {currentSong}/{songsPerRound}
+          </div>
         </div>
       </div>
 
@@ -301,53 +901,95 @@ export default function GamePlayPage() {
               {host.name}
             </div>
 
-            {/* 재생 컨트롤 */}
+            {/* 재생 컨트롤 & 게임 상태 */}
             <div
               style={{
                 display: "flex",
-                gap: "1rem",
+                flexDirection: "column",
                 alignItems: "center",
+                gap: "0.75rem",
                 marginTop: "0.5rem",
               }}
             >
-              <button
+              {/* 게임 상태 표시 */}
+              <div
                 style={{
-                  width: "50px",
-                  height: "50px",
-                  borderRadius: "50%",
-                  background: "rgba(0, 255, 255, 0.2)",
-                  border: "2px solid rgba(0, 255, 255, 0.6)",
-                  color: "#00ffff",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.3s ease",
+                  padding: "0.4rem 1rem",
+                  background: isPlaying 
+                    ? "rgba(0, 255, 0, 0.2)" 
+                    : gamePhase === 'waiting' 
+                      ? "rgba(255, 165, 0, 0.2)"
+                      : "rgba(100, 100, 100, 0.3)",
+                  border: `2px solid ${isPlaying 
+                    ? "rgba(0, 255, 0, 0.6)" 
+                    : gamePhase === 'waiting'
+                      ? "rgba(255, 165, 0, 0.6)"
+                      : "rgba(100, 100, 100, 0.5)"}`,
+                  borderRadius: "20px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: isPlaying ? "#00ff00" : gamePhase === 'waiting' ? "#ffa500" : "#999",
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </button>
-              <button
-                style={{
-                  width: "50px",
-                  height: "50px",
-                  borderRadius: "50%",
-                  background: "rgba(0, 255, 255, 0.2)",
-                  border: "2px solid rgba(0, 255, 255, 0.6)",
-                  color: "#00ffff",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
+                {isPlaying ? "🎵 재생 중..." : gamePhase === 'waiting' ? "대기 중" : "정답 공개"}
+              </div>
+
+              {/* 재생 버튼 */}
+              <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                <button
+                  onClick={startPlaying}
+                  disabled={isPlaying}
+                  style={{
+                    width: "60px",
+                    height: "60px",
+                    borderRadius: "50%",
+                    background: isPlaying 
+                      ? "rgba(100, 100, 100, 0.3)" 
+                      : "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
+                    border: `3px solid ${isPlaying ? "rgba(100, 100, 100, 0.5)" : "rgba(0, 255, 255, 0.8)"}`,
+                    color: isPlaying ? "#666" : "#00ffff",
+                    cursor: isPlaying ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.3s ease",
+                    boxShadow: isPlaying ? "none" : "0 0 20px rgba(0, 255, 255, 0.4)",
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+
+                {/* 스킵 버튼 (방장만) */}
+                {host?.id === currentUserId && isPlaying && (
+                  <button
+                    onClick={() => {
+                      setIsPlaying(false);
+                      setGamePhase('answer_revealed');
+                      setShowAnswerModal(true);
+                    }}
+                    style={{
+                      width: "50px",
+                      height: "50px",
+                      borderRadius: "50%",
+                      background: "rgba(255, 165, 0, 0.2)",
+                      border: "2px solid rgba(255, 165, 0, 0.6)",
+                      color: "#ffa500",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.3s ease",
+                    }}
+                    title="스킵 (정답 공개)"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -418,13 +1060,26 @@ export default function GamePlayPage() {
               >
                 <div
                   style={{
-                    color: "#ffffff",
-                    fontSize: "0.9rem",
-                    fontWeight: 600,
-                    textShadow: "0 0 5px rgba(0, 0, 0, 0.8)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.3rem",
                   }}
                 >
-                  {player.name}
+                  {/* 정답 맞춤 표시 */}
+                  {correctPlayers.includes(player.id) && (
+                    <span style={{ color: "#00ff00", fontSize: "0.9rem" }}>✓</span>
+                  )}
+                  <span
+                    style={{
+                      color: correctPlayers.includes(player.id) ? "#00ff00" : "#ffffff",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      textShadow: "0 0 5px rgba(0, 0, 0, 0.8)",
+                    }}
+                  >
+                    {player.name}
+                  </span>
                 </div>
                 <div
                   style={{
@@ -476,13 +1131,37 @@ export default function GamePlayPage() {
               <div
                 key={msg.id}
                 style={{
-                  color: "rgba(255, 255, 255, 0.9)",
                   fontSize: "0.9rem",
                   marginBottom: "0.5rem",
+                  padding: msg.isCorrect || msg.isSystem ? "0.4rem 0.6rem" : "0",
+                  background: msg.isCorrect 
+                    ? "rgba(0, 255, 0, 0.15)" 
+                    : msg.isSystem 
+                      ? "rgba(255, 215, 0, 0.1)"
+                      : "transparent",
+                  borderRadius: msg.isCorrect || msg.isSystem ? "6px" : "0",
+                  borderLeft: msg.isCorrect 
+                    ? "3px solid #00ff00" 
+                    : msg.isSystem 
+                      ? "3px solid #ffd700"
+                      : "none",
                 }}
               >
-                <span style={{ color: "#00ffff", fontWeight: 600 }}>{msg.playerName}:</span>{" "}
-                {msg.message}
+                {msg.isSystem ? (
+                  <span style={{ color: "#ffd700" }}>{msg.message}</span>
+                ) : (
+                  <>
+                    <span style={{ 
+                      color: msg.isCorrect ? "#00ff00" : "#00ffff", 
+                      fontWeight: 600 
+                    }}>
+                      {msg.playerName}:
+                    </span>{" "}
+                    <span style={{ color: msg.isCorrect ? "#00ff00" : "rgba(255, 255, 255, 0.9)" }}>
+                      {msg.isCorrect ? "정답!" : msg.message}
+                    </span>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -544,6 +1223,26 @@ export default function GamePlayPage() {
           to {
             opacity: 1;
             transform: translateX(0);
+          }
+        }
+        @keyframes modalPop {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(1.05);
           }
         }
       `}</style>
