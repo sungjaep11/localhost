@@ -90,13 +90,24 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
     const { nickname } = req.body as { nickname?: string };
     const name = (typeof nickname === "string" && nickname.trim()) || "Guest";
 
-    const user = await prisma.user.create({
-      data: {
-        snsId: `demo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        provider: "demo",
+    // 먼저 같은 닉네임을 가진 유저가 있는지 확인
+    let user = await prisma.user.findFirst({
+      where: {
         nickname: name,
+        provider: "demo",
       },
     });
+
+    // 유저가 없으면 새로 생성
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          snsId: `demo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          provider: "demo",
+          nickname: name,
+        },
+      });
+    }
 
     res.json({ userId: user.id, nickname: user.nickname });
   } catch (error) {
