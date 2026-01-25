@@ -16,8 +16,48 @@ export default function SignupPage() {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-    // TODO: 회원가입 로직 구현
-    console.log('Signup:', { email, password, username });
+    if (!username.trim()) {
+      alert('닉네임을 입력해주세요.');
+      return;
+    }
+
+    // 사용자 ID 생성 (이메일 기반)
+    const userId = `user-${email.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
+    // 기존 사용자 확인
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '{}');
+    if (existingUsers[email]) {
+      alert('이미 존재하는 이메일입니다.');
+      return;
+    }
+
+    // 사용자 정보 저장
+    existingUsers[email] = {
+      id: userId,
+      email: email,
+      password: password, // 실제 서비스에서는 암호화 필요
+      username: username,
+      createdAt: Date.now(),
+    };
+    localStorage.setItem('users', JSON.stringify(existingUsers));
+
+    // 현재 로그인 사용자 설정
+    localStorage.setItem('userId', userId);
+    localStorage.setItem('userName', username);
+    localStorage.setItem('userEmail', email);
+
+    // 기본 캐릭터 설정 (char1)
+    const purchasedKey = `purchasedCharacters-${userId}`;
+    localStorage.setItem(purchasedKey, JSON.stringify(['char1']));
+    localStorage.setItem(`equipped-character-${userId}`, '/character1.glb');
+
+    // 기본 코인 설정
+    localStorage.setItem(`userCoins-${userId}`, '1000');
+
+    // 빈 행동 목록 설정
+    localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
+
+    alert('회원가입이 완료되었습니다!');
     router.push('/main/lobby');
   };
 
@@ -103,7 +143,7 @@ export default function SignupPage() {
                 letterSpacing: "0.05em",
               }}
             >
-              USERNAME
+              닉네임
             </label>
             <input
               type="text"
@@ -111,7 +151,7 @@ export default function SignupPage() {
               onChange={(e) => setUsername(e.target.value)}
               required
               className="cyberpunk-input"
-              placeholder="your_username"
+              placeholder="게임에서 사용할 이름"
               style={{
                 width: "100%",
                 padding: "1rem 1.25rem",

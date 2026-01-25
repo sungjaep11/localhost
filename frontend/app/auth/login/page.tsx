@@ -10,8 +10,49 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 로그인 로직 구현
-    console.log('Login:', { email, password });
+
+    // 사용자 목록에서 확인
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '{}');
+    const user = existingUsers[email];
+
+    if (!user) {
+      alert('존재하지 않는 계정입니다.');
+      return;
+    }
+
+    if (user.password !== password) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    // 로그인 성공 - 사용자 정보 설정
+    localStorage.setItem('userId', user.id);
+    localStorage.setItem('userName', user.username);
+    localStorage.setItem('userEmail', email);
+
+    // 사용자별 데이터 확인 및 기본값 설정
+    const userId = user.id;
+    
+    // 코인 확인
+    if (!localStorage.getItem(`userCoins-${userId}`)) {
+      localStorage.setItem(`userCoins-${userId}`, '1000');
+    }
+
+    // 구매한 캐릭터 확인
+    if (!localStorage.getItem(`purchasedCharacters-${userId}`)) {
+      localStorage.setItem(`purchasedCharacters-${userId}`, JSON.stringify(['char1']));
+    }
+
+    // 장착된 캐릭터 확인
+    if (!localStorage.getItem(`equipped-character-${userId}`)) {
+      localStorage.setItem(`equipped-character-${userId}`, '/character1.glb');
+    }
+
+    // 구매한 행동 확인
+    if (!localStorage.getItem(`purchasedActions-${userId}`)) {
+      localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
+    }
+
     router.push('/main/lobby');
   };
 

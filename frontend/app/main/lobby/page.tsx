@@ -7,19 +7,29 @@ import ModelViewer from '@/components/ModelViewer';
 export default function LobbyPage() {
   const router = useRouter();
   const [coins, setCoins] = useState(0);
+  const [equippedCharacter, setEquippedCharacter] = useState('/character1.glb');
 
-  // TODO: 실제 코인 데이터를 API나 store에서 가져오기
+  // 사용자 데이터 불러오기
   useEffect(() => {
-    // 임시로 로컬 스토리지에서 코인 가져오기
-    const savedCoins = localStorage.getItem('userCoins');
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      router.push('/auth/login');
+      return;
+    }
+
+    // 사용자별 코인 가져오기
+    const savedCoins = localStorage.getItem(`userCoins-${userId}`);
     if (savedCoins) {
       setCoins(parseInt(savedCoins, 10));
     } else {
-      // 기본값 설정
       setCoins(1000);
-      localStorage.setItem('userCoins', '1000');
+      localStorage.setItem(`userCoins-${userId}`, '1000');
     }
-  }, []);
+
+    // 장착된 캐릭터 가져오기
+    const equipped = localStorage.getItem(`equipped-character-${userId}`);
+    setEquippedCharacter(equipped || '/character1.glb');
+  }, [router]);
 
   const handleLogout = () => {
     // TODO: 로그아웃 로직 구현 (세션 제거, 토큰 삭제 등)
@@ -251,7 +261,7 @@ export default function LobbyPage() {
           pointerEvents: "none",
         }}
       >
-        <ModelViewer />
+        <ModelViewer modelUrl={equippedCharacter} />
       </div>
       
       <div
