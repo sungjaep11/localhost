@@ -24,7 +24,7 @@ function Model({ url }: { url: string }) {
 // 캐릭터 뷰어 컴포넌트
 function CharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
       <Canvas camera={{ position: [0, 1.5, 4], fov: 50 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
@@ -295,6 +295,7 @@ export default function WaitingRoomPage() {
                     boxShadow: player.isHost
                       ? "0 0 30px rgba(255, 215, 0, 0.4)"
                       : "0 0 20px rgba(0, 255, 255, 0.3)",
+                    position: "relative",
                   }}
                 >
                   <CharacterViewer modelUrl={player.characterUrl || '/character1.glb'} />

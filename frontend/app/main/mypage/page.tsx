@@ -42,7 +42,7 @@ function Model({ url }: { url: string }) {
 // 메인 캐릭터 뷰어
 function MainCharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
       <Canvas camera={{ position: [0, 2, 7], fov: 50 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
@@ -68,7 +68,7 @@ function SmallModel({ url }: { url: string }) {
 
 function SmallCharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
       <Canvas camera={{ position: [0, 1.5, 4], fov: 50 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
@@ -316,16 +316,20 @@ export default function MyPage() {
           flex: 1,
           gap: "2rem",
           minHeight: 0,
+          overflow: "hidden",
         }}
       >
         {/* 왼쪽 - 메인 캐릭터 */}
         <div
           style={{
-            flex: "0 0 400px",
+            width: "350px",
+            minWidth: "350px",
+            maxWidth: "350px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "1rem",
+            flexShrink: 0,
           }}
         >
           {/* 닉네임 */}
@@ -423,14 +427,17 @@ export default function MyPage() {
           {/* 메인 캐릭터 표시 */}
           <div
             style={{
-              width: "100%",
-              height: "450px",
+              width: "350px",
+              height: "400px",
+              minHeight: "400px",
+              maxHeight: "400px",
               background: "rgba(0, 0, 0, 0.5)",
               backdropFilter: "blur(10px)",
               border: "3px solid rgba(0, 255, 255, 0.6)",
               borderRadius: "20px",
               overflow: "hidden",
               boxShadow: "0 0 40px rgba(0, 255, 255, 0.3)",
+              position: "relative",
             }}
           >
             <MainCharacterViewer modelUrl={equippedCharacter} />
@@ -523,6 +530,7 @@ export default function MyPage() {
                           boxShadow: isEquipped 
                             ? "0 0 20px rgba(0, 255, 0, 0.4)"
                             : "none",
+                          position: "relative",
                         }}
                       >
                         <SmallCharacterViewer modelUrl={character.modelUrl} />
