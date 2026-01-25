@@ -10,6 +10,8 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      // Add timeout to prevent hanging requests
+      signal: AbortSignal.timeout(10000), // 10 second timeout
     });
 
     if (!res.ok) {
@@ -25,8 +27,17 @@ export async function POST(request: Request) {
       { success: true, userId: data.userId, nickname: data.nickname },
       { status: 200 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login error:", error);
+    
+    // Handle timeout or connection errors
+    if (error.name === "AbortError" || error.name === "TypeError") {
+      return NextResponse.json(
+        { success: false, error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요." },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, error: "로그인에 실패했습니다." },
       { status: 500 }
