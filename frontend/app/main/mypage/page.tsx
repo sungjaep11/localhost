@@ -36,7 +36,7 @@ const ALL_ACTIONS: Action[] = [
 // 3D 모델 컴포넌트
 function Model({ url }: { url: string }) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={3.5} position={[0, -2, 0]} />;
+  return <primitive object={scene} scale={3.5} position={[0, -2, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 메인 캐릭터 뷰어
@@ -63,7 +63,7 @@ function MainCharacterViewer({ modelUrl }: { modelUrl: string }) {
 // 작은 캐릭터 뷰어
 function SmallModel({ url }: { url: string }) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={2} position={[0, -1, 0]} />;
+  return <primitive object={scene} scale={2} position={[0, -1, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 function SmallCharacterViewer({ modelUrl }: { modelUrl: string }) {

@@ -18,7 +18,7 @@ const STORAGE_KEY = 'song-guess-rooms';
 // 3D 모델 컴포넌트
 function Model({ url }: { url: string }) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={2.5} position={[0, -1.2, 0]} />;
+  return <primitive object={scene} scale={2.5} position={[0, -1.2, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 뷰어 컴포넌트

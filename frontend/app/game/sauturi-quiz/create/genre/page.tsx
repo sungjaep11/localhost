@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 
 const genres = [
   '발라드',
@@ -31,11 +31,11 @@ interface Room {
   createdAt: number;
 }
 
-export default function GenreSelectionPage() {
+// useSearchParams를 사용하는 내부 컴포넌트
+function GenreSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rounds = parseInt(searchParams.get('rounds') || '4', 10);
-  
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
   const toggleGenre = (genre: string) => {
@@ -324,5 +324,26 @@ export default function GenreSelectionPage() {
         </button>
       </div>
     </main>
+  );
+}
+
+// Suspense로 감싸서 export
+export default function GenreSelectionPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000",
+        color: "#00ffff",
+        fontSize: "1.5rem",
+      }}>
+        로딩 중...
+      </div>
+    }>
+      <GenreSelectionContent />
+    </Suspense>
   );
 }
