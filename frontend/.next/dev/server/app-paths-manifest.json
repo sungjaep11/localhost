@@ -1,17 +1,1 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
-  "/auth/signup/page": "app/auth/signup/page.js",
-  "/game/[roomId]/page": "app/game/[roomId]/page.js",
-  "/game/song-guess/[roomId]/countdown/page": "app/game/song-guess/[roomId]/countdown/page.js",
-  "/game/song-guess/[roomId]/play/page": "app/game/song-guess/[roomId]/play/page.js",
-  "/game/song-guess/[roomId]/waiting/page": "app/game/song-guess/[roomId]/waiting/page.js",
-  "/game/song-guess/create/genre/page": "app/game/song-guess/create/genre/page.js",
-  "/game/song-guess/create/page": "app/game/song-guess/create/page.js",
-  "/game/song-guess/page": "app/game/song-guess/page.js",
-  "/main/lobby/page": "app/main/lobby/page.js",
-  "/main/mypage/page": "app/main/mypage/page.js",
-  "/main/playlist/page": "app/main/playlist/page.js",
-  "/main/shop/page": "app/main/shop/page.js",
-  "/page": "app/page.js"
-}
+{}
