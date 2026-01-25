@@ -27,13 +27,12 @@ export default function ModelViewer() {
         {/* 모델 렌더링 */}
         <Model url="/character1.glb" />
 
-        {/* 마우스로 돌려보기 (줌, 회전 가능) - pointerEvents를 none으로 설정했으므로 자동 회전만 */}
+        {/* 마우스로 돌려보기 */}
         <OrbitControls 
-          autoRotate 
-          autoRotateSpeed={2} 
+          autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={false}
+          enableRotate={true}
         />
       </Canvas>
     </div>

@@ -612,3 +612,126 @@ body {
 button[title="STORE"]:hover .door-hint {
   opacity: 1 !important;
 }
+
+/* RGB 선 배경 애니메이션 */
+.rgb-lines-background {
+  position: relative;
+  background: #0a0a1a; /* 어두운 남색 */
+  overflow: hidden;
+}
+
+.rgb-line-red,
+.rgb-line-green,
+.rgb-line-blue {
+  position: absolute;
+  width: 2px;
+  height: 200px;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+  transform-origin: center;
+}
+
+.rgb-line-red {
+  background: linear-gradient(to bottom, transparent, rgba(255, 0, 0, 0.8), transparent);
+  color: rgba(255, 0, 0, 0.8);
+  animation: rgbLineMove1 8s linear infinite;
+}
+
+.rgb-line-green {
+  background: linear-gradient(to bottom, transparent, rgba(0, 255, 0, 0.8), transparent);
+  color: rgba(0, 255, 0, 0.8);
+  animation: rgbLineMove2 10s linear infinite;
+  animation-delay: 2s;
+}
+
+.rgb-line-blue {
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 255, 0.8), transparent);
+  color: rgba(0, 0, 255, 0.8);
+  animation: rgbLineMove3 12s linear infinite;
+  animation-delay: 4s;
+}
+
+/* 다양한 방향으로 움직이는 애니메이션 */
+@keyframes rgbLineMove1 {
+  0% {
+    left: -50px;
+    top: 20%;
+    transform: rotate(45deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    left: 50%;
+    top: 60%;
+    transform: rotate(135deg);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% + 50px);
+    top: 80%;
+    transform: rotate(225deg);
+    opacity: 0;
+  }
+}
+
+@keyframes rgbLineMove2 {
+  0% {
+    left: calc(100% + 50px);
+    top: 30%;
+    transform: rotate(-45deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    left: 30%;
+    top: 70%;
+    transform: rotate(-135deg);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: -50px;
+    top: 10%;
+    transform: rotate(-225deg);
+    opacity: 0;
+  }
+}
+
+@keyframes rgbLineMove3 {
+  0% {
+    left: 20%;
+    top: -50px;
+    transform: rotate(90deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  30% {
+    left: 60%;
+    top: 40%;
+    transform: rotate(0deg);
+  }
+  70% {
+    left: 80%;
+    top: 60%;
+    transform: rotate(-45deg);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 40%;
+    top: calc(100% + 50px);
+    transform: rotate(-90deg);
+    opacity: 0;
+  }
+}

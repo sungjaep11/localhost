@@ -44,6 +44,46 @@ export default function LobbyPage() {
         position: "relative",
       }}
     >
+      {/* 로고 - 가운데 상단 */}
+      <div
+        style={{
+          position: "absolute",
+          top: "2rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 10,
+        }}
+      >
+        <button
+          onClick={() => router.push("/main/lobby")}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            transition: "all 0.3s ease",
+            display: "block",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.1)";
+            e.currentTarget.style.filter = "drop-shadow(0 0 20px rgba(0, 255, 255, 0.8))";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.filter = "none";
+          }}
+        >
+          <img
+            src="/logo.png"
+            alt="Localhost Logo"
+            style={{
+              height: "250px",
+              width: "auto",
+            }}
+          />
+        </button>
+      </div>
+
       {/* 로그아웃 버튼과 Myhome - 우측 상단 */}
       <div
         style={{
