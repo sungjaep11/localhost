@@ -32,7 +32,7 @@ interface BubbleMessage {
 // 3D 모델 컴포넌트
 function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={scale} position={[0, -1.2, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  return <primitive object={scene} scale={scale} position={[0, -1.5, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 뷰어 컴포넌트
@@ -258,20 +258,19 @@ export default function GamePlayPage() {
                 <div
                   style={{
                     position: "absolute",
-                    top: "30px",
-                    left: "100%",
-                    marginLeft: "10px",
+                    top: "60px",
+                    left: "calc(100% - 30px)",
                     background: "rgba(255, 255, 255, 0.95)",
                     padding: "0.75rem 1rem",
                     borderRadius: "16px",
                     borderBottomLeftRadius: "4px",
-                    maxWidth: "180px",
                     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
                     zIndex: 20,
                     animation: "fadeInRight 0.3s ease",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <p style={{ color: "#000", fontSize: "0.9rem", margin: 0, wordBreak: "break-word" }}>
+                  <p style={{ color: "#000", fontSize: "0.9rem", margin: 0 }}>
                     {getPlayerBubble(host.id)?.message}
                   </p>
                 </div>
@@ -387,14 +386,13 @@ export default function GamePlayPage() {
                     padding: "0.5rem 0.75rem",
                     borderRadius: "12px",
                     borderBottomLeftRadius: "4px",
-                    maxWidth: "150px",
                     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
                     zIndex: 20,
                     animation: "fadeInRight 0.3s ease",
                     whiteSpace: "nowrap",
                   }}
                 >
-                  <p style={{ color: "#000", fontSize: "0.8rem", margin: 0, wordBreak: "break-word", whiteSpace: "normal" }}>
+                  <p style={{ color: "#000", fontSize: "0.8rem", margin: 0 }}>
                     {getPlayerBubble(player.id)?.message}
                   </p>
                 </div>
@@ -500,7 +498,7 @@ export default function GamePlayPage() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') sendChat();
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) sendChat();
               }}
               placeholder="메시지 입력..."
               style={{
