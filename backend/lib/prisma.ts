@@ -1,12 +1,21 @@
-// lib/prisma.ts
-import { PrismaClient } from '../generated/prisma/client'
+import 'dotenv/config'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
+
+const connectionString = process.env.DATABASE_URL
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is not set')
+}
+
+const adapter = new PrismaPg({ connectionString })
 
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: ['query'], // 터미널에 SQL 쿼리가 찍혀서 디버깅하기 좋아요
-  } as any)
+    adapter,
+    log: ['query'],
+  })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

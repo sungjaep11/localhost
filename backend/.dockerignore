@@ -1,0 +1,12 @@
+# Backend .dockerignore
+node_modules
+npm-debug.log
+dist
+.next
+postgres_data
+*.log
+.env
+.env.local
+.git
+.gitignore
+.DS_Store

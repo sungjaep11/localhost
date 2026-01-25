@@ -1,0 +1,134 @@
+/* [project]/app/globals.css [app-client] (css) */
+:root {
+  --background: #fff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background) ; --color-foreground: var(--foreground) ; --font-sans: var(--font-geist-sans) ; --font-mono: var(--font-geist-mono) ;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+.grid-container {
+  perspective: 600px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.grid-plane {
+  transform-origin: 50% 0;
+  background-image: linear-gradient(to right, #ff00ff4d 1px, #0000 1px), linear-gradient(#ff00ff4d 1px, #0000 1px);
+  background-size: 40px 40px;
+  width: 200%;
+  height: 200%;
+  animation: 2s linear infinite planeMove;
+  position: absolute;
+  top: 0;
+  left: -50%;
+  transform: rotateX(60deg);
+}
+
+@keyframes planeMove {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 0 40px;
+  }
+}
+
+.cyberpunk-btn {
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: #0ff;
+  cursor: pointer;
+  background: linear-gradient(135deg, #00ffff1a 0%, #ff00ff1a 100%);
+  border: 2px solid #0ff;
+  padding: 1rem 2.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s, border-color .3s;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 15px #00ffff80, inset 0 0 15px #00ffff1a;
+}
+
+.cyberpunk-btn:before {
+  content: "";
+  background: linear-gradient(90deg, #0000, #0ff3, #0000);
+  width: 100%;
+  height: 100%;
+  transition: left .5s;
+  position: absolute;
+  top: 0;
+  left: -100%;
+}
+
+.cyberpunk-btn:hover {
+  border-color: #f0f;
+  transform: scale(1.12);
+  box-shadow: 0 0 30px #0ffc, 0 0 60px #f0f6, inset 0 0 20px #0ff3;
+}
+
+.cyberpunk-btn:hover:before {
+  left: 100%;
+}
+
+.cyberpunk-btn-pink {
+  color: #f0f;
+  background: linear-gradient(135deg, #ff00ff1a 0%, #00ffff1a 100%);
+  border-color: #f0f;
+  box-shadow: 0 0 15px #ff00ff80, inset 0 0 15px #ff00ff1a;
+}
+
+.cyberpunk-btn-pink:hover {
+  border-color: #0ff;
+  box-shadow: 0 0 30px #f0fc, 0 0 60px #0ff6, inset 0 0 20px #f0f3;
+}
+
+.cyberpunk-input {
+  letter-spacing: .1em;
+  color: #0ff;
+  background: #00000080;
+  border: 2px solid #0ff;
+  width: 100%;
+  max-width: 320px;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: box-shadow .3s, border-color .3s;
+  box-shadow: 0 0 12px #00ffff4d, inset 0 0 12px #00ffff0d;
+}
+
+.cyberpunk-input::placeholder {
+  color: #00ffff80;
+}
+
+.cyberpunk-input:focus {
+  border-color: #f0f;
+  outline: none;
+  box-shadow: 0 0 20px #00ffff80, 0 0 40px #f0f3, inset 0 0 15px #00ffff14;
+}
+
+.login-link:hover {
+  text-shadow: 0 0 12px #0ffc;
+  color: #0ff !important;
+}
+
+/*# sourceMappingURL=app_globals_css_bad6b30c._.single.css.map*/
