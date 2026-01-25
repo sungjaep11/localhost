@@ -161,12 +161,21 @@ export default function ShopPage() {
               src="/logo.png"
               alt="Localhost Logo"
               style={{
-                height: "50px",
+                height: "100px",
                 width: "auto",
               }}
             />
           </button>
+        </div>
 
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "1.5rem",
+          }}
+        >
+          {/* STORE 텍스트 */}
           <h1
             style={{
               fontSize: "2rem",
@@ -175,46 +184,46 @@ export default function ShopPage() {
               textShadow: "0 0 20px rgba(0, 255, 255, 0.8)",
             }}
           >
-            Localhost STORE
+            STORE
           </h1>
-        </div>
 
-        {/* 코인 표시 */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.5rem 1rem",
-            background: "rgba(0, 0, 0, 0.5)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 215, 0, 0.5)",
-            borderRadius: "20px",
-            color: "#ffd700",
-            fontSize: "0.9rem",
-            fontWeight: 700,
-            textShadow: "0 0 10px rgba(255, 215, 0, 0.8)",
-            boxShadow: "0 0 15px rgba(255, 215, 0, 0.3)",
-          }}
-        >
-          <svg 
-            width="20" 
-            height="20" 
-            viewBox="0 0 24 24" 
-            fill="currentColor"
+          {/* 코인 표시 */}
+          <div
             style={{
-              filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.5rem 1rem",
+              background: "rgba(0, 0, 0, 0.5)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255, 215, 0, 0.5)",
+              borderRadius: "20px",
+              color: "#ffd700",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+              textShadow: "0 0 10px rgba(255, 215, 0, 0.8)",
+              boxShadow: "0 0 15px rgba(255, 215, 0, 0.3)",
             }}
           >
-            <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
-            <path 
-              d="M12 6v12M8 10h8M8 14h8" 
-              stroke="#000" 
-              strokeWidth="1.5" 
-              strokeLinecap="round"
-            />
-          </svg>
-          <span>{coins.toLocaleString()}p</span>
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="currentColor"
+              style={{
+                filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))",
+              }}
+            >
+              <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
+              <path 
+                d="M12 6v12M8 10h8M8 14h8" 
+                stroke="#000" 
+                strokeWidth="1.5" 
+                strokeLinecap="round"
+              />
+            </svg>
+            <span>{coins.toLocaleString()}p</span>
+          </div>
         </div>
       </div>
 
