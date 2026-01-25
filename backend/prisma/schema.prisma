@@ -16,9 +16,11 @@ datasource db {
 // 1. 유저 (사용자)
 model User {
   id          String   @id @default(uuid()) // 고유 ID
-  snsId       String   @unique              // 카카오/구글 로그인 ID
-  provider    String                        // kakao, google 등
+  snsId       String   @unique              // 카카오/구글 로그인 ID 또는 이메일
+  provider    String                        // kakao, google, email 등
   nickname    String
+  email       String?  @unique              // 이메일 (이메일 로그인 사용자용)
+  password    String?                       // 비밀번호 해시 (이메일 로그인 사용자용)
   beats       Int      @default(0)          // 재화 (Beats)
   level       Int      @default(1)
   role        Role     @default(USER)       // USER, ADMIN

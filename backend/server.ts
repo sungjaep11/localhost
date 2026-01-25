@@ -80,36 +80,137 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 /**
- * 로그인 (유저 생성/조회)
- * POST /api/auth/login
- * Body: { nickname?: string }
- * Returns: { userId, nickname }
+ * 회원가입
+ * POST /api/auth/signup
+ * Body: { email, password, nickname }
+ * Returns: { userId, nickname, email }
  */
-app.post("/api/auth/login", async (req: Request, res: Response) => {
+app.post("/api/auth/signup", async (req: Request, res: Response) => {
   try {
-    const { nickname } = req.body as { nickname?: string };
-    const name = (typeof nickname === "string" && nickname.trim()) || "Guest";
+    const { email, password, nickname } = req.body as {
+      email?: string;
+      password?: string;
+      nickname?: string;
+    };
 
-    // 먼저 같은 닉네임을 가진 유저가 있는지 확인
-    let user = await prisma.user.findFirst({
-      where: {
-        nickname: name,
-        provider: "demo",
+    if (!email || !password || !nickname) {
+      return res
+        .status(400)
+        .json({ message: "이메일, 비밀번호, 닉네임은 필수입니다." });
+    }
+
+    // 이메일 중복 확인
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: "이미 존재하는 이메일입니다." });
+    }
+
+    // 닉네임 중복 확인
+    const existingNickname = await prisma.user.findFirst({
+      where: { nickname },
+    });
+
+    if (existingNickname) {
+      return res.status(409).json({ message: "이미 존재하는 닉네임입니다." });
+    }
+
+    // TODO: 실제 프로덕션에서는 bcrypt로 비밀번호 해시 필요
+    // const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = password; // 임시: 나중에 bcrypt로 교체 필요
+
+    // 유저 생성
+    const user = await prisma.user.create({
+      data: {
+        snsId: email, // 이메일을 snsId로 사용
+        provider: "email",
+        email,
+        password: hashedPassword,
+        nickname,
       },
     });
 
-    // 유저가 없으면 새로 생성
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          snsId: `demo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          provider: "demo",
-          nickname: name,
-        },
+    res.status(201).json({
+      userId: user.id,
+      nickname: user.nickname,
+      email: user.email,
+    });
+  } catch (error) {
+    console.error("[POST /api/auth/signup] error", error);
+    res.status(500).json({ message: "회원가입에 실패했습니다." });
+  }
+});
+
+/**
+ * 로그인 (이메일/비밀번호 또는 닉네임)
+ * POST /api/auth/login
+ * Body: { email?, password?, nickname? }
+ * Returns: { userId, nickname, email? }
+ */
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  try {
+    const { email, password, nickname } = req.body as {
+      email?: string;
+      password?: string;
+      nickname?: string;
+    };
+
+    // 이메일/비밀번호 로그인
+    if (email && password) {
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user || !user.password) {
+        return res.status(401).json({ message: "이메일 또는 비밀번호가 올바르지 않습니다." });
+      }
+
+      // TODO: 실제 프로덕션에서는 bcrypt로 비밀번호 검증 필요
+      // const isValid = await bcrypt.compare(password, user.password);
+      const isValid = password === user.password; // 임시: 나중에 bcrypt로 교체 필요
+
+      if (!isValid) {
+        return res.status(401).json({ message: "이메일 또는 비밀번호가 올바르지 않습니다." });
+      }
+
+      return res.json({
+        userId: user.id,
+        nickname: user.nickname,
+        email: user.email,
       });
     }
 
-    res.json({ userId: user.id, nickname: user.nickname });
+    // 닉네임 기반 로그인 (기존 호환성 유지)
+    if (nickname) {
+      const name = nickname.trim() || "Guest";
+
+      // 먼저 같은 닉네임을 가진 유저가 있는지 확인
+      let user = await prisma.user.findFirst({
+        where: {
+          nickname: name,
+          provider: "demo",
+        },
+      });
+
+      // 유저가 없으면 새로 생성
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            snsId: `demo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            provider: "demo",
+            nickname: name,
+          },
+        });
+      }
+
+      return res.json({ userId: user.id, nickname: user.nickname });
+    }
+
+    return res.status(400).json({
+      message: "이메일/비밀번호 또는 닉네임을 제공해주세요.",
+    });
   } catch (error) {
     console.error("[POST /api/auth/login] error", error);
     res.status(500).json({ message: "로그인에 실패했습니다." });
@@ -821,10 +922,80 @@ app.post("/api/auth/logout", (req: Request, res: Response) => {
   res.status(204).send();
 });
 
+// ============================================
+// 게임 세션 관리 시스템
+// ============================================
+
+interface GamePlayer {
+  userId: string;
+  socketId: string;
+  nickname: string;
+  score: number;
+  joinedAt: Date;
+  isHost: boolean;
+}
+
+interface GameSession {
+  roomId: string;
+  gameType: "MUSIC_QUIZ" | "DIALECT_QUIZ";
+  players: Map<string, GamePlayer>; // userId -> GamePlayer
+  status: "WAITING" | "COUNTDOWN" | "PLAYING" | "ROUND_RESULT" | "FINISHED";
+  currentRound: number;
+  totalRounds: number;
+  roundStartTime?: Date;
+  roundTimeLimit?: number; // seconds
+  currentQuestion?: {
+    questionId: string;
+    correctAnswer: string;
+    startedAt: Date;
+  };
+  answers: Map<string, { answer: string; submittedAt: Date; isCorrect: boolean }>; // userId -> answer
+}
+
+const gameSessions = new Map<string, GameSession>(); // roomId -> GameSession
+
+// 게임 세션 가져오기 또는 생성
+function getOrCreateGameSession(
+  roomId: string,
+  gameType: "MUSIC_QUIZ" | "DIALECT_QUIZ"
+): GameSession {
+  if (!gameSessions.has(roomId)) {
+    const room = gameSessions.set(roomId, {
+      roomId,
+      gameType,
+      players: new Map(),
+      status: "WAITING",
+      currentRound: 0,
+      totalRounds: 10, // 기본값, options에서 가져올 수 있음
+      answers: new Map(),
+    });
+  }
+  return gameSessions.get(roomId)!;
+}
+
+// 플레이어 목록을 배열로 변환
+function getPlayersArray(session: GameSession) {
+  return Array.from(session.players.values()).map((p) => ({
+    id: p.userId,
+    name: p.nickname,
+    isHost: p.isHost,
+    score: p.score,
+    joinedAt: p.joinedAt.getTime(),
+  }));
+}
+
+// ============================================
 // 소켓 연결 이벤트 핸들링
+// ============================================
+
 io.on("connection", (socket) => {
   console.log(`[Socket] 유저 접속됨: ${socket.id}`);
 
+  // 소켓에 연결된 userId 저장 (인증 후 설정)
+  let socketUserId: string | null = null;
+  let socketRoomId: string | null = null;
+
+  // 기본 방 입장/퇴장
   socket.on("join_room", ({ roomId }) => {
     if (!roomId) return;
     socket.join(roomId);
@@ -835,6 +1006,295 @@ io.on("connection", (socket) => {
     if (!roomId) return;
     socket.leave(roomId);
     console.log(`[Socket] ${socket.id} left room ${roomId}`);
+  });
+
+  // 게임 방 입장 (인증 필요)
+  socket.on("game_join", async ({ roomId, userId }) => {
+    try {
+      if (!roomId || !userId) {
+        socket.emit("game_error", { message: "roomId and userId are required" });
+        return;
+      }
+
+      // 유저 정보 조회
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, nickname: true },
+      });
+
+      if (!user) {
+        socket.emit("game_error", { message: "User not found" });
+        return;
+      }
+
+      // 방 정보 조회
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+      });
+
+      if (!room || !["MUSIC_QUIZ", "DIALECT_QUIZ"].includes(room.type)) {
+        socket.emit("game_error", { message: "Game room not found" });
+        return;
+      }
+
+      if (room.status === "PLAYING") {
+        socket.emit("game_error", { message: "Game is already in progress" });
+        return;
+      }
+
+      socketUserId = userId;
+      socketRoomId = roomId;
+      socket.join(roomId);
+
+      const gameType = room.type as "MUSIC_QUIZ" | "DIALECT_QUIZ";
+      const session = getOrCreateGameSession(roomId, gameType);
+
+      // 이미 참가한 플레이어인지 확인
+      if (session.players.has(userId)) {
+        // 재접속: 소켓 ID만 업데이트
+        session.players.get(userId)!.socketId = socket.id;
+      } else {
+        // 새 플레이어 추가
+        const isHost = room.hostId === userId;
+        const player: GamePlayer = {
+          userId: user.id,
+          socketId: socket.id,
+          nickname: user.nickname,
+          score: 0,
+          joinedAt: new Date(),
+          isHost,
+        };
+        session.players.set(userId, player);
+      }
+
+      // 방 상태 업데이트
+      await prisma.room.update({
+        where: { id: roomId },
+        data: { status: "WAITING" },
+      });
+
+      // 모든 플레이어에게 업데이트된 플레이어 목록 전송
+      io.to(roomId).emit("game_players_update", {
+        roomId,
+        players: getPlayersArray(session),
+        sessionStatus: session.status,
+      });
+
+      console.log(`[Game] ${user.nickname} joined game room ${roomId}`);
+    } catch (error) {
+      console.error("[game_join] error", error);
+      socket.emit("game_error", { message: "Failed to join game" });
+    }
+  });
+
+  // 게임 방 퇴장
+  socket.on("game_leave", async ({ roomId, userId }) => {
+    try {
+      if (!roomId || !userId) return;
+
+      const session = gameSessions.get(roomId);
+      if (session && session.players.has(userId)) {
+        session.players.delete(userId);
+
+        // 방장이 나간 경우 방 상태 업데이트
+        const room = await prisma.room.findUnique({ where: { id: roomId } });
+        if (room && room.hostId === userId && session.players.size > 0) {
+          // 새 방장 지정 (첫 번째 플레이어)
+          const newHost = Array.from(session.players.values())[0];
+          await prisma.room.update({
+            where: { id: roomId },
+            data: { hostId: newHost.userId },
+          });
+          newHost.isHost = true;
+        }
+
+        // 플레이어가 없으면 세션 삭제
+        if (session.players.size === 0) {
+          gameSessions.delete(roomId);
+          await prisma.room.update({
+            where: { id: roomId },
+            data: { status: "WAITING" },
+          });
+        } else {
+          // 남은 플레이어들에게 업데이트 전송
+          io.to(roomId).emit("game_players_update", {
+            roomId,
+            players: getPlayersArray(session),
+            sessionStatus: session.status,
+          });
+        }
+
+        socket.leave(roomId);
+        console.log(`[Game] User ${userId} left game room ${roomId}`);
+      }
+    } catch (error) {
+      console.error("[game_leave] error", error);
+    }
+  });
+
+  // 게임 시작 (방장만 가능)
+  socket.on("game_start", async ({ roomId, userId, options }) => {
+    try {
+      if (!roomId || !userId) {
+        socket.emit("game_error", { message: "roomId and userId are required" });
+        return;
+      }
+
+      const session = gameSessions.get(roomId);
+      if (!session) {
+        socket.emit("game_error", { message: "Game session not found" });
+        return;
+      }
+
+      const player = session.players.get(userId);
+      if (!player || !player.isHost) {
+        socket.emit("game_error", { message: "Only host can start the game" });
+        return;
+      }
+
+      if (session.players.size < 1) {
+        socket.emit("game_error", { message: "Need at least 1 player" });
+        return;
+      }
+
+      // 게임 설정 적용
+      if (options) {
+        if (options.totalRounds) session.totalRounds = options.totalRounds;
+        if (options.roundTimeLimit) session.roundTimeLimit = options.roundTimeLimit;
+      }
+
+      // 방 상태 업데이트
+      await prisma.room.update({
+        where: { id: roomId },
+        data: { status: "PLAYING" },
+      });
+
+      session.status = "COUNTDOWN";
+      session.currentRound = 0;
+
+      // 카운트다운 시작
+      io.to(roomId).emit("game_countdown_start", {
+        roomId,
+        countdown: 3,
+      });
+
+      // 3초 후 게임 시작
+      setTimeout(() => {
+        if (gameSessions.has(roomId)) {
+          startNextRound(roomId);
+        }
+      }, 3000);
+
+      console.log(`[Game] Game started in room ${roomId}`);
+    } catch (error) {
+      console.error("[game_start] error", error);
+      socket.emit("game_error", { message: "Failed to start game" });
+    }
+  });
+
+  // 정답 제출
+  socket.on("game_submit_answer", async ({ roomId, userId, answer }) => {
+    try {
+      if (!roomId || !userId || !answer) {
+        socket.emit("game_error", { message: "roomId, userId, and answer are required" });
+        return;
+      }
+
+      const session = gameSessions.get(roomId);
+      if (!session) {
+        socket.emit("game_error", { message: "Game session not found" });
+        return;
+      }
+
+      if (session.status !== "PLAYING") {
+        socket.emit("game_error", { message: "Game is not in progress" });
+        return;
+      }
+
+      if (!session.currentQuestion) {
+        socket.emit("game_error", { message: "No active question" });
+        return;
+      }
+
+      // 이미 답변을 제출했는지 확인
+      if (session.answers.has(userId)) {
+        socket.emit("game_error", { message: "Answer already submitted" });
+        return;
+      }
+
+      // 정답 확인 (간단한 문자열 비교, 나중에 정규화/유사도 검사 추가 가능)
+      const normalizedAnswer = answer.trim().toLowerCase();
+      const normalizedCorrect = session.currentQuestion.correctAnswer.trim().toLowerCase();
+      const isCorrect = normalizedAnswer === normalizedCorrect;
+
+      // 답변 저장
+      session.answers.set(userId, {
+        answer,
+        submittedAt: new Date(),
+        isCorrect,
+      });
+
+      // 점수 업데이트 (정답이면 점수 추가)
+      if (isCorrect) {
+        const player = session.players.get(userId);
+        if (player) {
+          // 빠르게 답변할수록 더 많은 점수 (예: 10초 내면 100점, 그 이후는 감소)
+          const timeElapsed =
+            (new Date().getTime() - session.currentQuestion.startedAt.getTime()) / 1000;
+          const baseScore = 100;
+          const timeBonus = Math.max(0, Math.floor((30 - timeElapsed) * 2)); // 최대 60점 보너스
+          const scoreGained = baseScore + timeBonus;
+
+          player.score += scoreGained;
+
+          // 정답자에게 즉시 알림
+          socket.emit("game_answer_correct", {
+            roomId,
+            scoreGained,
+            totalScore: player.score,
+          });
+        }
+      }
+
+      // 모든 플레이어에게 답변 제출 상태 업데이트
+      const submittedCount = session.answers.size;
+      const totalPlayers = session.players.size;
+
+      io.to(roomId).emit("game_answer_update", {
+        roomId,
+        submittedCount,
+        totalPlayers,
+        userId,
+        hasAnswered: true,
+      });
+
+      // 모든 플레이어가 답변했거나 시간이 지나면 라운드 종료
+      if (submittedCount >= totalPlayers) {
+        setTimeout(() => {
+          endRound(roomId);
+        }, 1000);
+      }
+
+      console.log(`[Game] Answer submitted by ${userId} in room ${roomId}: ${isCorrect ? "CORRECT" : "WRONG"}`);
+    } catch (error) {
+      console.error("[game_submit_answer] error", error);
+      socket.emit("game_error", { message: "Failed to submit answer" });
+    }
+  });
+
+  // 게임 상태 요청
+  socket.on("game_get_state", ({ roomId }) => {
+    const session = gameSessions.get(roomId);
+    if (session) {
+      socket.emit("game_state", {
+        roomId,
+        players: getPlayersArray(session),
+        status: session.status,
+        currentRound: session.currentRound,
+        totalRounds: session.totalRounds,
+        currentQuestion: session.currentQuestion,
+      });
+    }
   });
 
   // (공통) 채팅 보내기
@@ -851,10 +1311,248 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("receive_chat", payload);
   });
 
-  socket.on("disconnect", () => {
+  // 연결 해제 처리
+  socket.on("disconnect", async () => {
     console.log(`[Socket] 유저 접속 해제: ${socket.id}`);
+
+    // 게임 방에서 플레이어 제거
+    if (socketUserId && socketRoomId) {
+      const session = gameSessions.get(socketRoomId);
+      if (session && session.players.has(socketUserId)) {
+        session.players.delete(socketUserId);
+
+        // 플레이어가 없으면 세션 삭제
+        if (session.players.size === 0) {
+          gameSessions.delete(socketRoomId);
+          await prisma.room.update({
+            where: { id: socketRoomId },
+            data: { status: "WAITING" },
+          });
+        } else {
+          // 남은 플레이어들에게 업데이트 전송
+          io.to(socketRoomId).emit("game_players_update", {
+            roomId: socketRoomId,
+            players: getPlayersArray(session),
+            sessionStatus: session.status,
+          });
+        }
+      }
+    }
   });
 });
+
+// ============================================
+// 게임 로직 헬퍼 함수
+// ============================================
+
+// 다음 라운드 시작
+async function startNextRound(roomId: string) {
+  const session = gameSessions.get(roomId);
+  if (!session) return;
+
+  session.currentRound++;
+  session.answers.clear();
+
+  // 게임 종료 확인
+  if (session.currentRound > session.totalRounds) {
+    await endGame(roomId);
+    return;
+  }
+
+  session.status = "PLAYING";
+
+  // TODO: 실제 게임에서는 여기서 문제를 가져와야 함
+  // 현재는 더미 데이터 사용
+  const dummyQuestions = {
+    MUSIC_QUIZ: [
+      { questionId: "q1", correctAnswer: "아틀란티스 소녀" },
+      { questionId: "q2", correctAnswer: "Gee" },
+      { questionId: "q3", correctAnswer: "벚꽃 엔딩" },
+    ],
+    DIALECT_QUIZ: [
+      { questionId: "q1", correctAnswer: "고맙습니다" },
+      { questionId: "q2", correctAnswer: "안녕하세요" },
+      { questionId: "q3", correctAnswer: "사랑해" },
+    ],
+  };
+
+  const questions = dummyQuestions[session.gameType];
+  const questionIndex = (session.currentRound - 1) % questions.length;
+  const question = questions[questionIndex];
+
+  session.currentQuestion = {
+    questionId: question.questionId,
+    correctAnswer: question.correctAnswer,
+    startedAt: new Date(),
+  };
+
+  // 라운드 시작 알림
+  io.to(roomId).emit("game_round_start", {
+    roomId,
+    round: session.currentRound,
+    totalRounds: session.totalRounds,
+    question: {
+      questionId: question.questionId,
+      // 실제 구현에서는 음악 URL이나 문제 텍스트를 포함
+    },
+    timeLimit: session.roundTimeLimit || 30,
+  });
+
+  // 시간 제한이 있으면 타이머 시작
+  if (session.roundTimeLimit) {
+    setTimeout(() => {
+      if (gameSessions.has(roomId)) {
+        const currentSession = gameSessions.get(roomId)!;
+        if (
+          currentSession.currentRound === session.currentRound &&
+          currentSession.status === "PLAYING"
+        ) {
+          endRound(roomId);
+        }
+      }
+    }, session.roundTimeLimit * 1000);
+  }
+
+  console.log(`[Game] Round ${session.currentRound} started in room ${roomId}`);
+}
+
+// 라운드 종료
+async function endRound(roomId: string) {
+  const session = gameSessions.get(roomId);
+  if (!session) return;
+
+  session.status = "ROUND_RESULT";
+
+  // 결과 정리
+  const results = Array.from(session.answers.entries()).map(([userId, answerData]) => {
+    const player = session.players.get(userId);
+    return {
+      userId,
+      nickname: player?.nickname || "Unknown",
+      answer: answerData.answer,
+      isCorrect: answerData.isCorrect,
+      score: player?.score || 0,
+    };
+  });
+
+  // 정답을 맞추지 못한 플레이어들도 결과에 포함
+  for (const [userId, player] of session.players.entries()) {
+    if (!session.answers.has(userId)) {
+      results.push({
+        userId,
+        nickname: player.nickname,
+        answer: null as string | null,
+        isCorrect: false,
+        score: player.score,
+      });
+    }
+  }
+
+  // 점수 순으로 정렬
+  results.sort((a, b) => b.score - a.score);
+
+  // 라운드 결과 전송
+  io.to(roomId).emit("game_round_result", {
+    roomId,
+    round: session.currentRound,
+    correctAnswer: session.currentQuestion?.correctAnswer,
+    results,
+    leaderboard: results.map((r, idx) => ({
+      rank: idx + 1,
+      userId: r.userId,
+      nickname: r.nickname,
+      score: r.score,
+    })),
+  });
+
+  // 3초 후 다음 라운드 시작
+  setTimeout(() => {
+    if (gameSessions.has(roomId)) {
+      startNextRound(roomId);
+    }
+  }, 3000);
+
+  console.log(`[Game] Round ${session.currentRound} ended in room ${roomId}`);
+}
+
+// 게임 종료
+async function endGame(roomId: string) {
+  const session = gameSessions.get(roomId);
+  if (!session) return;
+
+  session.status = "FINISHED";
+
+  // 최종 결과 정리
+  const finalResults = Array.from(session.players.values())
+    .map((player) => ({
+      userId: player.userId,
+      nickname: player.nickname,
+      score: player.score,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .map((r, idx) => ({
+      ...r,
+      rank: idx + 1,
+    }));
+
+  // 게임 히스토리 저장
+  try {
+    const room = await prisma.room.findUnique({ where: { id: roomId } });
+    if (room) {
+      const gameHistory = await prisma.gameHistory.create({
+        data: {
+          roomId,
+          gameType: session.gameType,
+        },
+      });
+
+      // 각 플레이어의 결과 저장
+      await Promise.all(
+        finalResults.map((result, index) =>
+          prisma.gameResult.create({
+            data: {
+              gameHistoryId: gameHistory.id,
+              userId: result.userId,
+              rank: result.rank,
+              score: result.score,
+              rewardBeats: Math.floor(result.score / 10), // 점수의 10%를 비트로 보상
+            },
+          })
+        )
+      );
+
+      // 플레이어들에게 비트 지급
+      for (const result of finalResults) {
+        const rewardBeats = Math.floor(result.score / 10);
+        await prisma.user.update({
+          where: { id: result.userId },
+          data: { beats: { increment: rewardBeats } },
+        });
+      }
+    }
+  } catch (error) {
+    console.error("[endGame] Failed to save game history", error);
+  }
+
+  // 최종 결과 전송
+  io.to(roomId).emit("game_finished", {
+    roomId,
+    results: finalResults,
+  });
+
+  // 방 상태 업데이트
+  await prisma.room.update({
+    where: { id: roomId },
+    data: { status: "WAITING" },
+  });
+
+  // 세션 정리 (선택사항: 결과 확인을 위해 잠시 유지할 수도 있음)
+  setTimeout(() => {
+    gameSessions.delete(roomId);
+  }, 60000); // 1분 후 세션 삭제
+
+  console.log(`[Game] Game finished in room ${roomId}`);
+}
 
 httpServer.listen(port, () => {
   console.log(`> 🚀 Backend Server ready at http://localhost:${port}`);
