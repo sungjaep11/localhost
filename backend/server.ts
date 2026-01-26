@@ -366,6 +366,9 @@ app.post("/api/games/rooms", async (req: Request, res: Response) => {
     const roomType =
       gameType === "DIALECT" ? "DIALECT_QUIZ" : "MUSIC_QUIZ";
 
+    const userId = (req as any).userId;
+    console.log(`[POST /api/games/rooms] Creating room with hostId: ${userId}`);
+    
     const room = await prisma.room.create({
       data: {
         title,
@@ -374,9 +377,11 @@ app.post("/api/games/rooms", async (req: Request, res: Response) => {
         type: roomType,
         status: "WAITING",
         options: options ?? {},
-        hostId: (req as any).userId,
+        hostId: userId,
       },
     });
+
+    console.log(`[POST /api/games/rooms] Room created: ${room.id}, hostId: ${room.hostId}`);
 
     // Broadcast room creation to all connected clients
     io.emit("room_created", { room });
@@ -626,6 +631,8 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     const roomId = req.params.roomId;
     const userId = (req as any).userId as string;
 
+    console.log(`[DELETE /api/rooms/:roomId] Request: roomId=${roomId}, userId=${userId}`);
+
     if (!roomId) {
       return res.status(400).json({ message: "방 ID가 필요합니다." });
     }
@@ -642,6 +649,8 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     if (!room) {
       return res.status(404).json({ message: "방을 찾을 수 없습니다." });
     }
+
+    console.log(`[DELETE /api/rooms/:roomId] Room found: hostId=${room.hostId}, requesting userId=${userId}, match: ${room.hostId === userId}`);
 
     // 방 생성자 확인
     if (room.hostId !== userId) {
@@ -1186,10 +1195,13 @@ io.on("connection", (socket) => {
         // 재접속: 소켓 ID와 isHost 상태 업데이트 (방장이 변경되었을 수 있음)
         const player = session.players.get(userId)!;
         player.socketId = socket.id;
-        player.isHost = room.hostId === userId; // 방장 상태 최신화
+        const isHost = room.hostId === userId;
+        console.log(`[game_join] Reconnecting player ${user.nickname} (${userId}), room.hostId: ${room.hostId}, isHost: ${isHost}`);
+        player.isHost = isHost; // 방장 상태 최신화
       } else {
         // 새 플레이어 추가
         const isHost = room.hostId === userId;
+        console.log(`[game_join] New player ${user.nickname} (${userId}), room.hostId: ${room.hostId}, isHost: ${isHost}`);
         const player: GamePlayer = {
           userId: user.id,
           socketId: socket.id,
@@ -1208,9 +1220,20 @@ io.on("connection", (socket) => {
       });
 
       // 모든 플레이어에게 업데이트된 플레이어 목록 전송
+      const playersArray = getPlayersArray(session);
+      console.log(`[game_join] Broadcasting players update to room ${roomId}, players:`, playersArray.map(p => ({ id: p.id, name: p.name, isHost: p.isHost })));
+      
+      // 방의 모든 플레이어에게 브로드캐스트
       io.to(roomId).emit("game_players_update", {
         roomId,
-        players: getPlayersArray(session),
+        players: playersArray,
+        sessionStatus: session.status,
+      });
+      
+      // 새로 입장한 플레이어에게도 개별적으로 전송 (소켓이 방에 조인하기 전일 수 있음)
+      socket.emit("game_players_update", {
+        roomId,
+        players: playersArray,
         sessionStatus: session.status,
       });
 
@@ -1284,6 +1307,7 @@ io.on("connection", (socket) => {
       }
 
       const player = session.players.get(userId);
+      console.log(`[game_start] User ${userId} attempting to start game. Player exists: ${!!player}, isHost: ${player?.isHost}, room.hostId: ${(await prisma.room.findUnique({ where: { id: roomId }, select: { hostId: true } }))?.hostId}`);
       if (!player || !player.isHost) {
         socket.emit("game_error", { message: "Only host can start the game" });
         return;

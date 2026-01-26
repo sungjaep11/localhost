@@ -91,7 +91,9 @@ export default function WaitingRoomPage() {
         
         // 현재 사용자가 방장인지 확인
         const currentPlayer = playersWithCharacters.find(p => p.id === currentUserId);
-        setIsHost(currentPlayer?.isHost || false);
+        const hostStatus = currentPlayer?.isHost || false;
+        console.log(`[WaitingRoom] Current user: ${currentUserId}, isHost: ${hostStatus}, players:`, playersWithCharacters.map(p => ({ id: p.id, name: p.name, isHost: p.isHost })));
+        setIsHost(hostStatus);
       }
     };
 
@@ -125,6 +127,8 @@ export default function WaitingRoomPage() {
 
   const handleStart = () => {
     if (!socket || !roomId || !currentUserId) return;
+    
+    console.log(`[WaitingRoom] Starting game: roomId=${roomId}, userId=${currentUserId}, isHost=${isHost}`);
     
     // 게임 시작 이벤트 전송
     socket.emit('game_start', { 

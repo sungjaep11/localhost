@@ -192,6 +192,8 @@ export default function SongGuessPage() {
     }
 
     const userId = localStorage.getItem('userId');
+    console.log(`[DeleteRoom] Attempting to delete room ${room.id}, userId: ${userId}, room.hostId: ${room.hostId}, isHost: ${room.hostId === userId}`);
+    
     if (!userId) {
       alert('로그인이 필요합니다.');
       return;
