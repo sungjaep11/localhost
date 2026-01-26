@@ -1,9 +1,11 @@
 {
   "dependencies": {
+    "@prisma/adapter-pg": "^7.3.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@types/three": "^0.182.0",
     "lucide-react": "^0.563.0",
+    "pg": "^8.17.2",
     "three": "^0.182.0"
   }
 }
