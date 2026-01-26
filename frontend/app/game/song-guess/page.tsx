@@ -2,6 +2,19 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useSocket } from '@/context/SocketContext';
+
+interface BackendRoom {
+  id: string;
+  title: string;
+  isPrivate: boolean;
+  password?: string | null;
+  type: string;
+  status: string;
+  hostId: string;
+  createdAt: string;
+  options?: any;
+}
 
 interface Room {
   id: string;
@@ -18,39 +31,85 @@ interface Room {
   createdAt: number;
 }
 
-const STORAGE_KEY = 'song-guess-rooms';
-
 export default function SongGuessPage() {
   const router = useRouter();
+  const { socket } = useSocket();
   const [searchQuery, setSearchQuery] = useState('');
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // localStorage에서 방 목록 불러오기 (최신순 정렬)
+  // 백엔드에서 방 목록 불러오기
   useEffect(() => {
-    const storedRooms = localStorage.getItem(STORAGE_KEY);
-    if (storedRooms) {
+    const fetchRooms = async () => {
       try {
-        const parsedRooms = JSON.parse(storedRooms);
-        // 최신순 정렬 (createdAt 내림차순)
-        const sortedRooms = parsedRooms.sort((a: Room, b: Room) => b.createdAt - a.createdAt);
-        setRooms(sortedRooms);
-      } catch (e) {
-        console.error('Failed to parse rooms from localStorage', e);
+        setLoading(true);
+        const userId = localStorage.getItem('userId') || '';
+        const res = await fetch('/api/games/rooms?page=1&pageSize=50', {
+          headers: userId ? { 'x-user-id': userId } : {},
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.rooms) {
+            // MUSIC_QUIZ 타입만 필터링
+            const musicRooms = data.rooms
+              .filter((room: BackendRoom) => room.type === 'MUSIC_QUIZ' && room.status === 'WAITING')
+              .map((room: BackendRoom) => mapBackendRoomToFrontend(room));
+            setRooms(musicRooms);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch rooms:', error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchRooms();
   }, []);
 
-  // 방 목록 업데이트 함수
-  const updateRooms = (updatedRooms: Room[]) => {
-    setRooms(updatedRooms);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRooms));
+  // 소켓 이벤트 리스너: 새 방 생성 시 업데이트
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRoomCreated = (data: { room: BackendRoom }) => {
+      if (data.room.type === 'MUSIC_QUIZ' && data.room.status === 'WAITING') {
+        const newRoom = mapBackendRoomToFrontend(data.room);
+        setRooms((prevRooms) => [newRoom, ...prevRooms]);
+      }
+    };
+
+    socket.on('room_created', handleRoomCreated);
+
+    return () => {
+      socket.off('room_created', handleRoomCreated);
+    };
+  }, [socket]);
+
+  // 백엔드 방 형식을 프론트엔드 형식으로 변환
+  const mapBackendRoomToFrontend = (backendRoom: BackendRoom): Room => {
+    const options = backendRoom.options || {};
+    return {
+      id: backendRoom.id,
+      name: backendRoom.title,
+      currentPlayers: 0, // TODO: 실제 참가자 수를 가져와야 함
+      maxPlayers: options.maxPlayers || 8,
+      isLocked: backendRoom.isPrivate,
+      password: backendRoom.password || undefined,
+      hostId: backendRoom.hostId,
+      hostName: 'Host', // TODO: 호스트 이름을 가져와야 함
+      rounds: options.rounds || 4,
+      songsPerRound: options.songsPerRound || 1,
+      genres: options.genres || [],
+      createdAt: new Date(backendRoom.createdAt).getTime(),
+    };
   };
 
   const handleCreateRoom = () => {
     router.push('/game/song-guess/create');
   };
 
-  const handleJoinRoom = (room: Room) => {
+  const handleJoinRoom = async (room: Room) => {
     // 최대 인원수 체크
     if (room.currentPlayers >= room.maxPlayers) {
       alert('방이 가득 찼습니다.');
@@ -58,70 +117,65 @@ export default function SongGuessPage() {
     }
 
     // 현재 사용자 정보 가져오기
-    const currentUser = {
-      id: localStorage.getItem('userId') || `user-${Date.now()}`,
-      name: localStorage.getItem('userName') || '사용자',
-    };
-
-    // userId와 userName이 없으면 저장
-    if (!localStorage.getItem('userId')) {
-      localStorage.setItem('userId', currentUser.id);
-    }
-    if (!localStorage.getItem('userName')) {
-      const userName = prompt('이름을 입력하세요:') || '사용자';
-      localStorage.setItem('userName', userName);
-      currentUser.name = userName;
-    }
-
-    if (room.isLocked) {
-      // 비밀번호 입력
-      const password = prompt('비밀번호를 입력하세요:');
-      if (password && password === room.password) {
-        // 참가자 추가
-        addPlayerToRoom(room.id, currentUser);
-        router.push(`/game/song-guess/${room.id}/waiting`);
-      } else if (password) {
-        alert('비밀번호가 일치하지 않습니다.');
-      }
-    } else {
-      // 참가자 추가
-      addPlayerToRoom(room.id, currentUser);
-      router.push(`/game/song-guess/${room.id}/waiting`);
-    }
-  };
-
-  // 방에 참가자 추가 함수
-  const addPlayerToRoom = (roomId: string, player: { id: string; name: string }) => {
-    const playersKey = `song-guess-room-${roomId}-players`;
-    const existingPlayers = localStorage.getItem(playersKey);
-    const players = existingPlayers ? JSON.parse(existingPlayers) : [];
-    
-    // 이미 참가한 경우 체크
-    if (players.find((p: any) => p.id === player.id)) {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('로그인이 필요합니다.');
+      router.push('/auth/login');
       return;
     }
 
-    // 사용자의 장착된 캐릭터 가져오기
-    const equippedCharacter = localStorage.getItem(`equipped-character-${player.id}`) || '/character1.glb';
+    try {
+      // 백엔드 API를 통해 방 입장
+      const res = await fetch('/api/games/rooms/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+        },
+        body: JSON.stringify({
+          roomId: room.id,
+          password: room.isLocked ? undefined : undefined, // 비밀번호는 프롬프트로 받아야 함
+        }),
+      });
 
-    // 참가자 추가
-    const newPlayer = {
-      id: player.id,
-      name: player.name,
-      isHost: false,
-      characterUrl: equippedCharacter,
-      joinedAt: Date.now(),
-    };
-    players.push(newPlayer);
-    localStorage.setItem(playersKey, JSON.stringify(players));
-
-    // 방의 참여자 수 증가
-    const updatedRooms = rooms.map(r => 
-      r.id === roomId 
-        ? { ...r, currentPlayers: r.currentPlayers + 1 }
-        : r
-    );
-    updateRooms(updatedRooms);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          router.push(`/game/song-guess/${room.id}/waiting`);
+        } else {
+          alert(data.error || '방 입장에 실패했습니다.');
+        }
+      } else {
+        const error = await res.json();
+        if (res.status === 403) {
+          // 비밀번호 필요
+          const password = prompt('비밀번호를 입력하세요:');
+          if (password) {
+            const retryRes = await fetch('/api/games/rooms/join', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': userId,
+              },
+              body: JSON.stringify({
+                roomId: room.id,
+                password: password,
+              }),
+            });
+            if (retryRes.ok) {
+              router.push(`/game/song-guess/${room.id}/waiting`);
+            } else {
+              alert('비밀번호가 일치하지 않습니다.');
+            }
+          }
+        } else {
+          alert(error.error || '방 입장에 실패했습니다.');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to join room:', error);
+      alert('방 입장에 실패했습니다.');
+    }
   };
 
   // 검색 필터링
@@ -322,7 +376,19 @@ export default function SongGuessPage() {
             gap: "1.5rem",
           }}
         >
-          {filteredRooms.length === 0 ? (
+          {loading ? (
+            <div
+              style={{
+                gridColumn: "1 / -1",
+                textAlign: "center",
+                padding: "3rem",
+                color: "rgba(255, 255, 255, 0.6)",
+                fontSize: "1.2rem",
+              }}
+            >
+              방 목록을 불러오는 중...
+            </div>
+          ) : filteredRooms.length === 0 ? (
             <div
               style={{
                 gridColumn: "1 / -1",
