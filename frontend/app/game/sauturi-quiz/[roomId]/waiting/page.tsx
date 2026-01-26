@@ -3,13 +3,9 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { Canvas } from "@react-three/fiber";
-<<<<<<< HEAD
-import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
-import { useSocket } from '@/context/SocketContext';
-=======
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import { useSocket } from '@/context/SocketContext';
 import * as THREE from 'three';
->>>>>>> 6668da28a86ccb5a56fc7d24916a93cc1179a91b
 
 interface Player {
   id: string;
