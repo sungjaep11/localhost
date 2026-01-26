@@ -79,10 +79,16 @@ export default function SongGuessPage() {
       }
     };
 
+    const handleRoomDeleted = (data: { roomId: string }) => {
+      setRooms((prevRooms) => prevRooms.filter((r) => r.id !== data.roomId));
+    };
+
     socket.on('room_created', handleRoomCreated);
+    socket.on('room_deleted', handleRoomDeleted);
 
     return () => {
       socket.off('room_created', handleRoomCreated);
+      socket.off('room_deleted', handleRoomDeleted);
     };
   }, [socket]);
 
@@ -175,6 +181,46 @@ export default function SongGuessPage() {
     } catch (error) {
       console.error('Failed to join room:', error);
       alert('방 입장에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteRoom = async (room: Room, e: React.MouseEvent) => {
+    e.stopPropagation(); // 방 클릭 이벤트 방지
+
+    if (!confirm('정말 이 방을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/rooms/${room.id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': userId,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          // 방 목록에서 제거
+          setRooms((prevRooms) => prevRooms.filter((r) => r.id !== room.id));
+          alert('방이 삭제되었습니다.');
+        } else {
+          alert(data.error || '방 삭제에 실패했습니다.');
+        }
+      } else {
+        const error = await res.json();
+        alert(error.error || '방 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to delete room:', error);
+      alert('방 삭제에 실패했습니다.');
     }
   };
 
@@ -401,111 +447,160 @@ export default function SongGuessPage() {
               생성된 방이 없습니다. + 버튼을 눌러 방을 만들어보세요!
             </div>
           ) : (
-            filteredRooms.map((room) => (
-              <button
-                key={room.id}
-                onClick={() => handleJoinRoom(room)}
-                disabled={room.currentPlayers >= room.maxPlayers}
-                style={{
-                  background: room.currentPlayers >= room.maxPlayers 
-                    ? "rgba(0, 0, 0, 0.4)" 
-                    : "rgba(0, 0, 0, 0.6)",
-                  backdropFilter: "blur(10px)",
-                  border: room.currentPlayers >= room.maxPlayers
-                    ? "2px solid rgba(255, 0, 0, 0.5)"
-                    : "2px solid rgba(0, 255, 255, 0.5)",
-                  borderRadius: "16px",
-                  padding: "1.5rem",
-                  cursor: room.currentPlayers >= room.maxPlayers ? "not-allowed" : "pointer",
-                  transition: "all 0.3s ease",
-                  position: "relative",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "1rem",
-                  textAlign: "center",
-                  opacity: room.currentPlayers >= room.maxPlayers ? 0.6 : 1,
-                }}
-                onMouseEnter={(e) => {
-                  if (room.currentPlayers < room.maxPlayers) {
-                    e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
-                    e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.4)";
-                    e.currentTarget.style.transform = "translateY(-5px)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (room.currentPlayers < room.maxPlayers) {
-                    e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
-                    e.currentTarget.style.boxShadow = "none";
-                    e.currentTarget.style.transform = "translateY(0)";
-                  }
-                }}
-              >
-              {/* 아이콘 */}
-              <div
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "rgba(0, 255, 255, 0.1)",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(0, 255, 255, 0.3)",
-                }}
-              >
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-              </div>
+            filteredRooms.map((room) => {
+              const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+              const isRoomHost = room.hostId === currentUserId;
 
-              {/* 방 이름 */}
-              <div
-                style={{
-                  color: "#ffffff",
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                }}
-              >
-                {room.name}
-              </div>
-
-              {/* 인원 수 */}
-              <div
-                style={{
-                  color: room.currentPlayers >= room.maxPlayers
-                    ? "rgba(255, 0, 0, 0.8)"
-                    : "rgba(255, 255, 255, 0.7)",
-                  fontSize: "0.9rem",
-                  fontWeight: room.currentPlayers >= room.maxPlayers ? 700 : 400,
-                }}
-              >
-                ({room.currentPlayers}/{room.maxPlayers})
-                {room.currentPlayers >= room.maxPlayers && (
-                  <span style={{ marginLeft: "0.5rem", fontSize: "0.8rem" }}>
-                    (가득참)
-                  </span>
-                )}
-              </div>
-
-              {/* 자물쇠 아이콘 */}
-              {room.isLocked && (
+              return (
                 <div
+                  key={room.id}
                   style={{
-                    position: "absolute",
-                    bottom: "1rem",
-                    right: "1rem",
-                    color: "#ffd700",
+                    position: "relative",
                   }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
+                  <button
+                    onClick={() => handleJoinRoom(room)}
+                    disabled={room.currentPlayers >= room.maxPlayers}
+                    style={{
+                      background: room.currentPlayers >= room.maxPlayers 
+                        ? "rgba(0, 0, 0, 0.4)" 
+                        : "rgba(0, 0, 0, 0.6)",
+                      backdropFilter: "blur(10px)",
+                      border: room.currentPlayers >= room.maxPlayers
+                        ? "2px solid rgba(255, 0, 0, 0.5)"
+                        : "2px solid rgba(0, 255, 255, 0.5)",
+                      borderRadius: "16px",
+                      padding: "1.5rem",
+                      cursor: room.currentPlayers >= room.maxPlayers ? "not-allowed" : "pointer",
+                      transition: "all 0.3s ease",
+                      position: "relative",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "1rem",
+                      textAlign: "center",
+                      opacity: room.currentPlayers >= room.maxPlayers ? 0.6 : 1,
+                      width: "100%",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (room.currentPlayers < room.maxPlayers) {
+                        e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
+                        e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.4)";
+                        e.currentTarget.style.transform = "translateY(-5px)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (room.currentPlayers < room.maxPlayers) {
+                        e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
+                        e.currentTarget.style.boxShadow = "none";
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }
+                    }}
+                  >
+                    {/* 아이콘 */}
+                    <div
+                      style={{
+                        width: "80px",
+                        height: "80px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(0, 255, 255, 0.1)",
+                        borderRadius: "12px",
+                        border: "1px solid rgba(0, 255, 255, 0.3)",
+                      }}
+                    >
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
+                    </div>
+
+                    {/* 방 이름 */}
+                    <div
+                      style={{
+                        color: "#ffffff",
+                        fontSize: "1.1rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {room.name}
+                    </div>
+
+                    {/* 인원 수 */}
+                    <div
+                      style={{
+                        color: room.currentPlayers >= room.maxPlayers
+                          ? "rgba(255, 0, 0, 0.8)"
+                          : "rgba(255, 255, 255, 0.7)",
+                        fontSize: "0.9rem",
+                        fontWeight: room.currentPlayers >= room.maxPlayers ? 700 : 400,
+                      }}
+                    >
+                      ({room.currentPlayers}/{room.maxPlayers})
+                      {room.currentPlayers >= room.maxPlayers && (
+                        <span style={{ marginLeft: "0.5rem", fontSize: "0.8rem" }}>
+                          (가득참)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 자물쇠 아이콘 */}
+                    {room.isLocked && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "1rem",
+                          right: "1rem",
+                          color: "#ffd700",
+                        }}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+
+                  {/* 방 삭제 버튼 (방장만) */}
+                  {isRoomHost && (
+                    <button
+                      onClick={(e) => handleDeleteRoom(room, e)}
+                      style={{
+                        position: "absolute",
+                        top: "0.5rem",
+                        right: "0.5rem",
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        background: "rgba(255, 0, 0, 0.7)",
+                        border: "2px solid rgba(255, 0, 0, 0.9)",
+                        color: "#ffffff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.3s ease",
+                        zIndex: 10,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255, 0, 0, 0.9)";
+                        e.currentTarget.style.transform = "scale(1.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "rgba(255, 0, 0, 0.7)";
+                        e.currentTarget.style.transform = "scale(1)";
+                      }}
+                      title="방 삭제"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-              )}
-              </button>
-            ))
+              );
+            })
           )}
         </div>
       </div>
