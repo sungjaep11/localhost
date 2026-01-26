@@ -627,7 +627,7 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     const userId = (req as any).userId as string;
 
     if (!roomId) {
-      return res.status(400).json({ message: "roomId is required" });
+      return res.status(400).json({ message: "방 ID가 필요합니다." });
     }
 
     // 방 정보 조회
@@ -636,14 +636,14 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     });
 
     if (!room) {
-      return res.status(404).json({ message: "Room not found" });
+      return res.status(404).json({ message: "방을 찾을 수 없습니다." });
     }
 
     // 방 생성자 확인
     if (room.hostId !== userId) {
       return res
         .status(403)
-        .json({ message: "Only the room creator can delete the room" });
+        .json({ message: "방장만 방을 삭제할 수 있습니다." });
     }
 
     // 게임 세션이 있으면 정리
@@ -681,7 +681,7 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("[DELETE /api/rooms/:roomId] error", err);
-    res.status(500).json({ message: "Failed to delete room" });
+    res.status(500).json({ message: "방 삭제에 실패했습니다." });
   }
 });
 

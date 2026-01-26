@@ -205,22 +205,27 @@ export default function SauturiQuizPage() {
         },
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          // 방 목록에서 제거
-          setRooms((prevRooms) => prevRooms.filter((r) => r.id !== room.id));
-          alert('방이 삭제되었습니다.');
-        } else {
-          alert(data.error || '방 삭제에 실패했습니다.');
-        }
+      const data = await res.json().catch(() => ({ success: false, error: '응답을 파싱할 수 없습니다.' }));
+
+      if (res.ok && data.success) {
+        // 방 목록에서 제거
+        setRooms((prevRooms) => prevRooms.filter((r) => r.id !== room.id));
+        alert('방이 삭제되었습니다.');
       } else {
-        const error = await res.json();
-        alert(error.error || '방 삭제에 실패했습니다.');
+        const errorMessage = data.error || data.message || '방 삭제에 실패했습니다.';
+        console.error('Room deletion failed:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorMessage,
+          roomId: room.id,
+          userId: userId,
+        });
+        alert(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete room:', error);
-      alert('방 삭제에 실패했습니다.');
+      const errorMessage = error.message || '방 삭제에 실패했습니다. 네트워크 오류가 발생했을 수 있습니다.';
+      alert(errorMessage);
     }
   };
 
