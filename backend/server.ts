@@ -378,6 +378,9 @@ app.post("/api/games/rooms", async (req: Request, res: Response) => {
       },
     });
 
+    // Broadcast room creation to all connected clients
+    io.emit("room_created", { room });
+
     res.status(201).json(room);
   } catch (err) {
     console.error("[POST /api/games/rooms] error", err);
@@ -530,6 +533,9 @@ app.post(
           hostId: userId,
         },
       });
+
+      // Broadcast room creation to all connected clients
+      io.emit("room_created", { room });
 
       res.status(201).json(room);
     } catch (err) {

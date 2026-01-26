@@ -9,8 +9,9 @@ function Model({ url }: { url: string }) {
   // GLB 파일 불러오기
   const { scene } = useGLTF(url);
   
-  // 모델 크기나 위치 조정 (필요하면 수정)
-  return <primitive object={scene} scale={3} position={[0, -1.5, 0]} />;
+  // 모델 크기나 위치, 회전 조정
+  // rotation: [x, y, z] - Y축으로 180도 회전하여 정면을 바라보게 함
+  return <primitive object={scene} scale={3} position={[0, -1.5, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 interface ModelViewerProps {

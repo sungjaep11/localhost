@@ -20,9 +20,15 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // 백엔드(3001번)로 소켓 연결 시도
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
-    const socketInstance = io(socketUrl, {
+    // 백엔드 서버 URL (환경변수 또는 기본값)
+    // AWS EC2의 경우 NEXT_PUBLIC_BACKEND_URL을 설정해야 함
+    // 예: NEXT_PUBLIC_BACKEND_URL=http://your-ec2-ip:3001
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 
+      (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+        ? 'http://localhost:3001' 
+        : `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:3001`);
+    
+    const socketInstance = io(backendUrl, {
       path: "/socket.io", // 기본 경로
       transports: ["websocket"], // 성능 위해 웹소켓 강제
     });

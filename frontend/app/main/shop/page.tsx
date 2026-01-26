@@ -22,7 +22,7 @@ interface Action {
 // Model 컴포넌트
 function Model({ url }: { url: string }) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={3} position={[0, -1.5, 0]} />;
+  return <primitive object={scene} scale={3} position={[0, -1.5, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 모델 뷰어 컴포넌트

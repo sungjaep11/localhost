@@ -2,7 +2,8 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 
 interface Player {
   id: string;
@@ -10,6 +11,63 @@ interface Player {
   isHost: boolean;
   score?: number;
   joinedAt?: number;
+  character?: string;
+  characterUrl?: string;
+}
+
+interface ChatMessage {
+  id: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: number;
+}
+
+interface BubbleMessage {
+  id: string;
+  playerId: string;
+  message: string;
+  expiresAt: number;
+}
+
+interface Room {
+  id: string;
+  name: string;
+  currentPlayers: number;
+  maxPlayers: number;
+  isLocked: boolean;
+  password?: string;
+  hostId: string;
+  hostName: string;
+  rounds: number;
+  songsPerRound: number;
+  genres: string[];
+  createdAt: number;
+}
+
+// 3D 모델 컴포넌트
+function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
+  const { scene } = useGLTF(url);
+  return <primitive object={scene} scale={scale} position={[0, -1.5, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+}
+
+// 캐릭터 뷰어 컴포넌트
+function CharacterViewer({ characterUrl, size = 150 }: { characterUrl: string; size?: number }) {
+  return (
+    <div style={{ width: size, height: size }}>
+      <Canvas camera={{ position: [0, 1, 4], fov: 50 }}>
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <Environment preset="city" />
+        <Model url={characterUrl} scale={size > 150 ? 3 : 2} />
+        <OrbitControls
+          enableZoom={false}
+          enablePan={false}
+          enableRotate={false}
+        />
+      </Canvas>
+    </div>
+  );
 }
 
 export default function GamePlayPage() {
@@ -17,187 +75,117 @@ export default function GamePlayPage() {
   const params = useParams();
   const roomId = params.roomId as string;
   const [currentRound, setCurrentRound] = useState(1);
-  const [totalRounds] = useState(10);
-  const [answer, setAnswer] = useState('');
+  const [currentSong, setCurrentSong] = useState(1);
+  const [totalRounds, setTotalRounds] = useState(1);
+  const [songsPerRound, setSongsPerRound] = useState(5);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [timeLimit, setTimeLimit] = useState(30);
-  const [timeRemaining, setTimeRemaining] = useState(30);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
-  const timeRemainingRef = useRef<NodeJS.Timeout | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [bubbleMessages, setBubbleMessages] = useState<BubbleMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [showExitModal, setShowExitModal] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // 현재 사용자 정보
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
-
-  // Socket.io 연결 및 게임 상태 동기화
+  // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
-    if (!roomId || !currentUserId) return;
+    const userId = localStorage.getItem('userId');
+    const userName = localStorage.getItem('userName');
+    if (userId) setCurrentUserId(userId);
+    if (userName) setCurrentUserName(userName);
 
-    // Socket.io 연결
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
-    const socket = io(socketUrl, {
-      transports: ["websocket"],
-    });
-
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      console.log("✅ Socket connected in play page:", socket.id);
-      
-      // 게임 방 입장
-      socket.emit("game_join", { roomId, userId: currentUserId });
-      
-      // 현재 게임 상태 요청
-      socket.emit("game_get_state", { roomId });
-    });
-
-    // 플레이어 목록 업데이트
-    socket.on("game_players_update", (data: { players: Player[]; sessionStatus: string }) => {
-      console.log("👥 Players updated:", data.players);
-      setPlayers(data.players);
-    });
-
-    // 게임 상태 업데이트
-    socket.on("game_state", (data: {
-      roomId: string;
-      players: Player[];
-      status: string;
-      currentRound: number;
-      totalRounds: number;
-      currentQuestion?: any;
-    }) => {
-      console.log("🎮 Game state:", data);
-      setPlayers(data.players);
-      setCurrentRound(data.currentRound);
-    });
-
-    // 라운드 시작
-    socket.on("game_round_start", (data: {
-      roomId: string;
-      round: number;
-      totalRounds: number;
-      question: any;
-      timeLimit: number;
-    }) => {
-      console.log("🎯 Round started:", data);
-      setCurrentRound(data.round);
-      setTimeLimit(data.timeLimit);
-      setTimeRemaining(data.timeLimit);
-      setAnswer('');
-      setHasSubmitted(false);
-      
-      // 타이머 시작
-      if (timeRemainingRef.current) {
-        clearInterval(timeRemainingRef.current);
+    // 방 정보 불러오기
+    const STORAGE_KEY = 'sauturi-quiz-rooms';
+    const storedRooms = localStorage.getItem(STORAGE_KEY);
+    if (storedRooms) {
+      try {
+        const rooms: Room[] = JSON.parse(storedRooms);
+        const currentRoom = rooms.find(r => r.id === roomId);
+        if (currentRoom) {
+          setTotalRounds(currentRoom.rounds);
+          setSongsPerRound(currentRoom.songsPerRound);
+        }
+      } catch (e) {
+        console.error('Failed to load room info', e);
       }
-      timeRemainingRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            if (timeRemainingRef.current) {
-              clearInterval(timeRemainingRef.current);
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    });
+    }
+  }, [roomId]);
 
-    // 답변 제출 상태 업데이트
-    socket.on("game_answer_update", (data: {
-      roomId: string;
-      submittedCount: number;
-      totalPlayers: number;
-      userId: string;
-      hasAnswered: boolean;
-    }) => {
-      console.log("📝 Answer update:", data);
-      if (data.userId === currentUserId) {
-        setHasSubmitted(true);
-      }
-    });
-
-    // 정답 확인
-    socket.on("game_answer_correct", (data: {
-      roomId: string;
-      scoreGained: number;
-      totalScore: number;
-    }) => {
-      console.log("✅ Answer correct! Score:", data.scoreGained);
-    });
-
-    // 라운드 결과
-    socket.on("game_round_result", (data: {
-      roomId: string;
-      round: number;
-      correctAnswer: string;
-      results: any[];
-      leaderboard: any[];
-    }) => {
-      console.log("📊 Round result:", data);
-      // 타이머 정리
-      if (timeRemainingRef.current) {
-        clearInterval(timeRemainingRef.current);
-      }
-      // 플레이어 점수 업데이트
-      const updatedPlayers = players.map(p => {
-        const result = data.results.find(r => r.userId === p.id);
-        return result ? { ...p, score: result.score } : p;
-      });
-      setPlayers(updatedPlayers);
-    });
-
-    // 게임 종료
-    socket.on("game_finished", (data: {
-      roomId: string;
-      results: any[];
-    }) => {
-      console.log("🏁 Game finished:", data);
-      if (timeRemainingRef.current) {
-        clearInterval(timeRemainingRef.current);
-      }
-      // 결과 페이지로 이동 (필요시)
-      // router.push(`/game/sauturi-quiz/${roomId}/result`);
-    });
-
-    // 에러 처리
-    socket.on("game_error", (error: { message: string }) => {
-      console.error("❌ Game error:", error.message);
-      alert(error.message);
-    });
-
-    // 연결 해제 시 정리
-    return () => {
-      if (timeRemainingRef.current) {
-        clearInterval(timeRemainingRef.current);
-      }
-      if (socketRef.current) {
-        socketRef.current.emit("game_leave", { roomId, userId: currentUserId });
-        socketRef.current.disconnect();
+  // 참가자 목록 불러오기
+  useEffect(() => {
+    const loadPlayers = () => {
+      const playersKey = `sauturi-quiz-room-${roomId}-players`;
+      const storedPlayers = localStorage.getItem(playersKey);
+      if (storedPlayers) {
+        try {
+          const parsedPlayers = JSON.parse(storedPlayers);
+          const playersWithScore = parsedPlayers.map((p: Player) => ({
+            ...p,
+            score: p.score || 0,
+            character: p.character || p.characterUrl || '/character1.glb',
+          }));
+          setPlayers(playersWithScore);
+        } catch (e) {
+          console.error('Failed to parse players', e);
+        }
       }
     };
-  }, [roomId, currentUserId, router]);
 
-  // 답변 제출
-  const handleSubmitAnswer = () => {
-    if (!socketRef.current || !answer.trim() || hasSubmitted) return;
-    
-    socketRef.current.emit("game_submit_answer", {
-      roomId,
-      userId: currentUserId,
-      answer: answer.trim(),
-    });
-  };
+    loadPlayers();
+    const interval = setInterval(loadPlayers, 1000);
+    return () => clearInterval(interval);
+  }, [roomId]);
 
-  // Enter 키로 답변 제출
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSubmitAnswer();
+  // 말풍선 자동 삭제 (3초 후)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setBubbleMessages(prev => prev.filter(msg => msg.expiresAt > now));
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 채팅 스크롤 자동 이동
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  };
+  }, [chatMessages]);
 
   const host = players.find(p => p.isHost);
   const otherPlayers = players.filter(p => !p.isHost);
+
+  // 채팅 전송
+  const sendChat = () => {
+    if (!chatInput.trim()) return;
+
+    const newMessage: ChatMessage = {
+      id: Date.now().toString(),
+      playerId: currentUserId,
+      playerName: currentUserName || '익명',
+      message: chatInput.trim(),
+      timestamp: Date.now(),
+    };
+
+    // 채팅 메시지 추가
+    setChatMessages(prev => [...prev, newMessage]);
+
+    // 말풍선 추가 (3초 후 만료)
+    const newBubble: BubbleMessage = {
+      id: Date.now().toString(),
+      playerId: currentUserId,
+      message: chatInput.trim(),
+      expiresAt: Date.now() + 3000,
+    };
+    setBubbleMessages(prev => [...prev, newBubble]);
+
+    setChatInput('');
+  };
+
+  // 특정 플레이어의 말풍선 가져오기
+  const getPlayerBubble = (playerId: string) => {
+    return bubbleMessages.find(msg => msg.playerId === playerId);
+  };
 
   return (
     <main
@@ -225,22 +213,106 @@ export default function GamePlayPage() {
         ))}
       </div>
 
+      {/* 나가기 확인 모달 */}
+      {showExitModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+          onClick={() => setShowExitModal(false)}
+        >
+          <div
+            style={{
+              background: "rgba(20, 20, 40, 0.95)",
+              border: "2px solid rgba(0, 255, 255, 0.5)",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "400px",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              style={{
+                color: "#ffffff",
+                fontSize: "1.3rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              게임을 중단하고 돌아가시겠습니까?
+            </h3>
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+              <button
+                onClick={() => setShowExitModal(false)}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  background: "rgba(100, 100, 100, 0.5)",
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={() => router.push('/main/lobby')}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  background: "rgba(255, 100, 100, 0.5)",
+                  border: "2px solid rgba(255, 100, 100, 0.8)",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                나가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "1.5rem",
+          marginBottom: "1rem",
           zIndex: 10,
         }}
       >
         <div
+          onClick={() => setShowExitModal(true)}
           style={{
             color: "#ffffff",
             fontSize: "1.2rem",
             fontWeight: 700,
             textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#00ffff";
+            e.currentTarget.style.textShadow = "0 0 20px rgba(0, 255, 255, 1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.textShadow = "0 0 10px rgba(0, 255, 255, 0.8)";
           }}
         >
           Localhost
@@ -253,7 +325,7 @@ export default function GamePlayPage() {
             textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
           }}
         >
-          Round {currentRound}/{totalRounds}
+          Round {currentRound} {currentSong}/{songsPerRound}
         </div>
       </div>
 
@@ -262,69 +334,83 @@ export default function GamePlayPage() {
         style={{
           display: "flex",
           flex: 1,
-          gap: "2rem",
+          gap: "1rem",
         }}
       >
-        {/* 왼쪽 - 방장 캐릭터 */}
+        {/* 왼쪽 - 방장 캐릭터 (크게) */}
         {host && (
           <div
             style={{
-              width: "300px",
+              width: "280px",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "1.5rem",
+              gap: "0.5rem",
             }}
           >
-            {/* 방장 캐릭터 - 크게 */}
+
+            {/* 방장 표시 */}
             <div
               style={{
-                width: "200px",
-                height: "200px",
-                background: "rgba(0, 0, 0, 0.6)",
-                backdropFilter: "blur(10px)",
-                border: "3px solid rgba(255, 215, 0, 0.8)",
-                borderRadius: "16px",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 0 40px rgba(255, 215, 0, 0.5)",
-                position: "relative",
+                gap: "0.5rem",
+                background: "rgba(255, 215, 0, 0.9)",
+                padding: "0.4rem 1rem",
+                borderRadius: "20px",
+                color: "#000",
+                fontSize: "0.9rem",
+                fontWeight: 700,
               }}
             >
-              {/* 방장 표시 */}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+              방장
+            </div>
+
+            {/* 방장 캐릭터 + 말풍선 */}
+            <div style={{ position: "relative" }}>
+              {/* 방장 말풍선 (오른쪽) */}
+              {getPlayerBubble(host.id) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "60px",
+                    left: "calc(100% - 30px)",
+                    background: "rgba(255, 255, 255, 0.95)",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "16px",
+                    borderBottomLeftRadius: "4px",
+                    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
+                    zIndex: 20,
+                    animation: "fadeInRight 0.3s ease",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <p style={{ color: "#000", fontSize: "0.9rem", margin: 0 }}>
+                    {getPlayerBubble(host.id)?.message}
+                  </p>
+                </div>
+              )}
               <div
                 style={{
-                  position: "absolute",
-                  top: "-15px",
+                  width: "220px",
+                  height: "220px",
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.5rem",
-                  background: "rgba(255, 215, 0, 0.9)",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "20px",
-                  color: "#000",
-                  fontSize: "1rem",
-                  fontWeight: 700,
+                  justifyContent: "center",
                 }}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-                방장
+                <CharacterViewer characterUrl={host.character || '/character1.glb'} size={220} />
               </div>
-
-              {/* 캐릭터 아이콘 */}
-              <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
             </div>
 
             {/* 방장 이름 */}
             <div
               style={{
                 color: "#ffffff",
-                fontSize: "1.3rem",
+                fontSize: "1.2rem",
                 fontWeight: 700,
                 textShadow: "0 0 10px rgba(255, 215, 0, 0.8)",
               }}
@@ -338,6 +424,7 @@ export default function GamePlayPage() {
                 display: "flex",
                 gap: "1rem",
                 alignItems: "center",
+                marginTop: "0.5rem",
               }}
             >
               <button
@@ -353,14 +440,6 @@ export default function GamePlayPage() {
                   alignItems: "center",
                   justifyContent: "center",
                   transition: "all 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(0, 255, 255, 0.3)";
-                  e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(0, 255, 255, 0.2)";
-                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -381,14 +460,6 @@ export default function GamePlayPage() {
                   justifyContent: "center",
                   transition: "all 0.3s ease",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(0, 255, 255, 0.3)";
-                  e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(0, 255, 255, 0.2)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -398,189 +469,105 @@ export default function GamePlayPage() {
           </div>
         )}
 
-        {/* 중앙 - 정답 입력 영역 */}
+        {/* 중앙 - 다른 플레이어들 캐릭터 */}
         <div
           style={{
             flex: 1,
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            flexWrap: "wrap",
             justifyContent: "center",
+            alignItems: "flex-start",
+            alignContent: "flex-start",
             gap: "2rem",
-          }}
-        >
-          <div
-            style={{
-              background: "rgba(0, 0, 0, 0.7)",
-              backdropFilter: "blur(15px)",
-              border: "3px solid rgba(0, 255, 255, 0.6)",
-              borderRadius: "20px",
-              padding: "3rem",
-              width: "100%",
-              maxWidth: "600px",
-              boxShadow: "0 0 50px rgba(0, 255, 255, 0.4)",
-            }}
-          >
-            <h2
-              style={{
-                color: "#00ffff",
-                fontSize: "1.5rem",
-                fontWeight: 700,
-                marginBottom: "1.5rem",
-                textAlign: "center",
-                textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
-              }}
-            >
-              정답 {hasSubmitted && "✓"}
-            </h2>
-            <div style={{ marginBottom: "1rem", textAlign: "center", color: "#ffffff" }}>
-              남은 시간: {timeRemaining}초
-            </div>
-            <input
-              type="text"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={hasSubmitted ? "답변 제출 완료" : "정답을 입력하세요"}
-              disabled={hasSubmitted}
-              style={{
-                width: "100%",
-                padding: "1.5rem",
-                background: "rgba(0, 0, 0, 0.5)",
-                border: "2px solid rgba(0, 255, 255, 0.5)",
-                borderRadius: "12px",
-                color: "#ffffff",
-                fontSize: "1.2rem",
-                outline: "none",
-                transition: "all 0.3s ease",
-                opacity: hasSubmitted ? 0.6 : 1,
-                cursor: hasSubmitted ? "not-allowed" : "text",
-              }}
-              onFocus={(e) => {
-                if (!hasSubmitted) {
-                  e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
-                  e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.5)";
-                }
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            />
-            {!hasSubmitted && (
-              <button
-                onClick={handleSubmitAnswer}
-                disabled={!answer.trim()}
-                style={{
-                  width: "100%",
-                  marginTop: "1rem",
-                  padding: "1rem",
-                  background: answer.trim() ? "rgba(0, 255, 255, 0.3)" : "rgba(0, 255, 255, 0.1)",
-                  border: "2px solid rgba(0, 255, 255, 0.6)",
-                  borderRadius: "12px",
-                  color: "#00ffff",
-                  fontSize: "1.1rem",
-                  fontWeight: 700,
-                  cursor: answer.trim() ? "pointer" : "not-allowed",
-                  transition: "all 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (answer.trim()) {
-                    e.currentTarget.style.background = "rgba(0, 255, 255, 0.4)";
-                    e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = answer.trim() ? "rgba(0, 255, 255, 0.3)" : "rgba(0, 255, 255, 0.1)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                제출
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 오른쪽 - 다른 플레이어들 */}
-        <div
-          style={{
-            width: "250px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            maxHeight: "calc(100vh - 200px)",
-            overflowY: "auto",
+            padding: "1rem",
           }}
         >
           {otherPlayers.map((player) => (
             <div
               key={player.id}
               style={{
-                background: "rgba(0, 0, 0, 0.6)",
-                backdropFilter: "blur(10px)",
-                border: "2px solid rgba(0, 255, 255, 0.4)",
-                borderRadius: "12px",
-                padding: "1rem",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                gap: "1rem",
+                position: "relative",
               }}
             >
-              {/* 캐릭터 아이콘 */}
+              {/* 말풍선 (오른쪽) */}
+              {getPlayerBubble(player.id) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "20px",
+                    left: "100%",
+                    marginLeft: "10px",
+                    background: "rgba(255, 255, 255, 0.95)",
+                    padding: "0.5rem 0.75rem",
+                    borderRadius: "12px",
+                    borderBottomLeftRadius: "4px",
+                    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
+                    zIndex: 20,
+                    animation: "fadeInRight 0.3s ease",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <p style={{ color: "#000", fontSize: "0.8rem", margin: 0 }}>
+                    {getPlayerBubble(player.id)?.message}
+                  </p>
+                </div>
+              )}
+
+              {/* 캐릭터 */}
               <div
                 style={{
-                  width: "50px",
-                  height: "50px",
-                  background: "rgba(0, 255, 255, 0.1)",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid rgba(0, 255, 255, 0.3)",
+                  width: "130px",
+                  height: "130px",
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                <CharacterViewer characterUrl={player.character || '/character1.glb'} size={130} />
               </div>
 
               {/* 이름과 점수 */}
-              <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  marginTop: "0.3rem",
+                  textAlign: "center",
+                }}
+              >
                 <div
                   style={{
                     color: "#ffffff",
                     fontSize: "0.9rem",
                     fontWeight: 600,
+                    textShadow: "0 0 5px rgba(0, 0, 0, 0.8)",
                   }}
                 >
                   {player.name}
                 </div>
-                {player.score !== undefined && (
-                  <div
-                    style={{
-                      color: "rgba(255, 255, 255, 0.6)",
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    {player.score}P
-                  </div>
-                )}
+                <div
+                  style={{
+                    color: "#00ffff",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {player.score || 0}P
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* 오른쪽 끝 - 채팅 패널 */}
+        {/* 오른쪽 - 채팅 패널 */}
         <div
           style={{
-            width: "300px",
+            width: "280px",
             background: "rgba(0, 0, 0, 0.7)",
             backdropFilter: "blur(15px)",
             border: "2px solid rgba(0, 255, 255, 0.5)",
             borderRadius: "16px",
             display: "flex",
             flexDirection: "column",
-            maxHeight: "calc(100vh - 150px)",
+            maxHeight: "calc(100vh - 120px)",
           }}
         >
           <div
@@ -595,22 +582,26 @@ export default function GamePlayPage() {
             채팅
           </div>
           <div
+            ref={chatContainerRef}
             style={{
               flex: 1,
               padding: "1rem",
               overflowY: "auto",
-              minHeight: "200px",
             }}
           >
-            <div
-              style={{
-                color: "rgba(255, 255, 255, 0.8)",
-                fontSize: "0.9rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <span style={{ color: "#00ffff", fontWeight: 600 }}>박찬우박:</span> 아틀란티스소녀 보아
-            </div>
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                style={{
+                  color: "rgba(255, 255, 255, 0.9)",
+                  fontSize: "0.9rem",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                <span style={{ color: "#00ffff", fontWeight: 600 }}>{msg.playerName}:</span>{" "}
+                {msg.message}
+              </div>
+            ))}
           </div>
           <div
             style={{
@@ -622,6 +613,11 @@ export default function GamePlayPage() {
           >
             <input
               type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) sendChat();
+              }}
               placeholder="메시지 입력..."
               style={{
                 flex: 1,
@@ -635,6 +631,7 @@ export default function GamePlayPage() {
               }}
             />
             <button
+              onClick={sendChat}
               style={{
                 padding: "0.75rem 1rem",
                 background: "rgba(0, 255, 255, 0.2)",
@@ -654,6 +651,19 @@ export default function GamePlayPage() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeInRight {
+          from {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </main>
   );
 }

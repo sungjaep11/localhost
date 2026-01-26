@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 
 const genres = [
   '발라드',
@@ -31,11 +31,11 @@ interface Room {
   createdAt: number;
 }
 
-export default function GenreSelectionPage() {
+// useSearchParams를 사용하는 내부 컴포넌트
+function GenreSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rounds = parseInt(searchParams.get('rounds') || '4', 10);
-  
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
   const toggleGenre = (genre: string) => {
@@ -84,34 +84,36 @@ export default function GenreSelectionPage() {
           title: roomInfo.name,
           isPrivate: !roomInfo.isPublic,
           password: roomInfo.password || undefined,
-          gameType: 'MUSIC', // 노래 맞추기
+          gameType: 'MUSIC', // MUSIC_QUIZ 타입
           options: {
             rounds: roomInfo.rounds,
             songsPerRound: roomInfo.songsPerRound,
-            maxPlayers: roomInfo.maxPlayers,
             genres: selectedGenres,
+            maxPlayers: roomInfo.maxPlayers || 8,
           },
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.room) {
-          // 임시 정보 삭제
-          sessionStorage.removeItem('temp-room-info');
-          
-          // 대기실로 이동
-          router.push(`/game/song-guess/${data.room.id}/waiting`);
-        } else {
-          alert(data.error || '방 생성에 실패했습니다.');
-        }
-      } else {
-        const error = await res.json().catch(() => ({ message: '방 생성에 실패했습니다.' }));
-        alert(error.message || '방 생성에 실패했습니다.');
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || '방 생성에 실패했습니다.');
       }
-    } catch (error) {
-      console.error('Failed to create room', error);
-      alert('방 생성에 실패했습니다. 다시 시도해주세요.');
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || '방 생성에 실패했습니다.');
+      }
+
+      const newRoom = data.room;
+
+      // 임시 정보 삭제
+      sessionStorage.removeItem('temp-room-info');
+
+      // 대기실로 이동
+      router.push(`/game/song-guess/${newRoom.id}/waiting`);
+    } catch (e: any) {
+      console.error('Failed to create room', e);
+      alert(e.message || '방 생성에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -311,5 +313,26 @@ export default function GenreSelectionPage() {
         </button>
       </div>
     </main>
+  );
+}
+
+// Suspense로 감싸서 export
+export default function GenreSelectionPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000",
+        color: "#00ffff",
+        fontSize: "1.5rem",
+      }}>
+        로딩 중...
+      </div>
+    }>
+      <GenreSelectionContent />
+    </Suspense>
   );
 }

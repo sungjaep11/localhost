@@ -34,9 +34,9 @@ const ALL_ACTIONS: Action[] = [
 ];
 
 // 3D 모델 컴포넌트
-function Model({ url }: { url: string }) {
+function Model({ url, scale = 3.5 }: { url: string; scale?: number }) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={3.5} position={[0, -2, 0]} />;
+  return <primitive object={scene} scale={scale} position={[0, -2, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 메인 캐릭터 뷰어
@@ -61,11 +61,6 @@ function MainCharacterViewer({ modelUrl }: { modelUrl: string }) {
 }
 
 // 작은 캐릭터 뷰어
-function SmallModel({ url }: { url: string }) {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={2} position={[0, -1, 0]} />;
-}
-
 function SmallCharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
@@ -73,7 +68,7 @@ function SmallCharacterViewer({ modelUrl }: { modelUrl: string }) {
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <SmallModel url={modelUrl} />
+        <Model url={modelUrl} scale={2} />
         <OrbitControls 
           autoRotate={false}
           enableZoom={false}
@@ -95,6 +90,7 @@ export default function MyPage() {
   const [equippedCharacter, setEquippedCharacter] = useState('/character1.glb');
   const [ownedCharacters, setOwnedCharacters] = useState<Character[]>([]);
   const [ownedActions, setOwnedActions] = useState<Action[]>([]);
+  const [activeTab, setActiveTab] = useState<'characters' | 'actions'>('characters');
 
   useEffect(() => {
     const storedUserId = localStorage.getItem('userId');
@@ -138,10 +134,8 @@ export default function MyPage() {
       return;
     }
 
-    // localStorage에 저장
     localStorage.setItem('userName', newName);
     
-    // users 목록에서도 업데이트
     const userEmail = localStorage.getItem('userEmail');
     if (userEmail) {
       const users = JSON.parse(localStorage.getItem('users') || '{}');
@@ -153,20 +147,11 @@ export default function MyPage() {
 
     setUserName(newName);
     setIsEditingName(false);
-    alert('닉네임이 변경되었습니다!');
   };
 
   const handleEquipCharacter = (character: Character) => {
     localStorage.setItem(`equipped-character-${userId}`, character.modelUrl);
     setEquippedCharacter(character.modelUrl);
-    alert(`${character.name}을(를) 장착했습니다!`);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
-    router.push('/auth/login');
   };
 
   return (
@@ -177,7 +162,7 @@ export default function MyPage() {
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        overflow: "auto",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         position: "relative",
@@ -208,104 +193,67 @@ export default function MyPage() {
         <button
           onClick={() => router.push("/main/lobby")}
           style={{
-            background: "none",
-            border: "none",
+            background: "rgba(0, 0, 0, 0.5)",
+            border: "2px solid rgba(0, 255, 255, 0.5)",
+            borderRadius: "12px",
+            padding: "0.75rem 1rem",
+            color: "#00ffff",
             cursor: "pointer",
-            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
             transition: "all 0.3s ease",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.1)";
-            e.currentTarget.style.filter = "drop-shadow(0 0 15px rgba(0, 255, 255, 0.8))";
+            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+            e.currentTarget.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.5)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.filter = "none";
+            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
+            e.currentTarget.style.boxShadow = "none";
           }}
         >
-          <img
-            src="/logo.png"
-            alt="Localhost Logo"
-            style={{
-              height: "80px",
-              width: "auto",
-            }}
-          />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          뒤로
         </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-          <h1
-            style={{
-              fontSize: "2rem",
-              fontWeight: 800,
-              color: "#ffffff",
-              textShadow: "0 0 20px rgba(0, 255, 255, 0.8)",
-            }}
-          >
-            MYHOME
-          </h1>
+        <h1
+          style={{
+            fontSize: "2rem",
+            fontWeight: 800,
+            background: "linear-gradient(135deg, #00ffff, #ff00ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            textShadow: "0 0 20px rgba(0, 255, 255, 0.5)",
+          }}
+        >
+          MYHOME
+        </h1>
 
-          {/* 코인 표시 */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.5rem 1rem",
-              background: "rgba(0, 0, 0, 0.5)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255, 215, 0, 0.5)",
-              borderRadius: "20px",
-              color: "#ffd700",
-              fontSize: "1rem",
-              fontWeight: 700,
-              textShadow: "0 0 10px rgba(255, 215, 0, 0.8)",
-              boxShadow: "0 0 15px rgba(255, 215, 0, 0.3)",
-            }}
-          >
-            <svg 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="currentColor"
-              style={{ filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))" }}
-            >
-              <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
-              <path d="M12 6v12M8 10h8M8 14h8" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            <span>{coins.toLocaleString()}p</span>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: "rgba(255, 0, 0, 0.2)",
-              border: "2px solid rgba(255, 0, 0, 0.6)",
-              borderRadius: "12px",
-              color: "#ff4444",
-              fontSize: "0.9rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255, 0, 0, 0.3)";
-              e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255, 0, 0, 0.2)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            로그아웃
-          </button>
+        {/* 코인 표시 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.75rem 1.25rem",
+            background: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(10px)",
+            border: "2px solid rgba(255, 215, 0, 0.5)",
+            borderRadius: "12px",
+            color: "#ffd700",
+            fontSize: "1rem",
+            fontWeight: 700,
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
+            <path d="M12 6v12M8 10h8M8 14h8" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <span>{coins.toLocaleString()}</span>
         </div>
       </div>
 
@@ -319,46 +267,48 @@ export default function MyPage() {
           overflow: "hidden",
         }}
       >
-        {/* 왼쪽 - 메인 캐릭터 */}
+        {/* 왼쪽 - 프로필 & 캐릭터 */}
         <div
           style={{
-            width: "350px",
-            minWidth: "350px",
-            maxWidth: "350px",
+            width: "320px",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
             gap: "1rem",
-            flexShrink: 0,
           }}
         >
-          {/* 닉네임 */}
+          {/* 프로필 카드 */}
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              background: "rgba(0, 0, 0, 0.6)",
-              padding: "1rem 1.5rem",
-              borderRadius: "12px",
+              background: "rgba(0, 0, 0, 0.7)",
+              backdropFilter: "blur(15px)",
               border: "2px solid rgba(0, 255, 255, 0.5)",
+              borderRadius: "16px",
+              padding: "1.5rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "1rem",
             }}
           >
+            {/* 닉네임 */}
             {isEditingName ? (
-              <>
+              <div style={{ display: "flex", gap: "0.5rem", width: "100%" }}>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                  }}
                   style={{
+                    flex: 1,
                     background: "rgba(0, 0, 0, 0.5)",
-                    border: "1px solid rgba(0, 255, 255, 0.5)",
+                    border: "2px solid rgba(0, 255, 255, 0.5)",
                     borderRadius: "8px",
-                    padding: "0.5rem 1rem",
+                    padding: "0.75rem",
                     color: "#ffffff",
-                    fontSize: "1.2rem",
+                    fontSize: "1rem",
                     outline: "none",
-                    width: "150px",
                   }}
                   autoFocus
                 />
@@ -366,15 +316,16 @@ export default function MyPage() {
                   onClick={handleSaveName}
                   style={{
                     background: "rgba(0, 255, 0, 0.3)",
-                    border: "1px solid rgba(0, 255, 0, 0.6)",
+                    border: "2px solid rgba(0, 255, 0, 0.6)",
                     borderRadius: "8px",
-                    padding: "0.5rem 1rem",
+                    padding: "0.75rem",
                     color: "#00ff00",
                     cursor: "pointer",
-                    fontSize: "0.9rem",
                   }}
                 >
-                  저장
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
                 </button>
                 <button
                   onClick={() => {
@@ -383,24 +334,32 @@ export default function MyPage() {
                   }}
                   style={{
                     background: "rgba(255, 0, 0, 0.3)",
-                    border: "1px solid rgba(255, 0, 0, 0.6)",
+                    border: "2px solid rgba(255, 0, 0, 0.6)",
                     borderRadius: "8px",
-                    padding: "0.5rem 1rem",
+                    padding: "0.75rem",
                     color: "#ff4444",
                     cursor: "pointer",
-                    fontSize: "0.9rem",
                   }}
                 >
-                  취소
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-              </>
+              </div>
             ) : (
-              <>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
                 <span
                   style={{
                     color: "#ffffff",
                     fontSize: "1.5rem",
                     fontWeight: 700,
+                    textShadow: "0 0 10px rgba(0, 255, 255, 0.5)",
                   }}
                 >
                   {userName}
@@ -408,290 +367,356 @@ export default function MyPage() {
                 <button
                   onClick={() => setIsEditingName(true)}
                   style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
+                    background: "rgba(0, 255, 255, 0.2)",
+                    border: "1px solid rgba(0, 255, 255, 0.5)",
+                    borderRadius: "6px",
+                    padding: "0.4rem",
                     color: "#00ffff",
-                    padding: "0.25rem",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
                   }}
-                  title="닉네임 수정"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(0, 255, 255, 0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(0, 255, 255, 0.2)";
+                  }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
-              </>
+              </div>
             )}
+
+            {/* 캐릭터 미리보기 */}
+            <div
+              style={{
+                width: "100%",
+                height: "280px",
+                background: "rgba(0, 0, 0, 0.4)",
+                border: "2px solid rgba(0, 255, 255, 0.3)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <MainCharacterViewer modelUrl={equippedCharacter} />
+            </div>
+
+            <div
+              style={{
+                color: "rgba(255, 255, 255, 0.6)",
+                fontSize: "0.85rem",
+              }}
+            >
+              현재 장착 중인 캐릭터
+            </div>
           </div>
 
-          {/* 메인 캐릭터 표시 */}
-          <div
+          {/* 상점 바로가기 */}
+          <button
+            onClick={() => router.push('/main/shop')}
             style={{
-              width: "350px",
-              height: "400px",
-              minHeight: "400px",
-              maxHeight: "400px",
-              background: "rgba(0, 0, 0, 0.5)",
-              backdropFilter: "blur(10px)",
-              border: "3px solid rgba(0, 255, 255, 0.6)",
-              borderRadius: "20px",
-              overflow: "hidden",
-              boxShadow: "0 0 40px rgba(0, 255, 255, 0.3)",
-              position: "relative",
+              width: "100%",
+              padding: "1rem",
+              background: "linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 200, 0, 0.2))",
+              border: "2px solid rgba(255, 165, 0, 0.6)",
+              borderRadius: "12px",
+              color: "#ffa500",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 200, 0, 0.3))";
+              e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 165, 0, 0.4)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 200, 0, 0.2))";
+              e.currentTarget.style.boxShadow = "none";
             }}
           >
-            <MainCharacterViewer modelUrl={equippedCharacter} />
-          </div>
-
-          <div
-            style={{
-              color: "rgba(255, 255, 255, 0.6)",
-              fontSize: "0.9rem",
-              textAlign: "center",
-            }}
-          >
-            현재 장착된 캐릭터
-          </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            상점 가기
+          </button>
         </div>
 
         {/* 오른쪽 - 보유 아이템 */}
         <div
           style={{
             flex: 1,
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(15px)",
+            border: "2px solid rgba(0, 255, 255, 0.5)",
+            borderRadius: "16px",
             display: "flex",
             flexDirection: "column",
-            gap: "1.5rem",
-            overflow: "auto",
+            overflow: "hidden",
           }}
         >
-          {/* 보유 캐릭터 */}
+          {/* 탭 헤더 */}
           <div
             style={{
-              background: "rgba(0, 0, 0, 0.6)",
-              backdropFilter: "blur(10px)",
-              border: "2px solid rgba(0, 255, 255, 0.5)",
-              borderRadius: "16px",
-              padding: "1.5rem",
+              display: "flex",
+              borderBottom: "2px solid rgba(0, 255, 255, 0.3)",
             }}
           >
-            <h2
+            <button
+              onClick={() => setActiveTab('characters')}
               style={{
-                color: "#00ffff",
-                fontSize: "1.2rem",
+                flex: 1,
+                padding: "1rem",
+                background: activeTab === 'characters' 
+                  ? "rgba(0, 255, 255, 0.2)" 
+                  : "transparent",
+                border: "none",
+                borderBottom: activeTab === 'characters' 
+                  ? "3px solid #00ffff" 
+                  : "3px solid transparent",
+                color: activeTab === 'characters' ? "#00ffff" : "rgba(255, 255, 255, 0.6)",
+                fontSize: "1.1rem",
                 fontWeight: 700,
-                marginBottom: "1rem",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: "0.5rem",
               }}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              보유 캐릭터 ({ownedCharacters.length}개)
-            </h2>
-
-            <div
+              캐릭터 ({ownedCharacters.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('actions')}
               style={{
+                flex: 1,
+                padding: "1rem",
+                background: activeTab === 'actions' 
+                  ? "rgba(255, 0, 255, 0.2)" 
+                  : "transparent",
+                border: "none",
+                borderBottom: activeTab === 'actions' 
+                  ? "3px solid #ff00ff" 
+                  : "3px solid transparent",
+                color: activeTab === 'actions' ? "#ff00ff" : "rgba(255, 255, 255, 0.6)",
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
                 display: "flex",
-                gap: "1rem",
-                overflowX: "auto",
-                paddingBottom: "0.5rem",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
               }}
             >
-              {ownedCharacters.length === 0 ? (
-                <div style={{ color: "rgba(255, 255, 255, 0.5)", padding: "1rem" }}>
-                  보유한 캐릭터가 없습니다.
-                </div>
-              ) : (
-                ownedCharacters.map((character) => {
-                  const isEquipped = equippedCharacter === character.modelUrl;
-                  return (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              행동 ({ownedActions.length})
+            </button>
+          </div>
+
+          {/* 탭 컨텐츠 */}
+          <div
+            style={{
+              flex: 1,
+              padding: "1.5rem",
+              overflowY: "auto",
+            }}
+          >
+            {activeTab === 'characters' ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                  gap: "1.5rem",
+                }}
+              >
+                {ownedCharacters.length === 0 ? (
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      textAlign: "center",
+                      padding: "3rem",
+                      color: "rgba(255, 255, 255, 0.5)",
+                    }}
+                  >
+                    보유한 캐릭터가 없습니다. 상점에서 구매해보세요!
+                  </div>
+                ) : (
+                  ownedCharacters.map((character) => {
+                    const isEquipped = equippedCharacter === character.modelUrl;
+                    return (
+                      <div
+                        key={character.id}
+                        onClick={() => !isEquipped && handleEquipCharacter(character)}
+                        style={{
+                          background: isEquipped 
+                            ? "rgba(0, 255, 0, 0.1)" 
+                            : "rgba(0, 0, 0, 0.4)",
+                          border: isEquipped 
+                            ? "3px solid rgba(0, 255, 0, 0.8)" 
+                            : "2px solid rgba(0, 255, 255, 0.4)",
+                          borderRadius: "12px",
+                          overflow: "hidden",
+                          cursor: isEquipped ? "default" : "pointer",
+                          transition: "all 0.3s ease",
+                          boxShadow: isEquipped 
+                            ? "0 0 20px rgba(0, 255, 0, 0.3)" 
+                            : "none",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isEquipped) {
+                            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+                            e.currentTarget.style.transform = "translateY(-3px)";
+                            e.currentTarget.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.3)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isEquipped) {
+                            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.4)";
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow = "none";
+                          }
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "140px",
+                            position: "relative",
+                          }}
+                        >
+                          <SmallCharacterViewer modelUrl={character.modelUrl} />
+                        </div>
+                        <div
+                          style={{
+                            padding: "0.75rem",
+                            textAlign: "center",
+                            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: "#ffffff",
+                              fontSize: "0.9rem",
+                              fontWeight: 600,
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            {character.name}
+                          </div>
+                          {isEquipped ? (
+                            <div
+                              style={{
+                                background: "rgba(0, 255, 0, 0.3)",
+                                borderRadius: "4px",
+                                padding: "0.25rem 0.5rem",
+                                color: "#00ff00",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              장착 중
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                background: "rgba(0, 255, 255, 0.2)",
+                                borderRadius: "4px",
+                                padding: "0.25rem 0.5rem",
+                                color: "#00ffff",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              클릭하여 장착
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                {ownedActions.length === 0 ? (
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      textAlign: "center",
+                      padding: "3rem",
+                      color: "rgba(255, 255, 255, 0.5)",
+                    }}
+                  >
+                    보유한 행동이 없습니다. 상점에서 구매해보세요!
+                  </div>
+                ) : (
+                  ownedActions.map((action) => (
                     <div
-                      key={character.id}
+                      key={action.id}
                       style={{
-                        minWidth: "140px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "0.5rem",
+                        background: "rgba(255, 0, 255, 0.1)",
+                        border: "2px solid rgba(255, 0, 255, 0.4)",
+                        borderRadius: "12px",
+                        padding: "1.25rem",
+                        transition: "all 0.3s ease",
                       }}
                     >
                       <div
                         style={{
-                          width: "140px",
-                          height: "160px",
-                          background: "rgba(0, 0, 0, 0.4)",
-                          border: isEquipped 
-                            ? "3px solid rgba(0, 255, 0, 0.8)"
-                            : "2px solid rgba(0, 255, 255, 0.4)",
-                          borderRadius: "12px",
-                          overflow: "hidden",
-                          boxShadow: isEquipped 
-                            ? "0 0 20px rgba(0, 255, 0, 0.4)"
-                            : "none",
-                          position: "relative",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          marginBottom: "0.5rem",
                         }}
                       >
-                        <SmallCharacterViewer modelUrl={character.modelUrl} />
-                      </div>
-                      <div style={{ color: "#ffffff", fontSize: "0.9rem", fontWeight: 600 }}>
-                        {character.name}
-                      </div>
-                      {isEquipped ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff00ff" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         <div
                           style={{
-                            background: "rgba(0, 255, 0, 0.3)",
-                            border: "1px solid rgba(0, 255, 0, 0.6)",
-                            borderRadius: "6px",
-                            padding: "0.25rem 0.75rem",
-                            color: "#00ff00",
-                            fontSize: "0.75rem",
+                            color: "#ffffff",
+                            fontSize: "1rem",
                             fontWeight: 600,
                           }}
                         >
-                          장착중
+                          {action.name}
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => handleEquipCharacter(character)}
-                          style={{
-                            background: "rgba(0, 255, 255, 0.2)",
-                            border: "1px solid rgba(0, 255, 255, 0.6)",
-                            borderRadius: "6px",
-                            padding: "0.25rem 0.75rem",
-                            color: "#00ffff",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            transition: "all 0.3s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(0, 255, 255, 0.3)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "rgba(0, 255, 255, 0.2)";
-                          }}
-                        >
-                          장착하기
-                        </button>
-                      )}
+                      </div>
+                      <div
+                        style={{
+                          color: "rgba(255, 255, 255, 0.6)",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {action.description}
+                      </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-
-            <button
-              onClick={() => router.push('/main/shop')}
-              style={{
-                marginTop: "1rem",
-                background: "linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 200, 0, 0.3))",
-                border: "2px solid rgba(255, 165, 0, 0.6)",
-                borderRadius: "8px",
-                padding: "0.5rem 1rem",
-                color: "#ffa500",
-                fontSize: "0.9rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 0 15px rgba(255, 165, 0, 0.5)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            >
-              상점에서 더 구매하기
-            </button>
-          </div>
-
-          {/* 보유 행동 */}
-          <div
-            style={{
-              background: "rgba(0, 0, 0, 0.6)",
-              backdropFilter: "blur(10px)",
-              border: "2px solid rgba(255, 0, 255, 0.5)",
-              borderRadius: "16px",
-              padding: "1.5rem",
-            }}
-          >
-            <h2
-              style={{
-                color: "#ff00ff",
-                fontSize: "1.2rem",
-                fontWeight: 700,
-                marginBottom: "1rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              보유 행동 ({ownedActions.length}개)
-            </h2>
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "1rem",
-              }}
-            >
-              {ownedActions.length === 0 ? (
-                <div style={{ color: "rgba(255, 255, 255, 0.5)", padding: "1rem" }}>
-                  보유한 행동이 없습니다. 상점에서 구매해보세요!
-                </div>
-              ) : (
-                ownedActions.map((action) => (
-                  <div
-                    key={action.id}
-                    style={{
-                      background: "rgba(255, 0, 255, 0.1)",
-                      border: "2px solid rgba(255, 0, 255, 0.4)",
-                      borderRadius: "12px",
-                      padding: "1rem",
-                      minWidth: "150px",
-                    }}
-                  >
-                    <div style={{ color: "#ffffff", fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-                      {action.name}
-                    </div>
-                    <div style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.8rem" }}>
-                      {action.description}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <button
-              onClick={() => router.push('/main/shop')}
-              style={{
-                marginTop: "1rem",
-                background: "linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(200, 0, 255, 0.3))",
-                border: "2px solid rgba(255, 0, 255, 0.6)",
-                borderRadius: "8px",
-                padding: "0.5rem 1rem",
-                color: "#ff00ff",
-                fontSize: "0.9rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 0 15px rgba(255, 0, 255, 0.5)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            >
-              상점에서 행동 구매하기
-            </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
