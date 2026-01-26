@@ -26,23 +26,34 @@ export async function DELETE(
       signal: AbortSignal.timeout(10000),
     });
 
-    if (!res.ok) {
-      let errorMessage = "방 삭제에 실패했습니다.";
-      try {
-        const error = await res.json();
-        errorMessage = error.message || error.error || errorMessage;
-        console.error("[DELETE /api/rooms/:roomId] Backend error:", errorMessage, "Status:", res.status);
-      } catch (parseError) {
-        console.error("[DELETE /api/rooms/:roomId] Failed to parse error response:", parseError);
+    // 응답 본문 파싱 (한 번만 읽기)
+    let responseData: any = null;
+    try {
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const text = await res.text();
+        if (text && text.trim()) {
+          responseData = JSON.parse(text);
+        }
       }
+    } catch (parseError) {
+      console.error("[DELETE /api/rooms/:roomId] Failed to parse response:", parseError);
+    }
+
+    if (!res.ok) {
+      const errorMessage = responseData?.message || responseData?.error || `서버 오류 (${res.status}): ${res.statusText}`;
+      console.error("[DELETE /api/rooms/:roomId] Backend error:", errorMessage, "Status:", res.status);
       return NextResponse.json(
         { success: false, error: errorMessage },
         { status: res.status }
       );
     }
 
-    const data = await res.json();
-    return NextResponse.json({ success: true, ...data }, { status: 200 });
+    // 성공 응답
+    return NextResponse.json(
+      { success: true, ...(responseData || { message: "Room deleted successfully" }) },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("[DELETE /api/rooms/:roomId] error", error);
 

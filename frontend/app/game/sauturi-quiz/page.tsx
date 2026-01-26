@@ -205,7 +205,22 @@ export default function SauturiQuizPage() {
         },
       });
 
-      const data = await res.json().catch(() => ({ success: false, error: '응답을 파싱할 수 없습니다.' }));
+      // 응답 본문 파싱
+      let data: any = { success: false, error: '방 삭제에 실패했습니다.' };
+      try {
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const text = await res.text();
+          if (text && text.trim()) {
+            data = JSON.parse(text);
+          }
+        } else if (!res.ok) {
+          data = { success: false, error: `서버 오류 (${res.status}): ${res.statusText}` };
+        }
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        data = { success: false, error: `서버 응답 오류 (${res.status}): ${res.statusText}` };
+      }
 
       if (res.ok && data.success) {
         // 방 목록에서 제거
@@ -219,6 +234,7 @@ export default function SauturiQuizPage() {
           error: errorMessage,
           roomId: room.id,
           userId: userId,
+          responseData: data,
         });
         alert(errorMessage);
       }
