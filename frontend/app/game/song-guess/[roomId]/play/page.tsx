@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import { useSocket } from '@/context/SocketContext';
 import * as THREE from 'three';
 
 interface Player {
@@ -106,6 +107,7 @@ export default function GamePlayPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
+  const { socket } = useSocket();
   const [currentRound, setCurrentRound] = useState(1);
   const [currentSong, setCurrentSong] = useState(1);
   const [totalRounds, setTotalRounds] = useState(1);
@@ -118,6 +120,15 @@ export default function GamePlayPage() {
   const [currentUserName, setCurrentUserName] = useState<string>('');
   const [showExitModal, setShowExitModal] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // TTS 및 오디오 관련 state
+  const [lyrics, setLyrics] = useState<string>('');
+  const [ttsAudio, setTtsAudio] = useState<HTMLAudioElement | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 게임 상태
   const [gamePhase, setGamePhase] = useState<'waiting' | 'playing' | 'answer_revealed' | 'round_end' | 'game_end'>('waiting');
@@ -339,7 +350,133 @@ export default function GamePlayPage() {
     }, 1500);
   };
 
-  // 참가자 목록 불러오기
+  // 소켓 연결 및 게임 입장
+  useEffect(() => {
+    if (!socket || !roomId || !currentUserId) return;
+
+    // 방 입장
+    socket.emit('game_join', { roomId, userId: currentUserId });
+
+    // 플레이어 목록 업데이트 리스너
+    const handlePlayersUpdate = (data: { 
+      roomId: string; 
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+      sessionStatus: string;
+    }) => {
+      if (data.roomId === roomId) {
+        // 각 플레이어의 캐릭터 정보 확인 (localStorage에서 가져오기)
+        const playersWithCharacters = data.players.map((player) => {
+          // localStorage에서 각 플레이어의 장착된 캐릭터 가져오기
+          const equippedCharacter = typeof window !== 'undefined' 
+            ? localStorage.getItem(`equipped-character-${player.id}`) 
+            : null;
+          
+          return {
+            id: player.id,
+            name: player.name,
+            isHost: player.isHost,
+            score: 0,
+            character: equippedCharacter || '/character1.glb',
+            characterUrl: equippedCharacter || '/character1.glb',
+            joinedAt: player.joinedAt,
+          };
+        });
+        setPlayers(playersWithCharacters);
+      }
+    };
+
+    // 채팅 메시지 수신 리스너
+    const handleChatMessage = (data: {
+      roomId: string;
+      playerId: string;
+      playerName: string;
+      message: string;
+      timestamp: number;
+    }) => {
+      if (data.roomId === roomId) {
+        const newMessage: ChatMessage = {
+          id: `${data.playerId}-${data.timestamp}`,
+          playerId: data.playerId,
+          playerName: data.playerName,
+          message: data.message,
+          timestamp: data.timestamp,
+        };
+
+        // 채팅 메시지 추가
+        setChatMessages(prev => {
+          // 중복 방지
+          if (prev.some(msg => msg.id === newMessage.id)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+
+        // 말풍선 추가 (3초 후 만료)
+        const newBubble: BubbleMessage = {
+          id: `${data.playerId}-${data.timestamp}`,
+          playerId: data.playerId,
+          message: data.message,
+          expiresAt: Date.now() + 3000,
+        };
+        setBubbleMessages(prev => {
+          // 중복 방지
+          if (prev.some(msg => msg.id === newBubble.id)) {
+            return prev;
+          }
+          return [...prev, newBubble];
+        });
+
+        // 정답 체크 (게임 중일 때만)
+        if (isPlaying && currentSongData) {
+          const isCorrectAnswer = checkAnswer(data.message);
+          const alreadyCorrect = correctPlayers.includes(data.playerId);
+          
+          if (isCorrectAnswer && !alreadyCorrect) {
+            const rank = correctPlayers.length + 1;
+            const points = awardPoints(data.playerId);
+            
+            // 정답 맞춘 플레이어 추가
+            setCorrectPlayers(prev => [...prev, data.playerId]);
+
+            // 정답 시스템 메시지
+            const correctMsg: ChatMessage = {
+              id: `${Date.now()}-correct`,
+              playerId: 'system',
+              playerName: '시스템',
+              message: `🎉 ${data.playerName}님이 ${rank}등으로 정답! (+${points}점)`,
+              timestamp: Date.now(),
+              isSystem: true,
+            };
+            setChatMessages(prev => [...prev, correctMsg]);
+
+            // 모든 플레이어가 맞추면 자동으로 다음 곡
+            const currentPlayers = players.length > 0 ? players : JSON.parse(localStorage.getItem(`song-guess-room-${roomId}-players`) || '[]');
+            if (correctPlayers.length + 1 >= currentPlayers.length) {
+              setTimeout(() => {
+                setIsPlaying(false);
+                setGamePhase('answer_revealed');
+                setShowAnswerModal(true);
+              }, 1000);
+            }
+          }
+        }
+      }
+    };
+
+    socket.on('game_players_update', handlePlayersUpdate);
+    socket.on('game_chat', handleChatMessage);
+
+    return () => {
+      socket.off('game_players_update', handlePlayersUpdate);
+      socket.off('game_chat', handleChatMessage);
+      // 방 나가기
+      if (socket && roomId && currentUserId) {
+        socket.emit('game_leave', { roomId, userId: currentUserId });
+      }
+    };
+  }, [socket, roomId, currentUserId]);
+
+  // 참가자 목록 불러오기 (localStorage 백업)
   useEffect(() => {
     const loadPlayers = () => {
       const playersKey = `song-guess-room-${roomId}-players`;
@@ -351,8 +488,12 @@ export default function GamePlayPage() {
             ...p,
             score: p.score || 0,
             character: p.character || p.characterUrl || '/character1.glb',
+            characterUrl: p.characterUrl || p.character || '/character1.glb',
           }));
-          setPlayers(playersWithScore);
+          // 소켓에서 받은 플레이어가 없을 때만 localStorage 사용
+          if (players.length === 0) {
+            setPlayers(playersWithScore);
+          }
         } catch (e) {
           console.error('Failed to parse players', e);
         }
@@ -362,7 +503,7 @@ export default function GamePlayPage() {
     loadPlayers();
     const interval = setInterval(loadPlayers, 1000);
     return () => clearInterval(interval);
-  }, [roomId]);
+  }, [roomId, players.length]);
 
   // 말풍선 자동 삭제 (3초 후)
   useEffect(() => {
@@ -380,73 +521,205 @@ export default function GamePlayPage() {
     }
   }, [chatMessages]);
 
+  // 특정 플레이어의 말풍선 가져오기
+  const getPlayerBubble = (playerId: string) => {
+    return bubbleMessages.find(msg => msg.playerId === playerId);
+  };
+
   const host = players.find(p => p.isHost);
   const otherPlayers = players.filter(p => !p.isHost);
 
   // 채팅 전송
   const sendChat = () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || !socket || !roomId || !currentUserId) return;
 
     const message = chatInput.trim();
-    const isCorrectAnswer = checkAnswer(message);
-    const alreadyCorrect = correctPlayers.includes(currentUserId);
+    const timestamp = Date.now();
 
+    // 소켓을 통해 채팅 메시지 전송
+    socket.emit('game_chat', {
+      roomId,
+      playerId: currentUserId,
+      playerName: currentUserName || '익명',
+      message,
+      timestamp,
+    });
+
+    // 로컬에서도 즉시 표시 (소켓 응답을 기다리지 않음)
     const newMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `${currentUserId}-${timestamp}`,
       playerId: currentUserId,
       playerName: currentUserName || '익명',
       message: message,
-      timestamp: Date.now(),
-      isCorrect: isCorrectAnswer && !alreadyCorrect && isPlaying,
+      timestamp,
     };
 
-    // 채팅 메시지 추가
-    setChatMessages(prev => [...prev, newMessage]);
+    setChatMessages(prev => {
+      // 중복 방지
+      if (prev.some(msg => msg.id === newMessage.id)) {
+        return prev;
+      }
+      return [...prev, newMessage];
+    });
 
     // 말풍선 추가 (3초 후 만료)
     const newBubble: BubbleMessage = {
-      id: Date.now().toString(),
+      id: `${currentUserId}-${timestamp}`,
       playerId: currentUserId,
       message: message,
       expiresAt: Date.now() + 3000,
     };
-    setBubbleMessages(prev => [...prev, newBubble]);
-
-    // 정답 체크
-    if (isCorrectAnswer && !alreadyCorrect && isPlaying) {
-      const rank = correctPlayers.length + 1;
-      const points = awardPoints(currentUserId);
-      
-      // 정답 맞춘 플레이어 추가
-      setCorrectPlayers(prev => [...prev, currentUserId]);
-
-      // 정답 시스템 메시지
-      const correctMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        playerId: 'system',
-        playerName: '시스템',
-        message: `🎉 ${currentUserName}님이 ${rank}등으로 정답! (+${points}점)`,
-        timestamp: Date.now(),
-        isSystem: true,
-      };
-      setChatMessages(prev => [...prev, correctMsg]);
-
-      // 모든 플레이어가 맞추면 자동으로 다음 곡
-      if (correctPlayers.length + 1 >= players.length) {
-        setTimeout(() => {
-          setIsPlaying(false);
-          setGamePhase('answer_revealed');
-          setShowAnswerModal(true);
-        }, 1000);
+    setBubbleMessages(prev => {
+      // 중복 방지
+      if (prev.some(msg => msg.id === newBubble.id)) {
+        return prev;
       }
-    }
+      return [...prev, newBubble];
+    });
 
     setChatInput('');
   };
 
-  // 특정 플레이어의 말풍선 가져오기
-  const getPlayerBubble = (playerId: string) => {
-    return bubbleMessages.find(msg => msg.playerId === playerId);
+  // TTS 재생 시간 업데이트
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const audio = audioRef.current;
+    const updateTime = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', () => {
+      setTotalDuration(audio.duration);
+    });
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+    };
+  }, [ttsAudio]);
+
+  // TTS 재생 시작
+  const startTTS = (lyricsText: string, audioUrl: string) => {
+    // 기존 오디오가 있으면 정리
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
+    setLyrics(lyricsText);
+    setCurrentTime(0);
+    
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+    setTtsAudio(audio);
+    
+    audio.play();
+    setIsAudioPlaying(true);
+    
+    audio.onended = () => {
+      setIsAudioPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.onerror = () => {
+      setIsAudioPlaying(false);
+      console.error('TTS 재생 오류');
+    };
+  };
+
+  // TTS 일시정지/재개
+  const toggleTTS = () => {
+    // 실제 오디오가 있는 경우
+    if (audioRef.current) {
+      // 오디오 제어 (TTS)
+      if (isAudioPlaying) {
+        audioRef.current.pause();
+        setIsAudioPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsAudioPlaying(true);
+      }
+    } 
+    // 시뮬레이션 중인 경우
+    else if (simulationIntervalRef.current) {
+      if (isAudioPlaying) {
+        // 시뮬레이션 일시정지 (interval 정리)
+        if (simulationIntervalRef.current) {
+          clearInterval(simulationIntervalRef.current);
+          simulationIntervalRef.current = null;
+        }
+        setIsAudioPlaying(false);
+      } else {
+        // 시뮬레이션 재개 (다시 시작)
+        handlePlayButton();
+      }
+    }
+  };
+
+  // 재생 버튼 클릭 핸들러 (방장만)
+  const handlePlayButton = () => {
+    // 기존 시뮬레이션 interval 정리
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
+    }
+    
+    // 예시 가사와 TTS (실제로는 API에서 가져올 것)
+    const exampleLyrics = currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '노래를 재생합니다';
+    const exampleTTS = ''; // TTS URL이 있으면 여기에 입력
+    
+    if (exampleTTS) {
+      startTTS(exampleLyrics, exampleTTS);
+    } else {
+      // TTS가 없을 때는 가사만 표시하고 시뮬레이션으로 색상 변화 (테스트용)
+      setLyrics(exampleLyrics);
+      setTotalDuration(5); // 5초로 설정
+      setCurrentTime(0);
+      setIsAudioPlaying(true);
+      
+      // 시뮬레이션: 5초 동안 시간이 흐르도록
+      let simTime = 0;
+      const interval = setInterval(() => {
+        simTime += 0.1;
+        setCurrentTime(simTime);
+        
+        if (simTime >= 5) {
+          clearInterval(interval);
+          simulationIntervalRef.current = null;
+          setIsAudioPlaying(false);
+          setCurrentTime(0);
+        }
+      }, 100);
+      
+      simulationIntervalRef.current = interval;
+    }
+  };
+
+  // 가사 색상 계산 (노래방 스타일)
+  const getLyricsWithColors = () => {
+    if (!lyrics) return null;
+    
+    // totalDuration이 없으면 기본값 사용 (가사 길이 기반 추정)
+    const effectiveDuration = totalDuration || (lyrics.length * 0.1);
+    const allChars = lyrics.split('');
+    const timePerChar = effectiveDuration / allChars.length;
+    const currentCharIndex = Math.floor(currentTime / timePerChar);
+
+    return allChars.map((char, index) => {
+      const isPast = index <= currentCharIndex;
+      const isCurrent = index === currentCharIndex;
+      
+      let color = '#ffffff'; // 기본 흰색
+      if (isPast) {
+        color = '#00ffff'; // 파란색
+      }
+      if (isCurrent) {
+        color = '#00aaff'; // 더 밝은 파란색 (현재 읽는 글자)
+      }
+
+      return { char, color, isCurrent, index };
+    });
   };
 
   return (
@@ -950,29 +1223,66 @@ export default function GamePlayPage() {
               {/* 재생 버튼 */}
               <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
                 <button
-                  onClick={startPlaying}
-                  disabled={isPlaying}
+                  onClick={() => {
+                    if (lyrics && isAudioPlaying) {
+                      // TTS 일시정지
+                      toggleTTS();
+                    } else if (lyrics && !isAudioPlaying) {
+                      // TTS 재개
+                      toggleTTS();
+                    } else if (gamePhase === 'waiting' || gamePhase === 'answer_revealed') {
+                      // 게임 시작
+                      startPlaying();
+                    }
+                  }}
+                  disabled={isPlaying && !lyrics && gamePhase === 'playing'}
                   style={{
                     width: "60px",
                     height: "60px",
                     borderRadius: "50%",
-                    background: isPlaying 
-                      ? "rgba(100, 100, 100, 0.3)" 
-                      : "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
-                    border: `3px solid ${isPlaying ? "rgba(100, 100, 100, 0.5)" : "rgba(0, 255, 255, 0.8)"}`,
-                    color: isPlaying ? "#666" : "#00ffff",
-                    cursor: isPlaying ? "not-allowed" : "pointer",
+                    background: isAudioPlaying 
+                      ? "rgba(0, 255, 0, 0.2)" 
+                      : isPlaying && !lyrics && gamePhase === 'playing'
+                        ? "rgba(100, 100, 100, 0.3)" 
+                        : "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
+                    border: `3px solid ${isAudioPlaying 
+                      ? "rgba(0, 255, 0, 0.8)" 
+                      : isPlaying && !lyrics && gamePhase === 'playing'
+                        ? "rgba(100, 100, 100, 0.5)" 
+                        : "rgba(0, 255, 255, 0.8)"}`,
+                    color: isAudioPlaying ? "#00ff00" : (isPlaying && !lyrics && gamePhase === 'playing' ? "#666" : "#00ffff"),
+                    cursor: (isPlaying && !lyrics && gamePhase === 'playing') ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     transition: "all 0.3s ease",
-                    boxShadow: isPlaying ? "none" : "0 0 20px rgba(0, 255, 255, 0.4)",
+                    boxShadow: isAudioPlaying ? "0 0 20px rgba(0, 255, 0, 0.4)" : (isPlaying && !lyrics && gamePhase === 'playing' ? "none" : "0 0 20px rgba(0, 255, 255, 0.4)"),
                   }}
                 >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
+                  {isAudioPlaying ? (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                    </svg>
+                  ) : (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
                 </button>
+
+                {/* 재생 시간 표시 */}
+                {totalDuration > 0 && (
+                  <div
+                    style={{
+                      color: "#ffffff",
+                      fontSize: "0.85rem",
+                      minWidth: "80px",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
+                  </div>
+                )}
 
                 {/* 스킵 버튼 (방장만) */}
                 {host?.id === currentUserId && isPlaying && (
@@ -1007,19 +1317,138 @@ export default function GamePlayPage() {
           </div>
         )}
 
-        {/* 중앙 - 다른 플레이어들 캐릭터 */}
+        {/* 중앙 - 다른 플레이어들 캐릭터 + 가사 표시 */}
         <div
           style={{
             flex: 1,
             display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            alignContent: "flex-start",
-            gap: "2rem",
-            padding: "1rem",
+            flexDirection: "column",
+            gap: "1rem",
+            position: "relative",
           }}
         >
+          {/* 중앙 음악 아이콘 (동적) - 재생 중일 때만 표시 */}
+          {isAudioPlaying && (
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 5,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "300px",
+                height: "300px",
+              }}
+            >
+              {/* 펄스하는 원들 - 재생 중일 때만 애니메이션 */}
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`sound-wave-circle circle-${i}`}
+                  style={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    border: `3px solid rgba(100, 200, 255, ${0.8 - i * 0.12})`,
+                    boxShadow: `0 0 ${20 + i * 10}px rgba(100, 200, 255, ${0.5 - i * 0.08})`,
+                    animation: `soundPulse ${1.0 + i * 0.2}s ease-in-out infinite`,
+                    animationDelay: `${i * 0.15}s`,
+                  }}
+                />
+              ))}
+              
+              {/* 고정된 음표 아이콘 */}
+              <div
+                className="music-note-icon"
+                style={{
+                  position: "relative",
+                  zIndex: 10,
+                  width: "120px",
+                  height: "120px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#64c8ff",
+                  filter: "drop-shadow(0 0 30px rgba(100, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(100, 200, 255, 0.4))",
+                  animation: "notePulse 1.2s ease-in-out infinite",
+                }}
+              >
+                <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* 가사 표시 영역 (노래방 스타일) - 화면 하단에 위치 */}
+          {lyrics && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "5%",
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0",
+                zIndex: 10,
+              }}
+            >
+              {/* 노래 정보 표시 */}
+              <div
+                style={{
+                  fontSize: "2.2rem",
+                  fontWeight: 800,
+                  lineHeight: "2.2",
+                  textAlign: "center",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "0.15rem",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {getLyricsWithColors()?.map((item, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      color: item.color,
+                      textShadow: item.isCurrent 
+                        ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 170, 255, 1), 0 0 30px rgba(0, 170, 255, 0.6), 0 0 40px rgba(0, 170, 255, 0.3)"
+                        : item.color === '#00ffff'
+                          ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 255, 255, 0.5)"
+                          : "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 5px rgba(255, 255, 255, 0.2)",
+                      transition: "all 0.3s ease",
+                      display: "inline-block",
+                      transform: item.isCurrent ? "scale(1.15)" : "scale(1)",
+                    }}
+                  >
+                    {item.char === ' ' ? '\u00A0' : item.char}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 다른 플레이어들 캐릭터 */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              alignContent: "flex-start",
+              gap: "2rem",
+              padding: "1rem",
+            }}
+          >
           {otherPlayers.map((player) => (
             <div
               key={player.id}
@@ -1256,6 +1685,30 @@ export default function GamePlayPage() {
           50% {
             opacity: 0.7;
             transform: scale(1.05);
+          }
+        }
+        @keyframes soundPulse {
+          0% {
+            transform: scale(0.6);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.8);
+            opacity: 0.2;
+          }
+          100% {
+            transform: scale(0.6);
+            opacity: 1;
+          }
+        }
+        @keyframes notePulse {
+          0%, 100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 30px rgba(100, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(100, 200, 255, 0.4));
+          }
+          50% {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 40px rgba(100, 200, 255, 1)) drop-shadow(0 0 80px rgba(100, 200, 255, 0.6));
           }
         }
       `}</style>

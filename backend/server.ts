@@ -1552,6 +1552,21 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("receive_chat", payload);
   });
 
+  // 게임 채팅 (플레이어 이름 포함)
+  socket.on("game_chat", ({ roomId, playerId, playerName, message, timestamp }) => {
+    if (!roomId || !message) return;
+
+    const payload = {
+      roomId,
+      playerId: playerId ?? null,
+      playerName: playerName ?? '익명',
+      message,
+      timestamp: timestamp ?? Date.now(),
+    };
+
+    io.to(roomId).emit("game_chat", payload);
+  });
+
   // 연결 해제 처리
   socket.on("disconnect", async () => {
     console.log(`[Socket] 유저 접속 해제: ${socket.id}`);
