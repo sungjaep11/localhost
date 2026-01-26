@@ -66,6 +66,11 @@ export default function SauturiQuizPage() {
     };
 
     fetchRooms();
+    
+    // 주기적으로 방 목록 새로고침 (플레이어 수 업데이트)
+    const interval = setInterval(fetchRooms, 3000); // 3초마다 새로고침
+    
+    return () => clearInterval(interval);
   }, []);
 
   // 소켓 이벤트 리스너: 새 방 생성 시 업데이트
@@ -98,7 +103,7 @@ export default function SauturiQuizPage() {
     return {
       id: backendRoom.id,
       name: backendRoom.title,
-      currentPlayers: 0, // TODO: 실제 참가자 수를 가져와야 함
+      currentPlayers: (backendRoom as any).currentPlayers ?? 0, // 백엔드에서 받은 실제 참가자 수 사용
       maxPlayers: options.maxPlayers || 8,
       isLocked: backendRoom.isPrivate,
       password: backendRoom.password || undefined,
@@ -212,21 +217,21 @@ export default function SauturiQuizPage() {
       try {
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-          const text = await res.text();
-          if (text && text.trim()) {
-            data = JSON.parse(text);
-          }
+          data = await res.json();
         } else if (!res.ok) {
           data = { success: false, error: `서버 오류 (${res.status}): ${res.statusText}` };
         }
       } catch (parseError) {
         console.error('Failed to parse JSON response:', parseError);
-        data = { success: false, error: `서버 응답 오류 (${res.status}): ${res.statusText}` };
+        if (!res.ok) {
+          data = { success: false, error: `서버 응답 오류 (${res.status}): ${res.statusText}` };
+        }
       }
 
       if (res.ok && data.success) {
         // 방 목록에서 제거
         setRooms((prevRooms) => prevRooms.filter((r) => r.id !== room.id));
+        // 소켓 이벤트로 다른 클라이언트에게도 알림 (이미 백엔드에서 처리됨)
         alert('방이 삭제되었습니다.');
       } else {
         const errorMessage = data.error || data.message || '방 삭제에 실패했습니다.';

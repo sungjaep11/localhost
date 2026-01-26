@@ -416,7 +416,17 @@ app.get("/api/games/rooms", async (req: Request, res: Response) => {
       }),
     ]);
 
-    res.json({ page, pageSize, total, rooms });
+    // 각 방의 현재 플레이어 수 추가
+    const roomsWithPlayerCount = rooms.map((room) => {
+      const session = gameSessions.get(room.id);
+      const currentPlayers = session ? session.players.size : 0;
+      return {
+        ...room,
+        currentPlayers,
+      };
+    });
+
+    res.json({ page, pageSize, total, rooms: roomsWithPlayerCount });
   } catch (err) {
     console.error("[GET /api/games/rooms] error", err);
     res.status(500).json({ message: "Failed to load game rooms" });
@@ -717,6 +727,7 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     // 응답이 이미 전송되었는지 확인
     if (!res.headersSent) {
       res.status(200).json({
+        success: true,
         message: "Room deleted successfully",
         roomId,
       });
