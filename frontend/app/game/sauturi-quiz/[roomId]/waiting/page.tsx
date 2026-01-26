@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { io, Socket } from 'socket.io-client';
 
 interface Player {
   id: string;
@@ -11,6 +12,7 @@ interface Player {
   isHost: boolean;
   characterUrl?: string; // 사용자의 캐릭터 모델 URL
   joinedAt?: number;
+  score?: number;
 }
 
 const STORAGE_KEY = 'sauturi-quiz-rooms';
@@ -47,60 +49,83 @@ export default function WaitingRoomPage() {
   const roomId = params.roomId as string;
   const [players, setPlayers] = useState<Player[]>([]);
   const [isHost, setIsHost] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
 
   // 현재 사용자 정보
   const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+  const currentUserNickname = typeof window !== 'undefined' ? localStorage.getItem('nickname') || 'Guest' : 'Guest';
 
-  // 참가자 목록 불러오기
+  // Socket.io 연결 및 게임 방 입장
   useEffect(() => {
-    const loadPlayers = () => {
-      const playersKey = `sauturi-quiz-room-${roomId}-players`;
-      const storedPlayers = localStorage.getItem(playersKey);
-      if (storedPlayers) {
-        try {
-          const parsedPlayers = JSON.parse(storedPlayers);
-          // 각 플레이어의 캐릭터 정보 확인 (없으면 기본 캐릭터)
-          const playersWithCharacters = parsedPlayers.map((player: Player) => ({
-            ...player,
-            characterUrl: player.characterUrl || '/character1.glb',
-          }));
-          setPlayers(playersWithCharacters);
-          
-          // 방장 여부 확인
-          const room = getRoomInfo();
-          if (room) {
-            setIsHost(room.hostId === currentUserId);
-          }
-        } catch (e) {
-          console.error('Failed to parse players', e);
-        }
+    if (!roomId || !currentUserId) return;
+
+    // Socket.io 연결
+    const socket = io("http://localhost:3001", {
+      transports: ["websocket"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+      
+      // 게임 방 입장
+      socket.emit("game_join", { roomId, userId: currentUserId });
+    });
+
+    // 플레이어 목록 업데이트
+    socket.on("game_players_update", (data: { players: Player[]; sessionStatus: string }) => {
+      console.log("👥 Players updated:", data.players);
+      const playersWithCharacters = data.players.map((player: Player) => ({
+        ...player,
+        characterUrl: player.characterUrl || '/character1.glb',
+      }));
+      setPlayers(playersWithCharacters);
+      
+      // 방장 여부 확인
+      const hostPlayer = playersWithCharacters.find(p => p.isHost);
+      setIsHost(hostPlayer?.id === currentUserId);
+    });
+
+    // 게임 시작 카운트다운
+    socket.on("game_countdown_start", (data: { roomId: string; countdown: number }) => {
+      console.log("⏰ Game countdown started:", data.countdown);
+      router.push(`/game/sauturi-quiz/${roomId}/countdown`);
+    });
+
+    // 게임 시작
+    socket.on("game_round_start", () => {
+      console.log("🎮 Game round started");
+      router.push(`/game/sauturi-quiz/${roomId}/play`);
+    });
+
+    // 에러 처리
+    socket.on("game_error", (error: { message: string }) => {
+      console.error("❌ Game error:", error.message);
+      alert(error.message);
+    });
+
+    // 연결 해제 시 정리
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.emit("game_leave", { roomId, userId: currentUserId });
+        socketRef.current.disconnect();
       }
     };
-
-    loadPlayers();
-
-    // 주기적으로 참가자 목록 업데이트 (나중에 socket.io로 대체)
-    const interval = setInterval(loadPlayers, 1000);
-
-    return () => clearInterval(interval);
-  }, [roomId, currentUserId]);
-
-  // 방 정보 가져오기
-  const getRoomInfo = () => {
-    const storedRooms = localStorage.getItem(STORAGE_KEY);
-    if (storedRooms) {
-      try {
-        const rooms = JSON.parse(storedRooms);
-        return rooms.find((r: any) => r.id === roomId);
-      } catch (e) {
-        console.error('Failed to parse rooms', e);
-      }
-    }
-    return null;
-  };
+  }, [roomId, currentUserId, router]);
 
   const handleStart = () => {
-    router.push(`/game/sauturi-quiz/${roomId}/countdown`);
+    if (!socketRef.current || !isHost) return;
+    
+    // Socket.io를 통해 게임 시작 신호 전송
+    socketRef.current.emit("game_start", {
+      roomId,
+      userId: currentUserId,
+      options: {
+        totalRounds: 10,
+        roundTimeLimit: 30,
+      },
+    });
   };
 
   return (

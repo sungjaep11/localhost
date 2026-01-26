@@ -47,6 +47,150 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 }
 
 
+// Validate ../../../app/admin/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/admin">> = Specific
+  const handler = {} as typeof import("../../../app/admin/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/auth/login/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/auth/login">> = Specific
+  const handler = {} as typeof import("../../../app/auth/login/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/auth/signup/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/auth/signup">> = Specific
+  const handler = {} as typeof import("../../../app/auth/signup/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/[roomId]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/[roomId]">> = Specific
+  const handler = {} as typeof import("../../../app/game/[roomId]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/sauturi-quiz/[roomId]/countdown/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/sauturi-quiz/[roomId]/countdown">> = Specific
+  const handler = {} as typeof import("../../../app/game/sauturi-quiz/[roomId]/countdown/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/sauturi-quiz/[roomId]/play/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/sauturi-quiz/[roomId]/play">> = Specific
+  const handler = {} as typeof import("../../../app/game/sauturi-quiz/[roomId]/play/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/sauturi-quiz/[roomId]/waiting/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/sauturi-quiz/[roomId]/waiting">> = Specific
+  const handler = {} as typeof import("../../../app/game/sauturi-quiz/[roomId]/waiting/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/sauturi-quiz/create/genre/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/sauturi-quiz/create/genre">> = Specific
+  const handler = {} as typeof import("../../../app/game/sauturi-quiz/create/genre/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/sauturi-quiz/create/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/sauturi-quiz/create">> = Specific
+  const handler = {} as typeof import("../../../app/game/sauturi-quiz/create/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/sauturi-quiz/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/sauturi-quiz">> = Specific
+  const handler = {} as typeof import("../../../app/game/sauturi-quiz/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/[roomId]/countdown/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/[roomId]/countdown">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/[roomId]/countdown/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/[roomId]/play/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/[roomId]/play">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/[roomId]/play/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/[roomId]/waiting/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/[roomId]/waiting">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/[roomId]/waiting/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/create/genre/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/create/genre">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/create/genre/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/create/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess/create">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/create/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/game/song-guess/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/game/song-guess">> = Specific
+  const handler = {} as typeof import("../../../app/game/song-guess/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/home/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/home">> = Specific
@@ -69,6 +213,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/login">> = Specific
   const handler = {} as typeof import("../../../app/api/auth/login/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/auth/signup/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/auth/signup">> = Specific
+  const handler = {} as typeof import("../../../app/api/auth/signup/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

@@ -20,8 +20,8 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // 백엔드(3000번)로 소켓 연결 시도
-    const socketInstance = io("http://localhost:3000", {
+    // 백엔드(3001번)로 소켓 연결 시도
+    const socketInstance = io("http://localhost:3001", {
       path: "/socket.io", // 기본 경로
       transports: ["websocket"], // 성능 위해 웹소켓 강제
     });

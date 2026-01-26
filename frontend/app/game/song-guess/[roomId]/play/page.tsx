@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 interface Player {
   id: string;
@@ -15,40 +16,184 @@ export default function GamePlayPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
-  const [currentRound] = useState(1);
-  const [currentSong] = useState(4);
-  const [totalSongs] = useState(10);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [totalRounds] = useState(10);
   const [answer, setAnswer] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [timeLimit, setTimeLimit] = useState(30);
+  const [timeRemaining, setTimeRemaining] = useState(30);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+  const timeRemainingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 참가자 목록 불러오기
+  // 현재 사용자 정보
+  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+
+  // Socket.io 연결 및 게임 상태 동기화
   useEffect(() => {
-    const loadPlayers = () => {
-      const playersKey = `song-guess-room-${roomId}-players`;
-      const storedPlayers = localStorage.getItem(playersKey);
-      if (storedPlayers) {
-        try {
-          const parsedPlayers = JSON.parse(storedPlayers);
-          // 점수 정보는 별도로 관리 (나중에 socket.io로 대체)
-          // 현재는 기본값으로 설정
-          const playersWithScore = parsedPlayers.map((p: Player) => ({
-            ...p,
-            score: p.score || 0,
-          }));
-          setPlayers(playersWithScore);
-        } catch (e) {
-          console.error('Failed to parse players', e);
-        }
+    if (!roomId || !currentUserId) return;
+
+    // Socket.io 연결
+    const socket = io("http://localhost:3001", {
+      transports: ["websocket"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("✅ Socket connected in play page:", socket.id);
+      
+      // 게임 방 입장
+      socket.emit("game_join", { roomId, userId: currentUserId });
+      
+      // 현재 게임 상태 요청
+      socket.emit("game_get_state", { roomId });
+    });
+
+    // 플레이어 목록 업데이트
+    socket.on("game_players_update", (data: { players: Player[]; sessionStatus: string }) => {
+      console.log("👥 Players updated:", data.players);
+      setPlayers(data.players);
+    });
+
+    // 게임 상태 업데이트
+    socket.on("game_state", (data: {
+      roomId: string;
+      players: Player[];
+      status: string;
+      currentRound: number;
+      totalRounds: number;
+      currentQuestion?: any;
+    }) => {
+      console.log("🎮 Game state:", data);
+      setPlayers(data.players);
+      setCurrentRound(data.currentRound);
+    });
+
+    // 라운드 시작
+    socket.on("game_round_start", (data: {
+      roomId: string;
+      round: number;
+      totalRounds: number;
+      question: any;
+      timeLimit: number;
+    }) => {
+      console.log("🎯 Round started:", data);
+      setCurrentRound(data.round);
+      setTimeLimit(data.timeLimit);
+      setTimeRemaining(data.timeLimit);
+      setAnswer('');
+      setHasSubmitted(false);
+      
+      // 타이머 시작
+      if (timeRemainingRef.current) {
+        clearInterval(timeRemainingRef.current);
+      }
+      timeRemainingRef.current = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            if (timeRemainingRef.current) {
+              clearInterval(timeRemainingRef.current);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    });
+
+    // 답변 제출 상태 업데이트
+    socket.on("game_answer_update", (data: {
+      roomId: string;
+      submittedCount: number;
+      totalPlayers: number;
+      userId: string;
+      hasAnswered: boolean;
+    }) => {
+      console.log("📝 Answer update:", data);
+      if (data.userId === currentUserId) {
+        setHasSubmitted(true);
+      }
+    });
+
+    // 정답 확인
+    socket.on("game_answer_correct", (data: {
+      roomId: string;
+      scoreGained: number;
+      totalScore: number;
+    }) => {
+      console.log("✅ Answer correct! Score:", data.scoreGained);
+    });
+
+    // 라운드 결과
+    socket.on("game_round_result", (data: {
+      roomId: string;
+      round: number;
+      correctAnswer: string;
+      results: any[];
+      leaderboard: any[];
+    }) => {
+      console.log("📊 Round result:", data);
+      // 타이머 정리
+      if (timeRemainingRef.current) {
+        clearInterval(timeRemainingRef.current);
+      }
+      // 플레이어 점수 업데이트
+      const updatedPlayers = players.map(p => {
+        const result = data.results.find(r => r.userId === p.id);
+        return result ? { ...p, score: result.score } : p;
+      });
+      setPlayers(updatedPlayers);
+    });
+
+    // 게임 종료
+    socket.on("game_finished", (data: {
+      roomId: string;
+      results: any[];
+    }) => {
+      console.log("🏁 Game finished:", data);
+      if (timeRemainingRef.current) {
+        clearInterval(timeRemainingRef.current);
+      }
+      // 결과 페이지로 이동 (필요시)
+      // router.push(`/game/song-guess/${roomId}/result`);
+    });
+
+    // 에러 처리
+    socket.on("game_error", (error: { message: string }) => {
+      console.error("❌ Game error:", error.message);
+      alert(error.message);
+    });
+
+    // 연결 해제 시 정리
+    return () => {
+      if (timeRemainingRef.current) {
+        clearInterval(timeRemainingRef.current);
+      }
+      if (socketRef.current) {
+        socketRef.current.emit("game_leave", { roomId, userId: currentUserId });
+        socketRef.current.disconnect();
       }
     };
+  }, [roomId, currentUserId, router]);
 
-    loadPlayers();
+  // 답변 제출
+  const handleSubmitAnswer = () => {
+    if (!socketRef.current || !answer.trim() || hasSubmitted) return;
+    
+    socketRef.current.emit("game_submit_answer", {
+      roomId,
+      userId: currentUserId,
+      answer: answer.trim(),
+    });
+  };
 
-    // 주기적으로 참가자 목록 업데이트 (나중에 socket.io로 대체)
-    const interval = setInterval(loadPlayers, 1000);
-
-    return () => clearInterval(interval);
-  }, [roomId]);
+  // Enter 키로 답변 제출
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSubmitAnswer();
+    }
+  };
 
   const host = players.find(p => p.isHost);
   const otherPlayers = players.filter(p => !p.isHost);
@@ -107,7 +252,7 @@ export default function GamePlayPage() {
             textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
           }}
         >
-          Round {currentRound} {currentSong}/{totalSongs}
+          Round {currentRound}/{totalRounds}
         </div>
       </div>
 
@@ -285,13 +430,18 @@ export default function GamePlayPage() {
                 textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
               }}
             >
-              정답
+              정답 {hasSubmitted && "✓"}
             </h2>
+            <div style={{ marginBottom: "1rem", textAlign: "center", color: "#ffffff" }}>
+              남은 시간: {timeRemaining}초
+            </div>
             <input
               type="text"
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder="정답을 입력하세요"
+              onKeyPress={handleKeyPress}
+              placeholder={hasSubmitted ? "답변 제출 완료" : "정답을 입력하세요"}
+              disabled={hasSubmitted}
               style={{
                 width: "100%",
                 padding: "1.5rem",
@@ -302,16 +452,51 @@ export default function GamePlayPage() {
                 fontSize: "1.2rem",
                 outline: "none",
                 transition: "all 0.3s ease",
+                opacity: hasSubmitted ? 0.6 : 1,
+                cursor: hasSubmitted ? "not-allowed" : "text",
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
-                e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.5)";
+                if (!hasSubmitted) {
+                  e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
+                  e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.5)";
+                }
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
                 e.currentTarget.style.boxShadow = "none";
               }}
             />
+            {!hasSubmitted && (
+              <button
+                onClick={handleSubmitAnswer}
+                disabled={!answer.trim()}
+                style={{
+                  width: "100%",
+                  marginTop: "1rem",
+                  padding: "1rem",
+                  background: answer.trim() ? "rgba(0, 255, 255, 0.3)" : "rgba(0, 255, 255, 0.1)",
+                  border: "2px solid rgba(0, 255, 255, 0.6)",
+                  borderRadius: "12px",
+                  color: "#00ffff",
+                  fontSize: "1.1rem",
+                  fontWeight: 700,
+                  cursor: answer.trim() ? "pointer" : "not-allowed",
+                  transition: "all 0.3s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (answer.trim()) {
+                    e.currentTarget.style.background = "rgba(0, 255, 255, 0.4)";
+                    e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = answer.trim() ? "rgba(0, 255, 255, 0.3)" : "rgba(0, 255, 255, 0.1)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                제출
+              </button>
+            )}
           </div>
         </div>
 

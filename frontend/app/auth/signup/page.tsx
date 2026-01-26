@@ -9,56 +9,67 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     if (password !== confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다.');
+      setError('비밀번호가 일치하지 않습니다.');
       return;
     }
     if (!username.trim()) {
-      alert('닉네임을 입력해주세요.');
+      setError('닉네임을 입력해주세요.');
       return;
     }
 
-    // 사용자 ID 생성 (이메일 기반)
-    const userId = `user-${email.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    setLoading(true);
 
-    // 기존 사용자 확인
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '{}');
-    if (existingUsers[email]) {
-      alert('이미 존재하는 이메일입니다.');
-      return;
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          nickname: username,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || '회원가입에 실패했습니다.');
+        setLoading(false);
+        return;
+      }
+
+      // 회원가입 성공 - 사용자 정보 설정
+      localStorage.setItem('userId', data.userId);
+      localStorage.setItem('userName', data.nickname);
+      if (data.email) {
+        localStorage.setItem('userEmail', data.email);
+      }
+
+      // 기본 캐릭터 설정 (char1)
+      const userId = data.userId;
+      localStorage.setItem(`purchasedCharacters-${userId}`, JSON.stringify(['char1']));
+      localStorage.setItem(`equipped-character-${userId}`, '/character1.glb');
+
+      // 기본 코인 설정
+      localStorage.setItem(`userCoins-${userId}`, '1000');
+
+      // 빈 행동 목록 설정
+      localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
+
+      router.push('/main/lobby');
+    } catch (err) {
+      console.error('Signup error:', err);
+      setError('회원가입에 실패했습니다.');
+      setLoading(false);
     }
-
-    // 사용자 정보 저장
-    existingUsers[email] = {
-      id: userId,
-      email: email,
-      password: password, // 실제 서비스에서는 암호화 필요
-      username: username,
-      createdAt: Date.now(),
-    };
-    localStorage.setItem('users', JSON.stringify(existingUsers));
-
-    // 현재 로그인 사용자 설정
-    localStorage.setItem('userId', userId);
-    localStorage.setItem('userName', username);
-    localStorage.setItem('userEmail', email);
-
-    // 기본 캐릭터 설정 (char1)
-    const purchasedKey = `purchasedCharacters-${userId}`;
-    localStorage.setItem(purchasedKey, JSON.stringify(['char1']));
-    localStorage.setItem(`equipped-character-${userId}`, '/character1.glb');
-
-    // 기본 코인 설정
-    localStorage.setItem(`userCoins-${userId}`, '1000');
-
-    // 빈 행동 목록 설정
-    localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
-
-    alert('회원가입이 완료되었습니다!');
-    router.push('/main/lobby');
   };
 
   return (
@@ -308,8 +319,25 @@ export default function SignupPage() {
             />
           </div>
 
+          {error && (
+            <div
+              style={{
+                color: "#ff4444",
+                fontSize: "0.9rem",
+                textAlign: "center",
+                padding: "0.75rem",
+                background: "rgba(255, 68, 68, 0.1)",
+                borderRadius: "8px",
+                border: "1px solid rgba(255, 68, 68, 0.3)",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
+            disabled={loading}
             className="cyberpunk-submit-btn"
             style={{
               width: "100%",
@@ -334,13 +362,34 @@ export default function SignupPage() {
               e.currentTarget.style.transform = "translateY(-2px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))";
-              e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.6)";
-              e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.3)";
-              e.currentTarget.style.transform = "translateY(0)";
+              if (!loading) {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))";
+                e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.6)";
+                e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.3)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }
+            }}
+            style={{
+              width: "100%",
+              padding: "1.25rem",
+              background: loading 
+                ? "rgba(100, 100, 100, 0.3)" 
+                : "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))",
+              border: "2px solid rgba(0, 255, 255, 0.6)",
+              borderRadius: "12px",
+              color: "#00ffff",
+              fontSize: "1.1rem",
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "all 0.3s ease",
+              textTransform: "uppercase",
+              marginTop: "1rem",
+              boxShadow: "0 0 20px rgba(0, 255, 255, 0.3)",
+              opacity: loading ? 0.6 : 1,
             }}
           >
-            CREATE ACCOUNT
+            {loading ? '가입 중...' : 'CREATE ACCOUNT'}
           </button>
         </form>
 
