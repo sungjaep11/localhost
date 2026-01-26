@@ -200,6 +200,79 @@ export default function LobbyPage() {
           <span>{coins.toLocaleString()}</span>
         </div>
         
+        {/* 디버깅 버튼 - 사투리 게임 노래방 화면 확인 */}
+        <button
+          onClick={() => {
+            // 테스트용 roomId 생성 및 플레이어 데이터 설정
+            const testRoomId = 'debug-room-123';
+            const userId = localStorage.getItem('userId') || 'test-user';
+            const userName = localStorage.getItem('userName') || '테스트유저';
+            
+            // 테스트용 플레이어 데이터 설정
+            const testPlayers = [
+              {
+                id: userId,
+                name: userName,
+                isHost: true,
+                score: 0,
+                character: localStorage.getItem(`equipped-character-${userId}`) || '/character1.glb',
+              }
+            ];
+            localStorage.setItem(`sauturi-quiz-room-${testRoomId}-players`, JSON.stringify(testPlayers));
+            
+            // 방 정보 설정
+            const testRoom = {
+              id: testRoomId,
+              name: '디버그 방',
+              rounds: 1,
+              songsPerRound: 1,
+            };
+            const rooms = JSON.parse(localStorage.getItem('sauturi-quiz-rooms') || '[]');
+            const existingIndex = rooms.findIndex((r: any) => r.id === testRoomId);
+            if (existingIndex >= 0) {
+              rooms[existingIndex] = testRoom;
+            } else {
+              rooms.push(testRoom);
+            }
+            localStorage.setItem('sauturi-quiz-rooms', JSON.stringify(rooms));
+            
+            router.push(`/game/sauturi-quiz/${testRoomId}/play`);
+          }}
+          style={{
+            padding: "0.75rem 1.5rem",
+            background: "rgba(255, 165, 0, 0.2)",
+            border: "2px solid rgba(255, 165, 0, 0.6)",
+            borderRadius: "12px",
+            color: "#ffa500",
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255, 165, 0, 0.3)";
+            e.currentTarget.style.borderColor = "rgba(255, 165, 0, 0.9)";
+            e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 165, 0, 0.5)";
+            e.currentTarget.style.transform = "translateY(-2px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255, 165, 0, 0.2)";
+            e.currentTarget.style.borderColor = "rgba(255, 165, 0, 0.6)";
+            e.currentTarget.style.boxShadow = "none";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          디버그: 노래방
+        </button>
+        
         <button
           onClick={handleLogout}
           style={{

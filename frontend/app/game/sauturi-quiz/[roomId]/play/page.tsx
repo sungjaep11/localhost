@@ -7,23 +7,6 @@ import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three
 import { useSocket } from '@/context/SocketContext';
 import * as THREE from 'three';
 
-// YouTube iframe API 타입 정의
-declare global {
-  interface Window {
-    YT: {
-      Player: new (elementId: string | HTMLElement, options: any) => any;
-      PlayerState: {
-        UNSTARTED: number;
-        ENDED: number;
-        PLAYING: number;
-        PAUSED: number;
-        BUFFERING: number;
-        CUED: number;
-      };
-    };
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
 
 interface Player {
   id: string;
@@ -127,18 +110,7 @@ export default function GamePlayPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // YouTube 관련 state
-  const [currentSongData, setCurrentSongData] = useState<{
-    id: string;
-    genre: string;
-    title: string;
-    artist: string;
-    youtubeUrl: string;
-  } | null>(null);
-  const [youtubePlayer, setYoutubePlayer] = useState<any>(null);
-  const [genres, setGenres] = useState<string[]>([]);
-  const playerRef = useRef<HTMLDivElement>(null);
+  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
@@ -161,7 +133,6 @@ export default function GamePlayPage() {
           if (currentRoom) {
             setTotalRounds((currentRoom.options as any)?.rounds || 4);
             setSongsPerRound((currentRoom.options as any)?.songsPerRound || 5);
-            setGenres((currentRoom.options as any)?.genres || []);
           }
         }
       } catch (e) {
@@ -176,7 +147,6 @@ export default function GamePlayPage() {
             if (currentRoom) {
               setTotalRounds(currentRoom.rounds);
               setSongsPerRound(currentRoom.songsPerRound);
-              setGenres(currentRoom.genres || []);
             }
           } catch (err) {
             console.error('Failed to parse stored rooms', err);
@@ -188,6 +158,30 @@ export default function GamePlayPage() {
     if (userId) {
       fetchRoomInfo();
     }
+
+    // 플레이어 목록 불러오기 (localStorage에서)
+    const loadPlayers = () => {
+      const playersKey = `sauturi-quiz-room-${roomId}-players`;
+      const storedPlayers = localStorage.getItem(playersKey);
+      if (storedPlayers) {
+        try {
+          const parsedPlayers = JSON.parse(storedPlayers);
+          const playersWithScore = parsedPlayers.map((p: Player) => ({
+            ...p,
+            score: p.score || 0,
+            character: p.character || p.characterUrl || '/character1.glb',
+            characterUrl: p.characterUrl || p.character || '/character1.glb',
+          }));
+          setPlayers(playersWithScore);
+        } catch (e) {
+          console.error('Failed to parse players', e);
+        }
+      }
+    };
+
+    loadPlayers();
+    const interval = setInterval(loadPlayers, 1000);
+    return () => clearInterval(interval);
   }, [roomId]);
 
   // 소켓 연결 및 게임 입장
@@ -375,29 +369,58 @@ export default function GamePlayPage() {
     };
   }, [ttsAudio]);
 
-  // 가사 색상 계산 (노래방 스타일)
-  const getLyricsWithColors = () => {
-    if (!lyrics || !totalDuration) return null;
 
-    const words = lyrics.split('');
-    const timePerChar = totalDuration / words.length;
+  // 가사 색상 계산 (노래방 스타일) - 문장 단위로 나누기
+  const getLyricsWithColors = () => {
+    if (!lyrics) return null;
+    
+    // totalDuration이 없으면 기본값 사용 (가사 길이 기반 추정)
+    const effectiveDuration = totalDuration || (lyrics.length * 0.1); // 글자당 0.1초 추정
+
+    // 문장 단위로 나누기 (마침표, 느낌표, 물음표, 줄바꿈을 기준으로)
+    // 정규식으로 문장 끝을 찾아서 분리
+    const sentencePattern = /[^.!?。！？\n]+[.!?。！？\n]*/g;
+    const matches = lyrics.match(sentencePattern);
+    const sentences: string[] = [];
+    
+    if (matches && matches.length > 0) {
+      matches.forEach(match => {
+        const trimmed = match.trim();
+        if (trimmed.length > 0) {
+          sentences.push(trimmed);
+        }
+      });
+    }
+    
+    // 문장이 없으면 전체를 하나의 문장으로 처리
+    if (sentences.length === 0) {
+      sentences.push(lyrics.trim());
+    }
+    
+    const allChars = lyrics.split('');
+    const timePerChar = effectiveDuration / allChars.length;
     const currentCharIndex = Math.floor(currentTime / timePerChar);
 
-    return words.map((char, index) => {
-      const progress = index / words.length;
-      const isPast = index <= currentCharIndex;
-      const isCurrent = index === currentCharIndex;
-      
-      // 현재 글자는 파란색, 지나간 글자는 파란색, 아직 안 읽은 글자는 흰색
-      let color = '#ffffff'; // 기본 흰색
-      if (isPast) {
-        color = '#00ffff'; // 파란색
-      }
-      if (isCurrent) {
-        color = '#00aaff'; // 더 밝은 파란색 (현재 읽는 글자)
-      }
+    let charIndex = 0;
+    return sentences.map((sentence, sentenceIndex) => {
+      const sentenceChars = sentence.split('').map((char, charInSentenceIndex) => {
+        const globalIndex = charIndex++;
+        const isPast = globalIndex <= currentCharIndex;
+        const isCurrent = globalIndex === currentCharIndex;
+        
+        // 현재 글자는 파란색, 지나간 글자는 파란색, 아직 안 읽은 글자는 흰색
+        let color = '#ffffff'; // 기본 흰색
+        if (isPast) {
+          color = '#00ffff'; // 파란색
+        }
+        if (isCurrent) {
+          color = '#00aaff'; // 더 밝은 파란색 (현재 읽는 글자)
+        }
 
-      return { char, color, isCurrent };
+        return { char, color, isCurrent, globalIndex };
+      });
+
+      return { sentence, chars: sentenceChars, index: sentenceIndex };
     });
   };
 
@@ -405,7 +428,14 @@ export default function GamePlayPage() {
   // 사용법: startTTS('가사 텍스트', 'TTS 오디오 URL')
   // 예시: startTTS('안녕하세요 반갑습니다', '/tts/example.mp3')
   const startTTS = (lyricsText: string, audioUrl: string) => {
+    // 기존 오디오가 있으면 정리
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
     setLyrics(lyricsText);
+    setCurrentTime(0);
     
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
@@ -425,211 +455,49 @@ export default function GamePlayPage() {
     };
   };
 
-  // YouTube iframe API 로드
-  useEffect(() => {
-    // 이미 로드되어 있으면 스킵
-    if (window.YT && window.YT.Player) {
-      return;
+  // 테스트용: 방장이 재생 버튼을 누르면 예시 가사 재생 (나중에 실제 TTS API로 교체)
+  const handlePlayButton = () => {
+    // 기존 시뮬레이션 interval 정리
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
     }
-
-    // YouTube iframe API 스크립트 로드
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-
-    // YouTube API 준비 완료 시 호출되는 전역 함수
-    window.onYouTubeIframeAPIReady = () => {
-      console.log('YouTube iframe API ready');
-    };
-
-    return () => {
-      // 정리
-      if (window.onYouTubeIframeAPIReady) {
-        window.onYouTubeIframeAPIReady = undefined;
-      }
-    };
-  }, []);
-
-  // YouTube 검색 URL에서 검색 쿼리 추출
-  const extractSearchQuery = (searchUrl: string): string | null => {
-    try {
-      const url = new URL(searchUrl);
-      const query = url.searchParams.get('search_query');
-      return query ? decodeURIComponent(query) : null;
-    } catch (e) {
-      console.error('Failed to extract search query', e);
-      return null;
-    }
-  };
-
-  // YouTube Data API를 사용하여 비디오 ID 가져오기 (선택사항)
-  // API 키가 없으면 검색 쿼리를 직접 사용
-  const getVideoIdFromSearch = async (searchQuery: string): Promise<string | null> => {
-    // YouTube Data API 키가 있으면 사용
-    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
-    if (API_KEY) {
-      try {
-        const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&maxResults=1&key=${API_KEY}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (data.items && data.items.length > 0) {
-            return data.items[0].id.videoId;
-          }
-        }
-      } catch (e) {
-        console.error('Failed to fetch video ID from YouTube API', e);
-      }
-    }
-    return null;
-  };
-
-  // 장르별 랜덤 노래 가져오기
-  const fetchRandomSong = async (genre: string) => {
-    try {
-      const res = await fetch(`/api/songs/random?genre=${encodeURIComponent(genre)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.song) {
-          return data.song;
-        }
-      }
-      return null;
-    } catch (e) {
-      console.error('Failed to fetch random song', e);
-      return null;
-    }
-  };
-
-  // YouTube 플레이어 초기화
-  const initializeYouTubePlayer = async (videoId: string) => {
-    const playerElement = playerRef.current;
-    if (!playerElement) return;
-
-    return new Promise((resolve) => {
-      if (window.YT && window.YT.Player) {
-        const player = new window.YT.Player(playerElement, {
-          videoId: videoId,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            enablejsapi: 1,
-            fs: 0,
-            iv_load_policy: 3,
-            modestbranding: 1,
-            playsinline: 1,
-            rel: 0,
-          },
-          events: {
-            onReady: (event: any) => {
-              console.log('YouTube player ready');
-              setIsPlaying(true);
-              resolve(event.target);
-            },
-            onStateChange: (event: any) => {
-              if (event.data === window.YT.PlayerState.PLAYING) {
-                setIsPlaying(true);
-              } else if (event.data === window.YT.PlayerState.PAUSED) {
-                setIsPlaying(false);
-              } else if (event.data === window.YT.PlayerState.ENDED) {
-                setIsPlaying(false);
-              }
-            },
-            onError: (event: any) => {
-              console.error('YouTube player error', event);
-            },
-          },
-        });
-        setYoutubePlayer(player);
-        return player;
-      } else {
-        // YouTube API가 아직 로드되지 않았으면 대기
-        setTimeout(() => {
-          initializeYouTubePlayer(videoId).then(resolve);
-        }, 100);
-      }
-    });
-  };
-
-  // 현재 라운드에 맞는 노래 재생
-  const playSongForCurrentRound = async () => {
-    if (genres.length === 0) return;
-
-    // 현재 라운드에 해당하는 장르 가져오기
-    const currentGenreIndex = (currentRound - 1) % genres.length;
-    const currentGenre = genres[currentGenreIndex];
-
-    // 랜덤 노래 가져오기
-    const song = await fetchRandomSong(currentGenre);
-    if (!song) {
-      console.error('Failed to fetch song for genre:', currentGenre);
-      return;
-    }
-
-    setCurrentSongData(song);
-    setLyrics(`${song.title} - ${song.artist}`);
-
-    // YouTube 검색 URL에서 검색 쿼리 추출
-    const searchQuery = extractSearchQuery(song.youtubeUrl);
-    if (!searchQuery) {
-      console.error('Failed to extract search query from URL');
-      return;
-    }
-
-    // 비디오 ID 가져오기 (YouTube Data API 사용 또는 검색 쿼리 직접 사용)
-    let videoId = await getVideoIdFromSearch(searchQuery);
     
-    // API 키가 없거나 실패한 경우, 검색 쿼리를 직접 사용
-    // 주의: 검색 쿼리만으로는 직접 재생할 수 없으므로, 
-    // YouTube iframe API의 검색 기능을 사용하거나 다른 방법 필요
-    if (!videoId) {
-      // 검색 쿼리를 사용하여 YouTube 검색 페이지를 iframe으로 표시
-      // 또는 사용자에게 검색 결과를 보여주는 방식 사용
-      console.warn('YouTube Data API key not available, using search query:', searchQuery);
-      // 일단은 검색 쿼리를 표시만 하고, 실제 재생은 YouTube Data API가 필요
-      return;
-    }
-
-    // 기존 플레이어 정리
-    if (youtubePlayer) {
-      try {
-        youtubePlayer.destroy();
-      } catch (e) {
-        console.error('Failed to destroy existing player', e);
-      }
-      setYoutubePlayer(null);
-    }
-
-    // 새 플레이어 초기화
-    await initializeYouTubePlayer(videoId);
-  };
-
-  // 테스트용: 방장이 재생 버튼을 누르면 랜덤 노래 재생
-  const handlePlayButton = async () => {
-    if (!lyrics) {
-      // 첫 재생: 현재 라운드에 맞는 노래 가져오기
-      await playSongForCurrentRound();
+    // 예시 가사와 TTS (실제로는 API에서 가져올 것)
+    const exampleLyrics = '안녕하세요 오늘도 좋은 하루 되세요. 반갑습니다 즐거운 시간 되세요.';
+    const exampleTTS = ''; // TTS URL이 있으면 여기에 입력
+    
+    if (exampleTTS) {
+      startTTS(exampleLyrics, exampleTTS);
     } else {
-      // 이미 재생 중이면 일시정지/재개
-      toggleTTS();
+      // TTS가 없을 때는 가사만 표시하고 시뮬레이션으로 색상 변화 (테스트용)
+      setLyrics(exampleLyrics);
+      setTotalDuration(5); // 5초로 설정
+      setCurrentTime(0);
+      setIsPlaying(true);
+      
+      // 시뮬레이션: 5초 동안 시간이 흐르도록
+      let simTime = 0;
+      const interval = setInterval(() => {
+        simTime += 0.1;
+        setCurrentTime(simTime);
+        
+        if (simTime >= 5) {
+          clearInterval(interval);
+          simulationIntervalRef.current = null;
+          setIsPlaying(false);
+          setCurrentTime(0);
+        }
+      }, 100);
+      
+      simulationIntervalRef.current = interval;
     }
   };
 
   // TTS 일시정지/재개
   const toggleTTS = () => {
-    if (youtubePlayer) {
-      // YouTube 플레이어 제어
-      if (isPlaying) {
-        youtubePlayer.pauseVideo();
-        setIsPlaying(false);
-      } else {
-        youtubePlayer.playVideo();
-        setIsPlaying(true);
-      }
-    } else if (audioRef.current) {
+    // 실제 오디오가 있는 경우
+    if (audioRef.current) {
       // 오디오 제어 (TTS)
       if (isPlaying) {
         audioRef.current.pause();
@@ -637,6 +505,20 @@ export default function GamePlayPage() {
       } else {
         audioRef.current.play();
         setIsPlaying(true);
+      }
+    } 
+    // 시뮬레이션 중인 경우
+    else if (simulationIntervalRef.current) {
+      if (isPlaying) {
+        // 시뮬레이션 일시정지 (interval 정리)
+        if (simulationIntervalRef.current) {
+          clearInterval(simulationIntervalRef.current);
+          simulationIntervalRef.current = null;
+        }
+        setIsPlaying(false);
+      } else {
+        // 시뮬레이션 재개 (다시 시작)
+        handlePlayButton();
       }
     }
   };
@@ -938,79 +820,153 @@ export default function GamePlayPage() {
             display: "flex",
             flexDirection: "column",
             gap: "1rem",
+            position: "relative",
           }}
         >
-          {/* 가사 표시 영역 (노래방 스타일) */}
+          {/* 중앙 음악 아이콘 (동적) - 항상 표시 */}
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "300px",
+              height: "300px",
+            }}
+          >
+              {/* 펄스하는 원들 - 재생 중일 때만 애니메이션 */}
+              {isPlaying && [...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`sound-wave-circle circle-${i}`}
+                  style={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    border: `3px solid rgba(100, 200, 255, ${0.8 - i * 0.12})`,
+                    boxShadow: `0 0 ${20 + i * 10}px rgba(100, 200, 255, ${0.5 - i * 0.08})`,
+                    animation: `soundPulse ${1.0 + i * 0.2}s ease-in-out infinite`,
+                    animationDelay: `${i * 0.15}s`,
+                  }}
+                />
+              ))}
+              
+              {/* 고정된 음표 아이콘 - 항상 표시, 클릭 시 TTS 시작 */}
+              <div
+                className="music-note-icon"
+                onClick={() => {
+                  if (!isPlaying) {
+                    handlePlayButton();
+                  } else {
+                    toggleTTS();
+                  }
+                }}
+                style={{
+                  position: "relative",
+                  zIndex: 10,
+                  width: "120px",
+                  height: "120px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: isPlaying ? "#64c8ff" : "#8bb3d9",
+                  filter: isPlaying 
+                    ? "drop-shadow(0 0 30px rgba(100, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(100, 200, 255, 0.4))"
+                    : "drop-shadow(0 0 20px rgba(139, 179, 217, 0.5)) drop-shadow(0 0 40px rgba(139, 179, 217, 0.3))",
+                  animation: isPlaying ? "notePulse 1.2s ease-in-out infinite" : "none",
+                  transition: "all 0.3s ease",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isPlaying) {
+                    e.currentTarget.style.transform = "scale(1.1)";
+                    e.currentTarget.style.filter = "drop-shadow(0 0 30px rgba(139, 179, 217, 0.8)) drop-shadow(0 0 60px rgba(139, 179, 217, 0.5))";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isPlaying) {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.filter = "drop-shadow(0 0 20px rgba(139, 179, 217, 0.5)) drop-shadow(0 0 40px rgba(139, 179, 217, 0.3))";
+                  }
+                }}
+              >
+                <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+              </div>
+            </div>
+
+          {/* 가사 표시 영역 (노래방 스타일) - 화면 하단에 위치 */}
           {lyrics && (
             <div
               style={{
-                background: "rgba(0, 0, 0, 0.7)",
-                backdropFilter: "blur(15px)",
-                border: "2px solid rgba(0, 255, 255, 0.5)",
-                borderRadius: "16px",
-                padding: "2rem",
-                minHeight: "120px",
+                position: "absolute",
+                bottom: "5%",
+                left: "50%",
+                transform: "translateX(-50%)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "1rem",
+                gap: "0",
+                zIndex: 10,
               }}
             >
-              {/* YouTube 플레이어 (숨김) */}
-              <div
-                ref={playerRef}
-                style={{
-                  width: "1px",
-                  height: "1px",
-                  position: "absolute",
-                  opacity: 0,
-                  pointerEvents: "none",
-                }}
-              />
-              
               {/* 노래 정보 표시 */}
               <div
                 style={{
-                  fontSize: "1.8rem",
-                  fontWeight: 700,
-                  lineHeight: "1.6",
+                  fontSize: "2.2rem",
+                  fontWeight: 800,
+                  lineHeight: "2.2",
                   textAlign: "center",
                   display: "flex",
-                  flexWrap: "wrap",
+                  flexDirection: "column",
+                  alignItems: "center",
                   justifyContent: "center",
-                  gap: "0.2rem",
+                  gap: "0",
+                  letterSpacing: "0.05em",
                 }}
               >
-                {getLyricsWithColors()?.map((item, index) => (
-                  <span
-                    key={index}
+                {getLyricsWithColors()?.map((sentenceData, sentenceIndex) => (
+                  <div
+                    key={sentenceIndex}
                     style={{
-                      color: item.color,
-                      textShadow: item.isCurrent 
-                        ? "0 0 15px rgba(0, 170, 255, 0.8), 0 0 25px rgba(0, 170, 255, 0.5)"
-                        : "0 0 5px rgba(0, 255, 255, 0.3)",
-                      transition: "all 0.2s ease",
-                      display: "inline-block",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      flexWrap: "nowrap",
+                      gap: "0.15rem",
+                      width: "100%",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {item.char === ' ' ? '\u00A0' : item.char}
-                  </span>
+                    {sentenceData.chars.map((item, charIndex) => (
+                      <span
+                        key={`${sentenceIndex}-${charIndex}`}
+                        style={{
+                          color: item.color,
+                          textShadow: item.isCurrent 
+                            ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 170, 255, 1), 0 0 30px rgba(0, 170, 255, 0.6), 0 0 40px rgba(0, 170, 255, 0.3)"
+                            : item.color === '#00ffff'
+                              ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 255, 255, 0.5)"
+                              : "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 5px rgba(255, 255, 255, 0.2)",
+                          transition: "all 0.3s ease",
+                          display: "inline-block",
+                          transform: item.isCurrent ? "scale(1.15)" : "scale(1)",
+                        }}
+                      >
+                        {item.char === ' ' ? '\u00A0' : item.char}
+                      </span>
+                    ))}
+                  </div>
                 ))}
               </div>
               
-              {/* 현재 노래 정보 */}
-              {currentSongData && (
-                <div
-                  style={{
-                    fontSize: "1rem",
-                    color: "rgba(255, 255, 255, 0.7)",
-                    textAlign: "center",
-                  }}
-                >
-                  {currentSongData.title} - {currentSongData.artist}
-                </div>
-              )}
             </div>
           )}
 
@@ -1207,6 +1163,30 @@ export default function GamePlayPage() {
           to {
             opacity: 1;
             transform: translateX(0);
+          }
+        }
+        @keyframes soundPulse {
+          0% {
+            transform: scale(0.6);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.8);
+            opacity: 0.2;
+          }
+          100% {
+            transform: scale(0.6);
+            opacity: 1;
+          }
+        }
+        @keyframes notePulse {
+          0%, 100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 30px rgba(100, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(100, 200, 255, 0.4));
+          }
+          50% {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 40px rgba(100, 200, 255, 1)) drop-shadow(0 0 80px rgba(100, 200, 255, 0.6));
           }
         }
       `}</style>
