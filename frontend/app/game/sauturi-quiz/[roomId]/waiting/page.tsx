@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
@@ -22,6 +22,7 @@ function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url);
   const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   useEffect(() => {
     Object.values(actions).forEach(action => action?.stop());
@@ -31,7 +32,7 @@ function Model({ url }: { url: string }) {
   const isCharacter1 = url.includes('character1');
   const positionY = isCharacter1 ? -1.8 : -0.5;
   
-  return <primitive ref={group} object={scene} scale={2.5} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  return <primitive ref={group} object={clonedScene} scale={2.5} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 뷰어 컴포넌트
@@ -79,14 +80,21 @@ export default function WaitingRoomPage() {
       sessionStatus: string;
     }) => {
       if (data.roomId === roomId) {
-        // 각 플레이어의 캐릭터 정보 확인 (없으면 기본 캐릭터)
-        const playersWithCharacters = data.players.map((player) => ({
-          id: player.id,
-          name: player.name,
-          isHost: player.isHost,
-          characterUrl: '/character1.glb', // 기본 캐릭터
-          joinedAt: player.joinedAt,
-        }));
+        // 각 플레이어의 캐릭터 정보 확인 (localStorage에서 가져오기)
+        const playersWithCharacters = data.players.map((player) => {
+          // localStorage에서 각 플레이어의 장착된 캐릭터 가져오기
+          const equippedCharacter = typeof window !== 'undefined' 
+            ? localStorage.getItem(`equipped-character-${player.id}`) 
+            : null;
+          
+          return {
+            id: player.id,
+            name: player.name,
+            isHost: player.isHost,
+            characterUrl: equippedCharacter || '/character1.glb', // 기본 캐릭터
+            joinedAt: player.joinedAt,
+          };
+        });
         setPlayers(playersWithCharacters);
         
         // 현재 사용자가 방장인지 확인

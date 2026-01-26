@@ -95,8 +95,8 @@ export default function SignupPage() {
           background: "rgba(0, 0, 0, 0.7)",
           backdropFilter: "blur(15px)",
           borderRadius: "20px",
-          padding: "3rem",
-          maxWidth: "500px",
+          padding: "2rem 2.5rem",
+          maxWidth: "420px",
           width: "100%",
           border: "2px solid rgba(0, 255, 255, 0.6)",
           boxShadow: 
@@ -105,10 +105,10 @@ export default function SignupPage() {
       >
         <h1
           style={{
-            fontSize: "2.5rem",
+            fontSize: "2rem",
             fontWeight: 800,
             textAlign: "center",
-            marginBottom: "0.5rem",
+            marginBottom: "0.3rem",
             background: "linear-gradient(135deg, #00ffff, #ff00ff)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
@@ -123,24 +123,27 @@ export default function SignupPage() {
           style={{
             color: "rgba(255, 255, 255, 0.6)",
             textAlign: "center",
-            fontSize: "0.9rem",
-            marginBottom: "2.5rem",
+            fontSize: "0.85rem",
+            marginBottom: "1.8rem",
             letterSpacing: "0.1em",
           }}
         >
           새로운 계정을 만들어보세요
         </p>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          <div style={{ position: "relative" }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.2rem", alignItems: "center" }}>
+          <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <label
               style={{
                 display: "block",
                 color: "#00ffff",
-                fontSize: "0.9rem",
+                fontSize: "0.85rem",
                 fontWeight: 600,
-                marginBottom: "0.5rem",
+                marginBottom: "0.4rem",
                 letterSpacing: "0.05em",
+                textAlign: "left",
+                width: "100%",
+                maxWidth: "320px",
               }}
             >
               닉네임
@@ -154,15 +157,17 @@ export default function SignupPage() {
               placeholder="게임에서 사용할 이름"
               style={{
                 width: "100%",
-                padding: "1rem 1.25rem",
+                maxWidth: "320px",
+                padding: "0.85rem 1rem",
                 background: "rgba(0, 0, 0, 0.5)",
                 border: "2px solid rgba(0, 255, 255, 0.4)",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 color: "#ffffff",
-                fontSize: "1rem",
+                fontSize: "0.95rem",
                 outline: "none",
                 transition: "all 0.3s ease",
                 boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.3)",
+                textAlign: "left",
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
@@ -176,15 +181,18 @@ export default function SignupPage() {
             />
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <label
               style={{
                 display: "block",
                 color: "#00ffff",
-                fontSize: "0.9rem",
+                fontSize: "0.85rem",
                 fontWeight: 600,
-                marginBottom: "0.5rem",
+                marginBottom: "0.4rem",
                 letterSpacing: "0.05em",
+                textAlign: "left",
+                width: "100%",
+                maxWidth: "320px",
               }}
             >
               EMAIL
@@ -198,15 +206,17 @@ export default function SignupPage() {
               placeholder="your@email.com"
               style={{
                 width: "100%",
-                padding: "1rem 1.25rem",
+                maxWidth: "320px",
+                padding: "0.85rem 1rem",
                 background: "rgba(0, 0, 0, 0.5)",
                 border: "2px solid rgba(0, 255, 255, 0.4)",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 color: "#ffffff",
-                fontSize: "1rem",
+                fontSize: "0.95rem",
                 outline: "none",
                 transition: "all 0.3s ease",
                 boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.3)",
+                textAlign: "left",
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
@@ -220,15 +230,18 @@ export default function SignupPage() {
             />
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <label
               style={{
                 display: "block",
                 color: "#00ffff",
-                fontSize: "0.9rem",
+                fontSize: "0.85rem",
                 fontWeight: 600,
-                marginBottom: "0.5rem",
+                marginBottom: "0.4rem",
                 letterSpacing: "0.05em",
+                textAlign: "left",
+                width: "100%",
+                maxWidth: "320px",
               }}
             >
               PASSWORD
@@ -242,15 +255,17 @@ export default function SignupPage() {
               placeholder="••••••••"
               style={{
                 width: "100%",
-                padding: "1rem 1.25rem",
+                maxWidth: "320px",
+                padding: "0.85rem 1rem",
                 background: "rgba(0, 0, 0, 0.5)",
                 border: "2px solid rgba(0, 255, 255, 0.4)",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 color: "#ffffff",
-                fontSize: "1rem",
+                fontSize: "0.95rem",
                 outline: "none",
                 transition: "all 0.3s ease",
                 boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.3)",
+                textAlign: "left",
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
@@ -264,15 +279,18 @@ export default function SignupPage() {
             />
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <label
               style={{
                 display: "block",
                 color: "#00ffff",
-                fontSize: "0.9rem",
+                fontSize: "0.85rem",
                 fontWeight: 600,
-                marginBottom: "0.5rem",
+                marginBottom: "0.4rem",
                 letterSpacing: "0.05em",
+                textAlign: "left",
+                width: "100%",
+                maxWidth: "320px",
               }}
             >
               CONFIRM PASSWORD
@@ -286,15 +304,17 @@ export default function SignupPage() {
               placeholder="••••••••"
               style={{
                 width: "100%",
-                padding: "1rem 1.25rem",
+                maxWidth: "320px",
+                padding: "0.85rem 1rem",
                 background: "rgba(0, 0, 0, 0.5)",
                 border: "2px solid rgba(0, 255, 255, 0.4)",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 color: "#ffffff",
-                fontSize: "1rem",
+                fontSize: "0.95rem",
                 outline: "none",
                 transition: "all 0.3s ease",
                 boxShadow: "inset 0 0 10px rgba(0, 0, 0, 0.3)",
+                textAlign: "left",
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
@@ -313,18 +333,19 @@ export default function SignupPage() {
             className="cyberpunk-submit-btn"
             style={{
               width: "100%",
-              padding: "1.25rem",
+              maxWidth: "320px",
+              padding: "1rem",
               background: "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))",
               border: "2px solid rgba(0, 255, 255, 0.6)",
-              borderRadius: "12px",
+              borderRadius: "10px",
               color: "#00ffff",
-              fontSize: "1.1rem",
+              fontSize: "1rem",
               fontWeight: 700,
               letterSpacing: "0.1em",
               cursor: "pointer",
               transition: "all 0.3s ease",
               textTransform: "uppercase",
-              marginTop: "1rem",
+              marginTop: "0.5rem",
               boxShadow: "0 0 20px rgba(0, 255, 255, 0.3)",
             }}
             onMouseEnter={(e) => {
@@ -346,10 +367,10 @@ export default function SignupPage() {
 
         <div
           style={{
-            marginTop: "2rem",
+            marginTop: "1.5rem",
             textAlign: "center",
             color: "rgba(255, 255, 255, 0.6)",
-            fontSize: "0.9rem",
+            fontSize: "0.85rem",
           }}
         >
           이미 계정이 있으신가요?{' '}

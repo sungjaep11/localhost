@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
@@ -51,6 +51,7 @@ function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url);
   const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   useEffect(() => {
     Object.values(actions).forEach(action => action?.stop());
@@ -60,7 +61,7 @@ function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
   const isCharacter1 = url.includes('character1');
   const positionY = isCharacter1 ? -2.0 : -0.8;
   
-  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 뷰어 컴포넌트
@@ -98,6 +99,14 @@ export default function GamePlayPage() {
   const [currentUserName, setCurrentUserName] = useState<string>('');
   const [showExitModal, setShowExitModal] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // 가사 및 TTS 관련 state
+  const [lyrics, setLyrics] = useState<string>(''); // 현재 가사
+  const [ttsAudio, setTtsAudio] = useState<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
@@ -197,6 +206,103 @@ export default function GamePlayPage() {
   // 특정 플레이어의 말풍선 가져오기
   const getPlayerBubble = (playerId: string) => {
     return bubbleMessages.find(msg => msg.playerId === playerId);
+  };
+
+  // TTS 재생 시간 업데이트
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const audio = audioRef.current;
+    const updateTime = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', () => {
+      setTotalDuration(audio.duration);
+    });
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+    };
+  }, [ttsAudio]);
+
+  // 가사 색상 계산 (노래방 스타일)
+  const getLyricsWithColors = () => {
+    if (!lyrics || !totalDuration) return null;
+
+    const words = lyrics.split('');
+    const timePerChar = totalDuration / words.length;
+    const currentCharIndex = Math.floor(currentTime / timePerChar);
+
+    return words.map((char, index) => {
+      const progress = index / words.length;
+      const isPast = index <= currentCharIndex;
+      const isCurrent = index === currentCharIndex;
+      
+      // 현재 글자는 파란색, 지나간 글자는 파란색, 아직 안 읽은 글자는 흰색
+      let color = '#ffffff'; // 기본 흰색
+      if (isPast) {
+        color = '#00ffff'; // 파란색
+      }
+      if (isCurrent) {
+        color = '#00aaff'; // 더 밝은 파란색 (현재 읽는 글자)
+      }
+
+      return { char, color, isCurrent };
+    });
+  };
+
+  // TTS 재생 시작
+  // 사용법: startTTS('가사 텍스트', 'TTS 오디오 URL')
+  // 예시: startTTS('안녕하세요 반갑습니다', '/tts/example.mp3')
+  const startTTS = (lyricsText: string, audioUrl: string) => {
+    setLyrics(lyricsText);
+    
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+    setTtsAudio(audio);
+    
+    audio.play();
+    setIsPlaying(true);
+    
+    audio.onended = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.onerror = () => {
+      setIsPlaying(false);
+      console.error('TTS 재생 오류');
+    };
+  };
+
+  // 테스트용: 방장이 재생 버튼을 누르면 예시 가사 재생 (나중에 실제 API로 교체)
+  const handlePlayButton = () => {
+    // 예시 가사와 TTS (실제로는 API에서 가져올 것)
+    const exampleLyrics = '안녕하세요 오늘도 좋은 하루 되세요';
+    const exampleTTS = ''; // TTS URL이 있으면 여기에 입력
+    
+    if (exampleTTS) {
+      startTTS(exampleLyrics, exampleTTS);
+    } else {
+      // TTS가 없을 때는 가사만 표시 (테스트용)
+      setLyrics(exampleLyrics);
+      // 실제 구현 시에는 TTS가 필수이므로 이 부분은 제거
+    }
+  };
+
+  // TTS 일시정지/재개
+  const toggleTTS = () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
   };
 
   return (
@@ -440,13 +546,22 @@ export default function GamePlayPage() {
               }}
             >
               <button
+                onClick={() => {
+                  if (!lyrics) {
+                    handlePlayButton();
+                  } else {
+                    toggleTTS();
+                  }
+                }}
                 style={{
                   width: "50px",
                   height: "50px",
                   borderRadius: "50%",
-                  background: "rgba(0, 255, 255, 0.2)",
-                  border: "2px solid rgba(0, 255, 255, 0.6)",
-                  color: "#00ffff",
+                  background: isPlaying 
+                    ? "rgba(0, 255, 0, 0.2)" 
+                    : "rgba(0, 255, 255, 0.2)",
+                  border: `2px solid ${isPlaying ? "rgba(0, 255, 0, 0.6)" : "rgba(0, 255, 255, 0.6)"}`,
+                  color: isPlaying ? "#00ff00" : "#00ffff",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -454,46 +569,100 @@ export default function GamePlayPage() {
                   transition: "all 0.3s ease",
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+                {isPlaying ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                  </svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
               </button>
-              <button
-                style={{
-                  width: "50px",
-                  height: "50px",
-                  borderRadius: "50%",
-                  background: "rgba(0, 255, 255, 0.2)",
-                  border: "2px solid rgba(0, 255, 255, 0.6)",
-                  color: "#00ffff",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
+              {totalDuration > 0 && (
+                <div
+                  style={{
+                    color: "#ffffff",
+                    fontSize: "0.85rem",
+                    minWidth: "80px",
+                    textAlign: "center",
+                  }}
+                >
+                  {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* 중앙 - 다른 플레이어들 캐릭터 */}
+        {/* 중앙 - 가사 표시 영역 + 다른 플레이어들 캐릭터 */}
         <div
           style={{
             flex: 1,
             display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            alignContent: "flex-start",
-            gap: "2rem",
-            padding: "1rem",
+            flexDirection: "column",
+            gap: "1rem",
           }}
         >
+          {/* 가사 표시 영역 (노래방 스타일) */}
+          {lyrics && (
+            <div
+              style={{
+                background: "rgba(0, 0, 0, 0.7)",
+                backdropFilter: "blur(15px)",
+                border: "2px solid rgba(0, 255, 255, 0.5)",
+                borderRadius: "16px",
+                padding: "2rem",
+                minHeight: "120px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "1.8rem",
+                  fontWeight: 700,
+                  lineHeight: "1.6",
+                  textAlign: "center",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: "0.2rem",
+                }}
+              >
+                {getLyricsWithColors()?.map((item, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      color: item.color,
+                      textShadow: item.isCurrent 
+                        ? "0 0 15px rgba(0, 170, 255, 0.8), 0 0 25px rgba(0, 170, 255, 0.5)"
+                        : "0 0 5px rgba(0, 255, 255, 0.3)",
+                      transition: "all 0.2s ease",
+                      display: "inline-block",
+                    }}
+                  >
+                    {item.char === ' ' ? '\u00A0' : item.char}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 다른 플레이어들 캐릭터 */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              alignContent: "flex-start",
+              gap: "2rem",
+              padding: "1rem",
+            }}
+          >
           {otherPlayers.map((player) => (
             <div
               key={player.id}

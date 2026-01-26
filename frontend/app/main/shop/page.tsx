@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
@@ -25,6 +25,7 @@ function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url);
   const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   // 모든 애니메이션 정지
   useEffect(() => {
@@ -38,7 +39,7 @@ function Model({ url }: { url: string }) {
   const positionY = isCharacter1 ? -1.0 : 0;
   const scale = isCharacter1 ? 2.5 : 2.5;
   
-  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 모델 뷰어 컴포넌트

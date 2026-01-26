@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
@@ -39,11 +39,12 @@ const ALL_ACTIONS: Action[] = [
   { id: 'action3', name: '점프', description: '높이 점프합니다' },
 ];
 
-// 3D 모델 컴포넌트
+// 3D 모델 컴포넌트 (메인용)
 function Model({ url, scale = 3.5 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url);
   const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   // 모든 애니메이션 정지
   useEffect(() => {
@@ -56,7 +57,27 @@ function Model({ url, scale = 3.5 }: { url: string; scale?: number }) {
   const isCharacter1 = url.includes('character1');
   const positionY = isCharacter1 ? -1.8 : 0;
   
-  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+}
+
+// 3D 모델 컴포넌트 (작은 박스용)
+function SmallModel({ url }: { url: string }) {
+  const group = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF(url);
+  const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  
+  useEffect(() => {
+    Object.values(actions).forEach(action => {
+      action?.stop();
+    });
+  }, [actions]);
+  
+  const isCharacter1 = url.includes('character1');
+  const positionY = isCharacter1 ? -1.2 : 0.3;
+  const scale = isCharacter1 ? 1.8 : 1.8;
+  
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 메인 캐릭터 뷰어
@@ -83,11 +104,11 @@ function MainCharacterViewer({ modelUrl }: { modelUrl: string }) {
 function SmallCharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
-      <Canvas camera={{ position: [0, 0.3, 3.5], fov: 45 }}>
+      <Canvas camera={{ position: [0, 0.8, 3.5], fov: 45 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <Model url={modelUrl} scale={1.8} />
+        <SmallModel url={modelUrl} />
         <OrbitControls 
           autoRotate={false}
           enableZoom={false}
