@@ -129,19 +129,63 @@ export default function WaitingRoomPage() {
         ))}
       </div>
 
-      {/* 헤더 - 현재 방 참가자 */}
-      <h2
+      {/* 헤더 - 뒤로가기 버튼과 현재 방 참가자 */}
+      <div
         style={{
-          color: "#ffffff",
-          fontSize: "1.5rem",
-          fontWeight: 700,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           marginBottom: "1.5rem",
-          textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
-          textAlign: "center",
         }}
       >
-        현재 방 참가자
-      </h2>
+        <button
+          onClick={() => router.push('/game/sauturi-quiz')}
+          style={{
+            background: "rgba(0, 0, 0, 0.5)",
+            border: "2px solid rgba(0, 255, 255, 0.5)",
+            borderRadius: "12px",
+            padding: "0.75rem 1rem",
+            color: "#00ffff",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            transition: "all 0.3s ease",
+            fontSize: "1rem",
+            fontWeight: 600,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+            e.currentTarget.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.5)";
+            e.currentTarget.style.background = "rgba(0, 0, 0, 0.7)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
+            e.currentTarget.style.boxShadow = "none";
+            e.currentTarget.style.background = "rgba(0, 0, 0, 0.5)";
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          뒤로
+        </button>
+
+        <h2
+          style={{
+            color: "#ffffff",
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            textAlign: "center",
+            flex: 1,
+          }}
+        >
+          현재 방 참가자
+        </h2>
+
+        <div style={{ width: "100px" }} /> {/* 공간 맞추기 */}
+      </div>
 
       <div
         style={{
