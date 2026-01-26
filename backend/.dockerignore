@@ -3,7 +3,10 @@ node_modules
 npm-debug.log
 dist
 .next
+postgres_data/
 postgres_data
+**/postgres_data
+**/postgres_data/**
 *.log
 .env
 .env.local
