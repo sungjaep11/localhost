@@ -736,6 +736,7 @@ export default function GamePlayPage() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
         {/* 오른쪽 - 채팅 패널 */}
