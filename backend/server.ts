@@ -1183,8 +1183,10 @@ io.on("connection", (socket) => {
 
       // 이미 참가한 플레이어인지 확인
       if (session.players.has(userId)) {
-        // 재접속: 소켓 ID만 업데이트
-        session.players.get(userId)!.socketId = socket.id;
+        // 재접속: 소켓 ID와 isHost 상태 업데이트 (방장이 변경되었을 수 있음)
+        const player = session.players.get(userId)!;
+        player.socketId = socket.id;
+        player.isHost = room.hostId === userId; // 방장 상태 최신화
       } else {
         // 새 플레이어 추가
         const isHost = room.hostId === userId;
@@ -1237,7 +1239,10 @@ io.on("connection", (socket) => {
             where: { id: roomId },
             data: { hostId: newHost.userId },
           });
-          newHost.isHost = true;
+          // 모든 플레이어의 isHost 상태 업데이트
+          session.players.forEach((player) => {
+            player.isHost = player.userId === newHost.userId;
+          });
         }
 
         // 플레이어가 없으면 세션 삭제
