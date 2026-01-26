@@ -1,6 +1,10 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
-  "/auth/signup/page": "app/auth/signup/page.js",
-  "/page": "app/page.js"
+  "/api/games/rooms/route": "app/api/games/rooms/route.js",
+  "/game/sauturi-quiz/page": "app/game/sauturi-quiz/page.js",
+  "/game/song-guess/create/genre/page": "app/game/song-guess/create/genre/page.js",
+  "/game/song-guess/create/page": "app/game/song-guess/create/page.js",
+  "/game/song-guess/page": "app/game/song-guess/page.js",
+  "/main/lobby/page": "app/main/lobby/page.js",
+  "/main/mypage/page": "app/main/mypage/page.js",
+  "/main/shop/page": "app/main/shop/page.js"
 }

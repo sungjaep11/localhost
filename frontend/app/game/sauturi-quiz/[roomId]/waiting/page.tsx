@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import * as THREE from 'three';
 
 interface Player {
   id: string;
@@ -17,8 +18,19 @@ const STORAGE_KEY = 'sauturi-quiz-rooms';
 
 // 3D 모델 컴포넌트
 function Model({ url }: { url: string }) {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={2.5} position={[0, -1.2, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const group = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF(url);
+  const { actions } = useAnimations(animations, group);
+  
+  useEffect(() => {
+    Object.values(actions).forEach(action => action?.stop());
+  }, [actions]);
+  
+  // character1은 축이 달라서 다른 position 적용
+  const isCharacter1 = url.includes('character1');
+  const positionY = isCharacter1 ? -1.8 : -0.5;
+  
+  return <primitive ref={group} object={scene} scale={2.5} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 뷰어 컴포넌트
@@ -34,7 +46,7 @@ function CharacterViewer({ modelUrl }: { modelUrl: string }) {
           autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={true}
+          enableRotate={false}
         />
       </Canvas>
     </div>
