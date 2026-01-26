@@ -1430,7 +1430,13 @@ async function endRound(roomId: string) {
   session.status = "ROUND_RESULT";
 
   // 결과 정리
-  const results = Array.from(session.answers.entries()).map(([userId, answerData]) => {
+  const results: Array<{
+    userId: string;
+    nickname: string;
+    answer: string | null;
+    isCorrect: boolean;
+    score: number;
+  }> = Array.from(session.answers.entries()).map(([userId, answerData]) => {
     const player = session.players.get(userId);
     return {
       userId,
@@ -1447,7 +1453,7 @@ async function endRound(roomId: string) {
       results.push({
         userId,
         nickname: player.nickname,
-        answer: null as string | null,
+        answer: null,
         isCorrect: false,
         score: player.score,
       });
