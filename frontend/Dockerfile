@@ -7,6 +7,18 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+
+# Install build dependencies for canvas library
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    pango-dev \
+    jpeg-dev \
+    giflib-dev \
+    librsvg-dev
+
 RUN npm ci
 
 # Rebuild the source code only when needed
