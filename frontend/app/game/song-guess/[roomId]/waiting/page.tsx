@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { useSocket } from '@/context/SocketContext';
 
 interface Player {
   id: string;
@@ -45,62 +46,80 @@ export default function WaitingRoomPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
+  const { socket } = useSocket();
   const [players, setPlayers] = useState<Player[]>([]);
   const [isHost, setIsHost] = useState(false);
 
   // 현재 사용자 정보
   const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
 
-  // 참가자 목록 불러오기
+  // 소켓 연결 및 게임 입장
   useEffect(() => {
-    const loadPlayers = () => {
-      const playersKey = `song-guess-room-${roomId}-players`;
-      const storedPlayers = localStorage.getItem(playersKey);
-      if (storedPlayers) {
-        try {
-          const parsedPlayers = JSON.parse(storedPlayers);
-          // 각 플레이어의 캐릭터 정보 확인 (없으면 기본 캐릭터)
-          const playersWithCharacters = parsedPlayers.map((player: Player) => ({
-            ...player,
-            characterUrl: player.characterUrl || '/character1.glb',
-          }));
-          setPlayers(playersWithCharacters);
-          
-          // 방장 여부 확인
-          const room = getRoomInfo();
-          if (room) {
-            setIsHost(room.hostId === currentUserId);
-          }
-        } catch (e) {
-          console.error('Failed to parse players', e);
-        }
+    if (!socket || !roomId || !currentUserId) return;
+
+    // 방 입장
+    socket.emit('game_join', { roomId, userId: currentUserId });
+
+    // 플레이어 목록 업데이트 리스너
+    const handlePlayersUpdate = (data: { 
+      roomId: string; 
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+      sessionStatus: string;
+    }) => {
+      if (data.roomId === roomId) {
+        // 각 플레이어의 캐릭터 정보 확인 (없으면 기본 캐릭터)
+        const playersWithCharacters = data.players.map((player) => ({
+          id: player.id,
+          name: player.name,
+          isHost: player.isHost,
+          characterUrl: '/character1.glb', // 기본 캐릭터
+          joinedAt: player.joinedAt,
+        }));
+        setPlayers(playersWithCharacters);
+        
+        // 현재 사용자가 방장인지 확인
+        const currentPlayer = playersWithCharacters.find(p => p.id === currentUserId);
+        setIsHost(currentPlayer?.isHost || false);
       }
     };
 
-    loadPlayers();
-
-    // 주기적으로 참가자 목록 업데이트 (나중에 socket.io로 대체)
-    const interval = setInterval(loadPlayers, 1000);
-
-    return () => clearInterval(interval);
-  }, [roomId, currentUserId]);
-
-  // 방 정보 가져오기
-  const getRoomInfo = () => {
-    const storedRooms = localStorage.getItem(STORAGE_KEY);
-    if (storedRooms) {
-      try {
-        const rooms = JSON.parse(storedRooms);
-        return rooms.find((r: any) => r.id === roomId);
-      } catch (e) {
-        console.error('Failed to parse rooms', e);
+    // 게임 시작 리스너
+    const handleGameStart = (data: { roomId: string }) => {
+      if (data.roomId === roomId) {
+        router.push(`/game/song-guess/${roomId}/countdown`);
       }
-    }
-    return null;
-  };
+    };
+
+    // 에러 리스너
+    const handleGameError = (data: { message: string }) => {
+      console.error('Game error:', data.message);
+      alert(data.message);
+    };
+
+    socket.on('game_players_update', handlePlayersUpdate);
+    socket.on('game_countdown_start', handleGameStart);
+    socket.on('game_error', handleGameError);
+
+    return () => {
+      socket.off('game_players_update', handlePlayersUpdate);
+      socket.off('game_countdown_start', handleGameStart);
+      socket.off('game_error', handleGameError);
+      // 방 나가기
+      if (socket && roomId && currentUserId) {
+        socket.emit('game_leave', { roomId, userId: currentUserId });
+      }
+    };
+  }, [socket, roomId, currentUserId, router]);
 
   const handleStart = () => {
-    router.push(`/game/song-guess/${roomId}/countdown`);
+    if (!socket || !roomId || !currentUserId) return;
+    
+    // 게임 시작 이벤트 전송
+    socket.emit('game_start', { 
+      roomId, 
+      userId: currentUserId,
+      options: {} // 필요시 게임 옵션 추가
+    });
   };
 
   return (
