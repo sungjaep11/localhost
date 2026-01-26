@@ -12,6 +12,7 @@ interface Player {
   score?: number;
   joinedAt?: number;
   character?: string;
+  characterUrl?: string;
 }
 
 interface ChatMessage {
