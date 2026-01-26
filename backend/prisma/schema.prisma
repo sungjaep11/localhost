@@ -160,3 +160,15 @@ enum TrackStatus {
   PLAYED
   SKIPPED
 }
+
+// 8. 노래 데이터 (게임용)
+model Song {
+  id          String   @id @default(uuid())
+  genre       String   // 발라드, K-pop, J-pop, 팝송, 댄스, 인디, R&B, 힙합
+  title       String   // 노래 제목
+  artist      String   // 아티스트
+  youtubeUrl  String   // YouTube 검색 URL 또는 비디오 ID
+  createdAt   DateTime @default(now())
+
+  @@index([genre]) // 장르별 조회 최적화
+}

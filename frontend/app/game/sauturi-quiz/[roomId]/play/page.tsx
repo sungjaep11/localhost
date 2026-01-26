@@ -7,6 +7,24 @@ import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three
 import { useSocket } from '@/context/SocketContext';
 import * as THREE from 'three';
 
+// YouTube iframe API 타입 정의
+declare global {
+  interface Window {
+    YT: {
+      Player: new (elementId: string | HTMLElement, options: any) => any;
+      PlayerState: {
+        UNSTARTED: number;
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+        BUFFERING: number;
+        CUED: number;
+      };
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
 interface Player {
   id: string;
   name: string;
@@ -110,6 +128,18 @@ export default function GamePlayPage() {
   const [totalDuration, setTotalDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // YouTube 관련 state
+  const [currentSongData, setCurrentSongData] = useState<{
+    id: string;
+    genre: string;
+    title: string;
+    artist: string;
+    youtubeUrl: string;
+  } | null>(null);
+  const [youtubePlayer, setYoutubePlayer] = useState<any>(null);
+  const [genres, setGenres] = useState<string[]>([]);
+  const playerRef = useRef<HTMLDivElement>(null);
+
   // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -117,20 +147,46 @@ export default function GamePlayPage() {
     if (userId) setCurrentUserId(userId);
     if (userName) setCurrentUserName(userName);
 
-    // 방 정보 불러오기
-    const STORAGE_KEY = 'sauturi-quiz-rooms';
-    const storedRooms = localStorage.getItem(STORAGE_KEY);
-    if (storedRooms) {
+    // 방 정보 불러오기 (API에서 가져오기)
+    const fetchRoomInfo = async () => {
       try {
-        const rooms: Room[] = JSON.parse(storedRooms);
-        const currentRoom = rooms.find(r => r.id === roomId);
-        if (currentRoom) {
-          setTotalRounds(currentRoom.rounds);
-          setSongsPerRound(currentRoom.songsPerRound);
+        const res = await fetch(`/api/games/rooms?page=1&pageSize=100`, {
+          headers: {
+            'x-user-id': userId || '',
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const currentRoom = data.rooms?.find((r: any) => r.id === roomId);
+          if (currentRoom) {
+            setTotalRounds((currentRoom.options as any)?.rounds || 4);
+            setSongsPerRound((currentRoom.options as any)?.songsPerRound || 5);
+            setGenres((currentRoom.options as any)?.genres || []);
+          }
         }
       } catch (e) {
         console.error('Failed to load room info', e);
+        // 폴백: localStorage에서 가져오기
+        const STORAGE_KEY = 'sauturi-quiz-rooms';
+        const storedRooms = localStorage.getItem(STORAGE_KEY);
+        if (storedRooms) {
+          try {
+            const rooms: Room[] = JSON.parse(storedRooms);
+            const currentRoom = rooms.find(r => r.id === roomId);
+            if (currentRoom) {
+              setTotalRounds(currentRoom.rounds);
+              setSongsPerRound(currentRoom.songsPerRound);
+              setGenres(currentRoom.genres || []);
+            }
+          } catch (err) {
+            console.error('Failed to parse stored rooms', err);
+          }
+        }
       }
+    };
+
+    if (userId) {
+      fetchRoomInfo();
     }
   }, [roomId]);
 
@@ -369,31 +425,219 @@ export default function GamePlayPage() {
     };
   };
 
-  // 테스트용: 방장이 재생 버튼을 누르면 예시 가사 재생 (나중에 실제 API로 교체)
-  const handlePlayButton = () => {
-    // 예시 가사와 TTS (실제로는 API에서 가져올 것)
-    const exampleLyrics = '안녕하세요 오늘도 좋은 하루 되세요';
-    const exampleTTS = ''; // TTS URL이 있으면 여기에 입력
+  // YouTube iframe API 로드
+  useEffect(() => {
+    // 이미 로드되어 있으면 스킵
+    if (window.YT && window.YT.Player) {
+      return;
+    }
+
+    // YouTube iframe API 스크립트 로드
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    // YouTube API 준비 완료 시 호출되는 전역 함수
+    window.onYouTubeIframeAPIReady = () => {
+      console.log('YouTube iframe API ready');
+    };
+
+    return () => {
+      // 정리
+      if (window.onYouTubeIframeAPIReady) {
+        window.onYouTubeIframeAPIReady = undefined;
+      }
+    };
+  }, []);
+
+  // YouTube 검색 URL에서 검색 쿼리 추출
+  const extractSearchQuery = (searchUrl: string): string | null => {
+    try {
+      const url = new URL(searchUrl);
+      const query = url.searchParams.get('search_query');
+      return query ? decodeURIComponent(query) : null;
+    } catch (e) {
+      console.error('Failed to extract search query', e);
+      return null;
+    }
+  };
+
+  // YouTube Data API를 사용하여 비디오 ID 가져오기 (선택사항)
+  // API 키가 없으면 검색 쿼리를 직접 사용
+  const getVideoIdFromSearch = async (searchQuery: string): Promise<string | null> => {
+    // YouTube Data API 키가 있으면 사용
+    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+    if (API_KEY) {
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&maxResults=1&key=${API_KEY}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.items && data.items.length > 0) {
+            return data.items[0].id.videoId;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch video ID from YouTube API', e);
+      }
+    }
+    return null;
+  };
+
+  // 장르별 랜덤 노래 가져오기
+  const fetchRandomSong = async (genre: string) => {
+    try {
+      const res = await fetch(`/api/songs/random?genre=${encodeURIComponent(genre)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.song) {
+          return data.song;
+        }
+      }
+      return null;
+    } catch (e) {
+      console.error('Failed to fetch random song', e);
+      return null;
+    }
+  };
+
+  // YouTube 플레이어 초기화
+  const initializeYouTubePlayer = async (videoId: string) => {
+    const playerElement = playerRef.current;
+    if (!playerElement) return;
+
+    return new Promise((resolve) => {
+      if (window.YT && window.YT.Player) {
+        const player = new window.YT.Player(playerElement, {
+          videoId: videoId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            enablejsapi: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+          },
+          events: {
+            onReady: (event: any) => {
+              console.log('YouTube player ready');
+              setIsPlaying(true);
+              resolve(event.target);
+            },
+            onStateChange: (event: any) => {
+              if (event.data === window.YT.PlayerState.PLAYING) {
+                setIsPlaying(true);
+              } else if (event.data === window.YT.PlayerState.PAUSED) {
+                setIsPlaying(false);
+              } else if (event.data === window.YT.PlayerState.ENDED) {
+                setIsPlaying(false);
+              }
+            },
+            onError: (event: any) => {
+              console.error('YouTube player error', event);
+            },
+          },
+        });
+        setYoutubePlayer(player);
+        return player;
+      } else {
+        // YouTube API가 아직 로드되지 않았으면 대기
+        setTimeout(() => {
+          initializeYouTubePlayer(videoId).then(resolve);
+        }, 100);
+      }
+    });
+  };
+
+  // 현재 라운드에 맞는 노래 재생
+  const playSongForCurrentRound = async () => {
+    if (genres.length === 0) return;
+
+    // 현재 라운드에 해당하는 장르 가져오기
+    const currentGenreIndex = (currentRound - 1) % genres.length;
+    const currentGenre = genres[currentGenreIndex];
+
+    // 랜덤 노래 가져오기
+    const song = await fetchRandomSong(currentGenre);
+    if (!song) {
+      console.error('Failed to fetch song for genre:', currentGenre);
+      return;
+    }
+
+    setCurrentSongData(song);
+    setLyrics(`${song.title} - ${song.artist}`);
+
+    // YouTube 검색 URL에서 검색 쿼리 추출
+    const searchQuery = extractSearchQuery(song.youtubeUrl);
+    if (!searchQuery) {
+      console.error('Failed to extract search query from URL');
+      return;
+    }
+
+    // 비디오 ID 가져오기 (YouTube Data API 사용 또는 검색 쿼리 직접 사용)
+    let videoId = await getVideoIdFromSearch(searchQuery);
     
-    if (exampleTTS) {
-      startTTS(exampleLyrics, exampleTTS);
+    // API 키가 없거나 실패한 경우, 검색 쿼리를 직접 사용
+    // 주의: 검색 쿼리만으로는 직접 재생할 수 없으므로, 
+    // YouTube iframe API의 검색 기능을 사용하거나 다른 방법 필요
+    if (!videoId) {
+      // 검색 쿼리를 사용하여 YouTube 검색 페이지를 iframe으로 표시
+      // 또는 사용자에게 검색 결과를 보여주는 방식 사용
+      console.warn('YouTube Data API key not available, using search query:', searchQuery);
+      // 일단은 검색 쿼리를 표시만 하고, 실제 재생은 YouTube Data API가 필요
+      return;
+    }
+
+    // 기존 플레이어 정리
+    if (youtubePlayer) {
+      try {
+        youtubePlayer.destroy();
+      } catch (e) {
+        console.error('Failed to destroy existing player', e);
+      }
+      setYoutubePlayer(null);
+    }
+
+    // 새 플레이어 초기화
+    await initializeYouTubePlayer(videoId);
+  };
+
+  // 테스트용: 방장이 재생 버튼을 누르면 랜덤 노래 재생
+  const handlePlayButton = async () => {
+    if (!lyrics) {
+      // 첫 재생: 현재 라운드에 맞는 노래 가져오기
+      await playSongForCurrentRound();
     } else {
-      // TTS가 없을 때는 가사만 표시 (테스트용)
-      setLyrics(exampleLyrics);
-      // 실제 구현 시에는 TTS가 필수이므로 이 부분은 제거
+      // 이미 재생 중이면 일시정지/재개
+      toggleTTS();
     }
   };
 
   // TTS 일시정지/재개
   const toggleTTS = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
+    if (youtubePlayer) {
+      // YouTube 플레이어 제어
+      if (isPlaying) {
+        youtubePlayer.pauseVideo();
+        setIsPlaying(false);
+      } else {
+        youtubePlayer.playVideo();
+        setIsPlaying(true);
+      }
+    } else if (audioRef.current) {
+      // 오디오 제어 (TTS)
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
     }
   };
 
@@ -707,10 +951,25 @@ export default function GamePlayPage() {
                 padding: "2rem",
                 minHeight: "120px",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
+                gap: "1rem",
               }}
             >
+              {/* YouTube 플레이어 (숨김) */}
+              <div
+                ref={playerRef}
+                style={{
+                  width: "1px",
+                  height: "1px",
+                  position: "absolute",
+                  opacity: 0,
+                  pointerEvents: "none",
+                }}
+              />
+              
+              {/* 노래 정보 표시 */}
               <div
                 style={{
                   fontSize: "1.8rem",
@@ -739,6 +998,19 @@ export default function GamePlayPage() {
                   </span>
                 ))}
               </div>
+              
+              {/* 현재 노래 정보 */}
+              {currentSongData && (
+                <div
+                  style={{
+                    fontSize: "1rem",
+                    color: "rgba(255, 255, 255, 0.7)",
+                    textAlign: "center",
+                  }}
+                >
+                  {currentSongData.title} - {currentSongData.artist}
+                </div>
+              )}
             </div>
           )}
 

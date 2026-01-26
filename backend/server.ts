@@ -877,6 +877,73 @@ app.get("/api/shop/items", async (req: Request, res: Response) => {
 });
 
 /**
+ * 장르별 랜덤 노래 조회
+ * GET /api/songs/random?genre=발라드&count=1
+ */
+app.get("/api/songs/random", async (req: Request, res: Response) => {
+  try {
+    const genre = req.query.genre as string | undefined;
+    const count = parseInt((req.query.count as string) || "1", 10);
+
+    if (!genre) {
+      return res.status(400).json({ message: "genre parameter is required" });
+    }
+
+    // 해당 장르의 모든 노래 가져오기
+    const allSongs = await prisma.song.findMany({
+      where: { genre },
+    });
+
+    if (allSongs.length === 0) {
+      return res.status(404).json({ message: `No songs found for genre: ${genre}` });
+    }
+
+    // 랜덤하게 선택
+    const selectedSongs: typeof allSongs = [];
+    const shuffled = [...allSongs].sort(() => Math.random() - 0.5);
+    
+    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+      selectedSongs.push(shuffled[i]);
+    }
+
+    // 단일 노래인 경우 객체로, 여러 개인 경우 배열로 반환
+    if (count === 1) {
+      res.json(selectedSongs[0]);
+    } else {
+      res.json(selectedSongs);
+    }
+  } catch (err) {
+    console.error("[GET /api/songs/random] error", err);
+    res.status(500).json({ message: "Failed to load random songs" });
+  }
+});
+
+/**
+ * 장르별 노래 목록 조회
+ * GET /api/songs?genre=발라드
+ */
+app.get("/api/songs", async (req: Request, res: Response) => {
+  try {
+    const genre = req.query.genre as string | undefined;
+
+    const where: any = {};
+    if (genre) {
+      where.genre = genre;
+    }
+
+    const songs = await prisma.song.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json(songs);
+  } catch (err) {
+    console.error("[GET /api/songs] error", err);
+    res.status(500).json({ message: "Failed to load songs" });
+  }
+});
+
+/**
  * 아이템 구매
  * POST /api/shop/buy
  * body: { itemId }
