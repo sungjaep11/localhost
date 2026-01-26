@@ -487,7 +487,7 @@ app.get(
       }
 
       const userId = (req as any).userId as string;
-      const myResult = history.results.find((r) => r.userId === userId);
+      const myResult = history.results.find((r: any) => r.userId === userId);
 
       res.json({
         match: {
@@ -660,7 +660,7 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     }
 
     // 관련 데이터 삭제 (트랜잭션으로 처리)
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // 플레이리스트 트랙 삭제
       await tx.playlistTrack.deleteMany({
         where: { roomId },
