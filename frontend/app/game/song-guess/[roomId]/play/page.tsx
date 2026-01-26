@@ -1802,7 +1802,7 @@ export default function GamePlayPage() {
           input={chatInput}
           onInputChange={setChatInput}
           onSend={sendChat}
-          chatContainerRef={chatContainerRef}
+          chatContainerRef={chatContainerRef as RefObject<HTMLDivElement>}
         />
       </div>
 
