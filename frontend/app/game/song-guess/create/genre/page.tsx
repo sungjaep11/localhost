@@ -48,7 +48,7 @@ export default function GenreSelectionPage() {
     }
   };
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     if (selectedGenres.length !== rounds) {
       alert(`라운드 개수(${rounds}개)만큼 장르를 선택해주세요.`);
       return;
@@ -66,64 +66,51 @@ export default function GenreSelectionPage() {
       const roomInfo = JSON.parse(tempRoomInfo);
       
       // 현재 사용자 정보 가져오기
-      let currentUser = {
-        id: localStorage.getItem('userId') || `user-${Date.now()}`,
-        name: localStorage.getItem('userName') || '사용자',
-      };
-
-      // userId와 userName이 없으면 저장
-      if (!localStorage.getItem('userId')) {
-        localStorage.setItem('userId', currentUser.id);
-      }
-      if (!localStorage.getItem('userName')) {
-        const userName = prompt('이름을 입력하세요:') || '사용자';
-        localStorage.setItem('userName', userName);
-        currentUser.name = userName;
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        alert('로그인이 필요합니다.');
+        router.push('/auth/login');
+        return;
       }
 
-      // 새 방 생성
-      const newRoom: Room = {
-        id: `room-${Date.now()}`,
-        name: roomInfo.name,
-        currentPlayers: 1, // 방장 포함
-        maxPlayers: roomInfo.maxPlayers,
-        isLocked: !roomInfo.isPublic,
-        password: roomInfo.password,
-        hostId: currentUser.id,
-        hostName: currentUser.name,
-        rounds: roomInfo.rounds,
-        songsPerRound: roomInfo.songsPerRound,
-        genres: selectedGenres,
-        createdAt: Date.now(),
-      };
+      // 백엔드 API를 통해 방 생성
+      const res = await fetch('/api/games/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+        },
+        body: JSON.stringify({
+          title: roomInfo.name,
+          isPrivate: !roomInfo.isPublic,
+          password: roomInfo.password || undefined,
+          gameType: 'MUSIC', // 노래 맞추기
+          options: {
+            rounds: roomInfo.rounds,
+            songsPerRound: roomInfo.songsPerRound,
+            maxPlayers: roomInfo.maxPlayers,
+            genres: selectedGenres,
+          },
+        }),
+      });
 
-      // localStorage에 방 추가
-      const existingRooms = localStorage.getItem(STORAGE_KEY);
-      const rooms: Room[] = existingRooms ? JSON.parse(existingRooms) : [];
-      rooms.push(newRoom);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
-
-      // 방장의 장착된 캐릭터 가져오기
-      const hostCharacter = localStorage.getItem(`equipped-character-${currentUser.id}`) || '/character1.glb';
-
-      // 방장을 참가자 목록에 추가
-      const playersKey = `song-guess-room-${newRoom.id}-players`;
-      const hostPlayer = {
-        id: currentUser.id,
-        name: currentUser.name,
-        isHost: true,
-        characterUrl: hostCharacter,
-        joinedAt: Date.now(),
-      };
-      localStorage.setItem(playersKey, JSON.stringify([hostPlayer]));
-
-      // 임시 정보 삭제
-      sessionStorage.removeItem('temp-room-info');
-
-      // 대기실로 이동
-      router.push(`/game/song-guess/${newRoom.id}/waiting`);
-    } catch (e) {
-      console.error('Failed to create room', e);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.room) {
+          // 임시 정보 삭제
+          sessionStorage.removeItem('temp-room-info');
+          
+          // 대기실로 이동
+          router.push(`/game/song-guess/${data.room.id}/waiting`);
+        } else {
+          alert(data.error || '방 생성에 실패했습니다.');
+        }
+      } else {
+        const error = await res.json().catch(() => ({ message: '방 생성에 실패했습니다.' }));
+        alert(error.message || '방 생성에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to create room', error);
       alert('방 생성에 실패했습니다. 다시 시도해주세요.');
     }
   };

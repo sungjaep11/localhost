@@ -25,17 +25,62 @@ export default function SongGuessPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [rooms, setRooms] = useState<Room[]>([]);
 
-  // localStorage에서 방 목록 불러오기
+  // 백엔드 API에서 방 목록 불러오기
   useEffect(() => {
-    const storedRooms = localStorage.getItem(STORAGE_KEY);
-    if (storedRooms) {
+    const fetchRooms = async () => {
       try {
-        const parsedRooms = JSON.parse(storedRooms);
-        setRooms(parsedRooms);
-      } catch (e) {
-        console.error('Failed to parse rooms from localStorage', e);
+        const userId = localStorage.getItem('userId');
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        if (userId) {
+          headers['x-user-id'] = userId;
+        }
+
+        const res = await fetch('/api/games/rooms?page=1&pageSize=50', {
+          headers,
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.rooms) {
+            // 백엔드 Room 형식을 프론트엔드 Room 형식으로 변환
+            const convertedRooms: Room[] = data.rooms.map((room: any) => ({
+              id: room.id,
+              name: room.title,
+              currentPlayers: 0, // TODO: 실제 참가자 수를 가져와야 함
+              maxPlayers: 10, // TODO: 실제 최대 인원수를 가져와야 함
+              isLocked: room.isPrivate || false,
+              password: room.password,
+              hostId: room.hostId,
+              hostName: '', // TODO: 호스트 이름을 가져와야 함
+              rounds: 10, // TODO: 실제 라운드 수를 가져와야 함
+              songsPerRound: 10, // TODO: 실제 곡 수를 가져와야 함
+              genres: [], // TODO: 장르 정보를 가져와야 함
+              createdAt: new Date(room.createdAt).getTime(),
+            }));
+            setRooms(convertedRooms);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch rooms from backend', error);
+        // 백엔드 실패 시 localStorage에서 가져오기 (fallback)
+        const storedRooms = localStorage.getItem(STORAGE_KEY);
+        if (storedRooms) {
+          try {
+            const parsedRooms = JSON.parse(storedRooms);
+            setRooms(parsedRooms);
+          } catch (e) {
+            console.error('Failed to parse rooms from localStorage', e);
+          }
+        }
       }
-    }
+    };
+
+    fetchRooms();
+    // 주기적으로 방 목록 갱신 (30초마다)
+    const interval = setInterval(fetchRooms, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // 방 목록 업데이트 함수
@@ -48,7 +93,7 @@ export default function SongGuessPage() {
     router.push('/game/song-guess/create');
   };
 
-  const handleJoinRoom = (room: Room) => {
+  const handleJoinRoom = async (room: Room) => {
     // 최대 인원수 체크
     if (room.currentPlayers >= room.maxPlayers) {
       alert('방이 가득 찼습니다.');
@@ -56,35 +101,49 @@ export default function SongGuessPage() {
     }
 
     // 현재 사용자 정보 가져오기
-    const currentUser = {
-      id: localStorage.getItem('userId') || `user-${Date.now()}`,
-      name: localStorage.getItem('userName') || '사용자',
-    };
-
-    // userId와 userName이 없으면 저장
-    if (!localStorage.getItem('userId')) {
-      localStorage.setItem('userId', currentUser.id);
-    }
-    if (!localStorage.getItem('userName')) {
-      const userName = prompt('이름을 입력하세요:') || '사용자';
-      localStorage.setItem('userName', userName);
-      currentUser.name = userName;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('로그인이 필요합니다.');
+      router.push('/auth/login');
+      return;
     }
 
-    if (room.isLocked) {
-      // 비밀번호 입력
-      const password = prompt('비밀번호를 입력하세요:');
-      if (password && password === room.password) {
-        // 참가자 추가
-        addPlayerToRoom(room.id, currentUser);
-        router.push(`/game/song-guess/${room.id}/waiting`);
-      } else if (password) {
-        alert('비밀번호가 일치하지 않습니다.');
+    try {
+      let password: string | undefined;
+      if (room.isLocked) {
+        // 비밀번호 입력
+        const inputPassword = prompt('비밀번호를 입력하세요:');
+        if (!inputPassword) return;
+        password = inputPassword;
       }
-    } else {
-      // 참가자 추가
-      addPlayerToRoom(room.id, currentUser);
-      router.push(`/game/song-guess/${room.id}/waiting`);
+
+      // 백엔드 API를 통해 방 입장
+      const res = await fetch('/api/games/rooms/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+        },
+        body: JSON.stringify({
+          roomId: room.id,
+          password,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          router.push(`/game/song-guess/${room.id}/waiting`);
+        } else {
+          alert(data.error || '방 입장에 실패했습니다.');
+        }
+      } else {
+        const error = await res.json().catch(() => ({ message: '방 입장에 실패했습니다.' }));
+        alert(error.message || '방 입장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to join room', error);
+      alert('방 입장에 실패했습니다.');
     }
   };
 

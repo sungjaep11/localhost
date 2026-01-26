@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: 1234
       POSTGRES_DB: localhost_db
     volumes:
-      - ./backend/postgres_data:/var/lib/postgresql/data # 데이터 영구 저장
+      - postgres_data:/var/lib/postgresql/data # 데이터 영구 저장 (named volume)
 
   # 2. (선택) 실시간 게임 상태/세션 관리용 (Redis)
   redis:
@@ -53,5 +53,10 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://backend:3001
+      NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:3001}
+      BACKEND_URL: http://backend:3001
     depends_on:
       - backend
+
+volumes:
+  postgres_data:
