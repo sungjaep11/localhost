@@ -6,6 +6,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
 import * as THREE from 'three';
+import type { RefObject } from 'react';
 
 interface Player {
   id: string;
@@ -489,7 +490,7 @@ const ChatPanel = memo(({
   input: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
-  chatContainerRef: React.RefObject<HTMLDivElement>;
+  chatContainerRef: RefObject<HTMLDivElement>;
 }) => {
   return (
     <div
@@ -1792,6 +1793,7 @@ export default function GamePlayPage() {
               isCorrect={correctPlayers.includes(player.id)}
             />
           ))}
+          </div>
         </div>
 
         {/* 오른쪽 - 채팅 패널 */}
