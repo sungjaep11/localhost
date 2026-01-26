@@ -618,6 +618,74 @@ app.post(
 );
 
 /**
+ * 방 삭제 (방 생성자만 가능)
+ * DELETE /api/rooms/:roomId
+ */
+app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
+  try {
+    const roomId = req.params.roomId;
+    const userId = (req as any).userId as string;
+
+    if (!roomId) {
+      return res.status(400).json({ message: "roomId is required" });
+    }
+
+    // 방 정보 조회
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // 방 생성자 확인
+    if (room.hostId !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Only the room creator can delete the room" });
+    }
+
+    // 게임 세션이 있으면 정리
+    if (gameSessions.has(roomId)) {
+      const session = gameSessions.get(roomId);
+      if (session) {
+        // 모든 플레이어에게 방 삭제 알림
+        io.to(roomId).emit("room_deleted", {
+          roomId,
+          message: "Room has been deleted by the host",
+        });
+      }
+      gameSessions.delete(roomId);
+    }
+
+    // 관련 데이터 삭제 (트랜잭션으로 처리)
+    await prisma.$transaction(async (tx) => {
+      // 플레이리스트 트랙 삭제
+      await tx.playlistTrack.deleteMany({
+        where: { roomId },
+      });
+
+      // 방 삭제 (GameHistory는 기록을 위해 유지)
+      await tx.room.delete({
+        where: { id: roomId },
+      });
+    });
+
+    // 모든 클라이언트에게 방 삭제 알림
+    io.emit("room_deleted", { roomId });
+
+    res.status(200).json({
+      message: "Room deleted successfully",
+      roomId,
+    });
+  } catch (err) {
+    console.error("[DELETE /api/rooms/:roomId] error", err);
+    res.status(500).json({ message: "Failed to delete room" });
+  }
+});
+
+/**
  * 플레이리스트 곡 신청
  * POST /api/playlists/request
  * body: { roomId, youtubeUrl, title, duration }
