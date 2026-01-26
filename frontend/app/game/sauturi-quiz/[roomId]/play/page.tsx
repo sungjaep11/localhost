@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import { useSocket } from '@/context/SocketContext';
 import * as THREE from 'three';
 
 interface Player {
@@ -87,6 +88,7 @@ export default function GamePlayPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
+  const { socket } = useSocket();
   const [currentRound, setCurrentRound] = useState(1);
   const [currentSong, setCurrentSong] = useState(1);
   const [totalRounds, setTotalRounds] = useState(1);
@@ -132,30 +134,96 @@ export default function GamePlayPage() {
     }
   }, [roomId]);
 
-  // 참가자 목록 불러오기
+  // 소켓 연결 및 게임 입장
   useEffect(() => {
-    const loadPlayers = () => {
-      const playersKey = `sauturi-quiz-room-${roomId}-players`;
-      const storedPlayers = localStorage.getItem(playersKey);
-      if (storedPlayers) {
-        try {
-          const parsedPlayers = JSON.parse(storedPlayers);
-          const playersWithScore = parsedPlayers.map((p: Player) => ({
-            ...p,
-            score: p.score || 0,
-            character: p.character || p.characterUrl || '/character1.glb',
-          }));
-          setPlayers(playersWithScore);
-        } catch (e) {
-          console.error('Failed to parse players', e);
-        }
+    if (!socket || !roomId || !currentUserId) return;
+
+    // 방 입장
+    socket.emit('game_join', { roomId, userId: currentUserId });
+
+    // 플레이어 목록 업데이트 리스너
+    const handlePlayersUpdate = (data: { 
+      roomId: string; 
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+      sessionStatus: string;
+    }) => {
+      if (data.roomId === roomId) {
+        // 각 플레이어의 캐릭터 정보 확인 (localStorage에서 가져오기)
+        const playersWithCharacters = data.players.map((player) => {
+          // localStorage에서 각 플레이어의 장착된 캐릭터 가져오기
+          const equippedCharacter = typeof window !== 'undefined' 
+            ? localStorage.getItem(`equipped-character-${player.id}`) 
+            : null;
+          
+          return {
+            id: player.id,
+            name: player.name,
+            isHost: player.isHost,
+            score: 0,
+            character: equippedCharacter || '/character1.glb',
+            characterUrl: equippedCharacter || '/character1.glb',
+            joinedAt: player.joinedAt,
+          };
+        });
+        setPlayers(playersWithCharacters);
       }
     };
 
-    loadPlayers();
-    const interval = setInterval(loadPlayers, 1000);
-    return () => clearInterval(interval);
-  }, [roomId]);
+    // 채팅 메시지 수신 리스너
+    const handleChatMessage = (data: {
+      roomId: string;
+      playerId: string;
+      playerName: string;
+      message: string;
+      timestamp: number;
+    }) => {
+      if (data.roomId === roomId) {
+        const newMessage: ChatMessage = {
+          id: `${data.playerId}-${data.timestamp}`,
+          playerId: data.playerId,
+          playerName: data.playerName,
+          message: data.message,
+          timestamp: data.timestamp,
+        };
+
+        // 채팅 메시지 추가
+        setChatMessages(prev => {
+          // 중복 방지
+          if (prev.some(msg => msg.id === newMessage.id)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+
+        // 말풍선 추가 (3초 후 만료)
+        const newBubble: BubbleMessage = {
+          id: `${data.playerId}-${data.timestamp}`,
+          playerId: data.playerId,
+          message: data.message,
+          expiresAt: Date.now() + 3000,
+        };
+        setBubbleMessages(prev => {
+          // 중복 방지
+          if (prev.some(msg => msg.id === newBubble.id)) {
+            return prev;
+          }
+          return [...prev, newBubble];
+        });
+      }
+    };
+
+    socket.on('game_players_update', handlePlayersUpdate);
+    socket.on('game_chat', handleChatMessage);
+
+    return () => {
+      socket.off('game_players_update', handlePlayersUpdate);
+      socket.off('game_chat', handleChatMessage);
+      // 방 나가기
+      if (socket && roomId && currentUserId) {
+        socket.emit('game_leave', { roomId, userId: currentUserId });
+      }
+    };
+  }, [socket, roomId, currentUserId]);
 
   // 말풍선 자동 삭제 (3초 후)
   useEffect(() => {
@@ -178,27 +246,51 @@ export default function GamePlayPage() {
 
   // 채팅 전송
   const sendChat = () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || !socket || !roomId || !currentUserId) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const message = chatInput.trim();
+    const timestamp = Date.now();
+
+    // 소켓을 통해 채팅 메시지 전송
+    socket.emit('game_chat', {
+      roomId,
       playerId: currentUserId,
       playerName: currentUserName || '익명',
-      message: chatInput.trim(),
-      timestamp: Date.now(),
+      message,
+      timestamp,
+    });
+
+    // 로컬에서도 즉시 표시 (소켓 응답을 기다리지 않음)
+    const newMessage: ChatMessage = {
+      id: `${currentUserId}-${timestamp}`,
+      playerId: currentUserId,
+      playerName: currentUserName || '익명',
+      message,
+      timestamp,
     };
 
-    // 채팅 메시지 추가
-    setChatMessages(prev => [...prev, newMessage]);
+    setChatMessages(prev => {
+      // 중복 방지
+      if (prev.some(msg => msg.id === newMessage.id)) {
+        return prev;
+      }
+      return [...prev, newMessage];
+    });
 
     // 말풍선 추가 (3초 후 만료)
     const newBubble: BubbleMessage = {
-      id: Date.now().toString(),
+      id: `${currentUserId}-${timestamp}`,
       playerId: currentUserId,
-      message: chatInput.trim(),
+      message,
       expiresAt: Date.now() + 3000,
     };
-    setBubbleMessages(prev => [...prev, newBubble]);
+    setBubbleMessages(prev => {
+      // 중복 방지
+      if (prev.some(msg => msg.id === newBubble.id)) {
+        return prev;
+      }
+      return [...prev, newBubble];
+    });
 
     setChatInput('');
   };
