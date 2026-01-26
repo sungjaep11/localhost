@@ -7,53 +7,65 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
 
-    // 사용자 목록에서 확인
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '{}');
-    const user = existingUsers[email];
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!user) {
-      alert('존재하지 않는 계정입니다.');
-      return;
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || '로그인에 실패했습니다.');
+        setLoading(false);
+        return;
+      }
+
+      // 로그인 성공 - 사용자 정보 설정
+      localStorage.setItem('userId', data.userId);
+      localStorage.setItem('userName', data.nickname);
+      if (data.email) {
+        localStorage.setItem('userEmail', data.email);
+      }
+
+      // 사용자별 데이터 확인 및 기본값 설정
+      const userId = data.userId;
+      
+      // 코인 확인
+      if (!localStorage.getItem(`userCoins-${userId}`)) {
+        localStorage.setItem(`userCoins-${userId}`, '1000');
+      }
+
+      // 구매한 캐릭터 확인
+      if (!localStorage.getItem(`purchasedCharacters-${userId}`)) {
+        localStorage.setItem(`purchasedCharacters-${userId}`, JSON.stringify(['char1']));
+      }
+
+      // 장착된 캐릭터 확인
+      if (!localStorage.getItem(`equipped-character-${userId}`)) {
+        localStorage.setItem(`equipped-character-${userId}`, '/character1.glb');
+      }
+
+      // 구매한 행동 확인
+      if (!localStorage.getItem(`purchasedActions-${userId}`)) {
+        localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
+      }
+
+      router.push('/main/lobby');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('로그인에 실패했습니다.');
+      setLoading(false);
     }
-
-    if (user.password !== password) {
-      alert('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
-    // 로그인 성공 - 사용자 정보 설정
-    localStorage.setItem('userId', user.id);
-    localStorage.setItem('userName', user.username);
-    localStorage.setItem('userEmail', email);
-
-    // 사용자별 데이터 확인 및 기본값 설정
-    const userId = user.id;
-    
-    // 코인 확인
-    if (!localStorage.getItem(`userCoins-${userId}`)) {
-      localStorage.setItem(`userCoins-${userId}`, '1000');
-    }
-
-    // 구매한 캐릭터 확인
-    if (!localStorage.getItem(`purchasedCharacters-${userId}`)) {
-      localStorage.setItem(`purchasedCharacters-${userId}`, JSON.stringify(['char1']));
-    }
-
-    // 장착된 캐릭터 확인
-    if (!localStorage.getItem(`equipped-character-${userId}`)) {
-      localStorage.setItem(`equipped-character-${userId}`, '/character1.glb');
-    }
-
-    // 구매한 행동 확인
-    if (!localStorage.getItem(`purchasedActions-${userId}`)) {
-      localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
-    }
-
-    router.push('/main/lobby');
   };
 
   return (
@@ -215,39 +227,63 @@ export default function LoginPage() {
             />
           </div>
 
+          {error && (
+            <div
+              style={{
+                color: "#ff4444",
+                fontSize: "0.9rem",
+                textAlign: "center",
+                padding: "0.75rem",
+                background: "rgba(255, 68, 68, 0.1)",
+                borderRadius: "8px",
+                border: "1px solid rgba(255, 68, 68, 0.3)",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
+            disabled={loading}
             className="cyberpunk-submit-btn"
             style={{
               width: "100%",
               padding: "1.25rem",
-              background: "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))",
+              background: loading 
+                ? "rgba(100, 100, 100, 0.3)" 
+                : "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))",
               border: "2px solid rgba(0, 255, 255, 0.6)",
               borderRadius: "12px",
               color: "#00ffff",
               fontSize: "1.1rem",
               fontWeight: 700,
               letterSpacing: "0.1em",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               transition: "all 0.3s ease",
               textTransform: "uppercase",
               marginTop: "1rem",
               boxShadow: "0 0 20px rgba(0, 255, 255, 0.3)",
+              opacity: loading ? 0.6 : 1,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))";
-              e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
-              e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.6), 0 0 50px rgba(255, 0, 255, 0.4)";
-              e.currentTarget.style.transform = "translateY(-2px)";
+              if (!loading) {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))";
+                e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.9)";
+                e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.6), 0 0 50px rgba(255, 0, 255, 0.4)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))";
-              e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.6)";
-              e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.3)";
-              e.currentTarget.style.transform = "translateY(0)";
+              if (!loading) {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))";
+                e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.6)";
+                e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.3)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }
             }}
           >
-            ENTER
+            {loading ? '로그인 중...' : 'ENTER'}
           </button>
         </form>
 
