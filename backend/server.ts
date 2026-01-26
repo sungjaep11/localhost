@@ -661,12 +661,27 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
 
     // 관련 데이터 삭제 (트랜잭션으로 처리)
     await prisma.$transaction(async (tx: any) => {
-      // 플레이리스트 트랙 삭제
+      // 플레이리스트 트랙 삭제 (플레이리스트 방인 경우에만 존재)
       await tx.playlistTrack.deleteMany({
         where: { roomId },
       });
 
-      // 방 삭제 (GameHistory는 기록을 위해 유지)
+      // GameHistory와 관련된 GameResult 삭제 (기록을 유지하려면 이 부분을 주석 처리)
+      // 기록을 유지하려면 스키마에서 roomId를 nullable로 만들고 onDelete: SetNull 설정 필요
+      await tx.gameResult.deleteMany({
+        where: {
+          history: {
+            roomId: roomId,
+          },
+        },
+      });
+
+      // GameHistory 삭제
+      await tx.gameHistory.deleteMany({
+        where: { roomId },
+      });
+
+      // 방 삭제
       await tx.room.delete({
         where: { id: roomId },
       });
@@ -679,9 +694,26 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
       message: "Room deleted successfully",
       roomId,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[DELETE /api/rooms/:roomId] error", err);
-    res.status(500).json({ message: "방 삭제에 실패했습니다." });
+    console.error("[DELETE /api/rooms/:roomId] error details:", {
+      message: err.message,
+      code: err.code,
+      meta: err.meta,
+      stack: err.stack,
+    });
+    
+    // Prisma 에러인 경우 더 구체적인 메시지 제공
+    let errorMessage = "방 삭제에 실패했습니다.";
+    if (err.code === 'P2003') {
+      errorMessage = "방과 연결된 데이터가 있어 삭제할 수 없습니다.";
+    } else if (err.code === 'P2025') {
+      errorMessage = "방을 찾을 수 없습니다.";
+    } else if (err.message) {
+      errorMessage = `방 삭제에 실패했습니다: ${err.message}`;
+    }
+    
+    res.status(500).json({ message: errorMessage });
   }
 });
 
