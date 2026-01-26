@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import * as THREE from 'three';
 
 interface Character {
   id: string;
@@ -20,10 +21,15 @@ interface Action {
 // 캐릭터 목록 (상점과 동일)
 const ALL_CHARACTERS: Character[] = [
   { id: 'char1', name: '기본 캐릭터', modelUrl: '/character1.glb' },
-  { id: 'char2', name: '캐릭터 2', modelUrl: '/character1.glb' },
-  { id: 'char3', name: '캐릭터 3', modelUrl: '/character1.glb' },
-  { id: 'char4', name: '캐릭터 4', modelUrl: '/character1.glb' },
-  { id: 'char5', name: '캐릭터 5', modelUrl: '/character1.glb' },
+  { id: 'char2', name: '소년', modelUrl: '/boy.glb' },
+  { id: 'char3', name: '토끼', modelUrl: '/bunny.glb' },
+  { id: 'char4', name: '귀여운 소녀', modelUrl: '/cute+girl.glb' },
+  { id: 'char5', name: '헬스왕', modelUrl: '/gym+rat.glb' },
+  { id: 'char6', name: '햄스터', modelUrl: '/hamster.glb' },
+  { id: 'char7', name: '펭귄', modelUrl: '/penguin.glb' },
+  { id: 'char8', name: '공주', modelUrl: '/princess.glb' },
+  { id: 'char9', name: '스타일리시 소녀', modelUrl: '/stylized+girl.glb' },
+  { id: 'char10', name: '마법사', modelUrl: '/wizard.glb' },
 ];
 
 // 행동 목록
@@ -35,25 +41,38 @@ const ALL_ACTIONS: Action[] = [
 
 // 3D 모델 컴포넌트
 function Model({ url, scale = 3.5 }: { url: string; scale?: number }) {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={scale} position={[0, -2, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const group = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF(url);
+  const { actions } = useAnimations(animations, group);
+  
+  // 모든 애니메이션 정지
+  useEffect(() => {
+    Object.values(actions).forEach(action => {
+      action?.stop();
+    });
+  }, [actions]);
+  
+  // character1은 축이 달라서 다른 position 적용
+  const isCharacter1 = url.includes('character1');
+  const positionY = isCharacter1 ? -1.8 : 0;
+  
+  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 메인 캐릭터 뷰어
 function MainCharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
-      <Canvas camera={{ position: [0, 2, 7], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0.5, 5], fov: 45 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <Model url={modelUrl} />
+        <Model url={modelUrl} scale={3} />
         <OrbitControls 
-          autoRotate={true}
-          autoRotateSpeed={2}
+          autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={true}
+          enableRotate={false}
         />
       </Canvas>
     </div>
@@ -64,16 +83,16 @@ function MainCharacterViewer({ modelUrl }: { modelUrl: string }) {
 function SmallCharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
-      <Canvas camera={{ position: [0, 1.5, 4], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0.3, 3.5], fov: 45 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <Model url={modelUrl} scale={2} />
+        <Model url={modelUrl} scale={1.8} />
         <OrbitControls 
           autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={true}
+          enableRotate={false}
         />
       </Canvas>
     </div>

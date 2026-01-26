@@ -5,3 +5,4 @@ node_modules
 postgres_data
 
 /generated/prisma
+postgres_data/

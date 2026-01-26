@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import * as THREE from 'three';
 
 interface Character {
   id: string;
@@ -21,15 +22,30 @@ interface Action {
 
 // Model 컴포넌트
 function Model({ url }: { url: string }) {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} scale={3} position={[0, -1.5, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const group = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF(url);
+  const { actions } = useAnimations(animations, group);
+  
+  // 모든 애니메이션 정지
+  useEffect(() => {
+    Object.values(actions).forEach(action => {
+      action?.stop();
+    });
+  }, [actions]);
+  
+  // character1은 축이 달라서 다른 position 적용
+  const isCharacter1 = url.includes('character1');
+  const positionY = isCharacter1 ? -1.0 : 0;
+  const scale = isCharacter1 ? 2.5 : 2.5;
+  
+  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 // 캐릭터 모델 뷰어 컴포넌트
 function CharacterModelViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%" }}>
-      <Canvas camera={{ position: [0, 2, 6], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0.5, 4.5], fov: 45 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
@@ -38,7 +54,7 @@ function CharacterModelViewer({ modelUrl }: { modelUrl: string }) {
           autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={true}
+          enableRotate={false}
         />
       </Canvas>
     </div>
@@ -88,10 +104,15 @@ export default function ShopPage() {
   // 캐릭터 데이터
   const characters: Character[] = [
     { id: 'char1', name: '기본 캐릭터', price: 0, modelUrl: '/character1.glb' },
-    { id: 'char2', name: '캐릭터 2', price: 1000, modelUrl: '/character1.glb' },
-    { id: 'char3', name: '캐릭터 3', price: 850, modelUrl: '/character1.glb' },
-    { id: 'char4', name: '캐릭터 4', price: 2000, modelUrl: '/character1.glb' },
-    { id: 'char5', name: '캐릭터 5', price: 1200, modelUrl: '/character1.glb' },
+    { id: 'char2', name: '소년', price: 500, modelUrl: '/boy.glb' },
+    { id: 'char3', name: '토끼', price: 800, modelUrl: '/bunny.glb' },
+    { id: 'char4', name: '귀여운 소녀', price: 1000, modelUrl: '/cute+girl.glb' },
+    { id: 'char5', name: '헬스왕', price: 1500, modelUrl: '/gym+rat.glb' },
+    { id: 'char6', name: '햄스터', price: 1200, modelUrl: '/hamster.glb' },
+    { id: 'char7', name: '펭귄', price: 1000, modelUrl: '/penguin.glb' },
+    { id: 'char8', name: '공주', price: 2000, modelUrl: '/princess.glb' },
+    { id: 'char9', name: '스타일리시 소녀', price: 1800, modelUrl: '/stylized+girl.glb' },
+    { id: 'char10', name: '마법사', price: 2500, modelUrl: '/wizard.glb' },
   ];
 
   // 행동 데이터
@@ -169,7 +190,7 @@ export default function ShopPage() {
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        padding: "2rem",
+        padding: "1rem 2rem",
       }}
     >
       {/* 떠다니는 음표들 */}
@@ -189,7 +210,7 @@ export default function ShopPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "2rem",
+          marginBottom: "1rem",
           zIndex: 10,
         }}
       >
@@ -212,7 +233,7 @@ export default function ShopPage() {
               e.currentTarget.style.filter = "none";
             }}
           >
-            <img src="/logo.png" alt="Localhost Logo" style={{ height: "100px", width: "auto" }} />
+            <img src="/logo.png" alt="Localhost Logo" style={{ height: "70px", width: "auto" }} />
           </button>
         </div>
 

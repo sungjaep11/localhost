@@ -2,16 +2,26 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
-import { useEffect, useState } from "react";
+import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import { useEffect, useState, useRef } from "react";
+import * as THREE from 'three';
 
 function Model({ url }: { url: string }) {
-  // GLB 파일 불러오기
-  const { scene } = useGLTF(url);
+  const group = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF(url);
+  const { actions } = useAnimations(animations, group);
   
-  // 모델 크기나 위치, 회전 조정
-  // rotation: [x, y, z] - Y축으로 180도 회전하여 정면을 바라보게 함
-  return <primitive object={scene} scale={3} position={[0, -1.5, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  // 모든 애니메이션 정지
+  useEffect(() => {
+    Object.values(actions).forEach(action => action?.stop());
+  }, [actions]);
+  
+  // character1은 축이 달라서 다른 position 적용
+  const isCharacter1 = url.includes('character1');
+  const positionY = isCharacter1 ? -1.5 : -0.3;
+  const scale = isCharacter1 ? 2.8 : 2.8;
+  
+  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
 interface ModelViewerProps {
@@ -41,7 +51,7 @@ export default function ModelViewer({ modelUrl }: ModelViewerProps) {
   return (
     // Canvas: 3D가 그려지는 영역
     <div style={{ width: "100%", height: "100%" }}>
-      <Canvas camera={{ position: [0, 2, 6], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0.5, 5], fov: 45 }}>
         {/* 조명 설정 */}
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
@@ -57,7 +67,7 @@ export default function ModelViewer({ modelUrl }: ModelViewerProps) {
           autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={true}
+          enableRotate={false}
         />
       </Canvas>
     </div>

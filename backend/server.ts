@@ -27,64 +27,13 @@ const ensureUser = async (
 ) => {
   try {
     const headerUserId = req.header("x-user-id");
-    console.log("[auth] ensureUser 호출", { 
-      headerUserId: headerUserId || "없음",
-      path: req.path,
-      method: req.method 
-    });
 
     if (headerUserId) {
-      let user = await prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: headerUserId },
       });
-      
-      // 유저가 없으면 자동으로 생성 (배포 환경에서 동기화 문제 해결)
       if (!user) {
-        console.log("[auth] 유저를 찾을 수 없음, 자동 생성 중...", { userId: headerUserId });
-        try {
-          // snsId를 unique하게 만들기 위해 userId를 사용
-          user = await prisma.user.create({
-            data: {
-              snsId: `user-${headerUserId}`,
-              provider: "auto",
-              nickname: `User ${headerUserId.slice(0, 8)}`,
-            },
-          });
-          console.log("[auth] 유저 자동 생성 완료", { userId: user.id, requestedId: headerUserId });
-          
-          // 생성된 유저의 ID가 요청된 ID와 다를 수 있으므로, 생성된 유저를 사용
-          (req as any).userId = user.id;
-          return next();
-        } catch (createError: any) {
-          // snsId 충돌 등으로 생성 실패 시 기존 유저 재조회 시도
-          console.error("[auth] 유저 자동 생성 실패", { 
-            error: createError.message,
-            userId: headerUserId 
-          });
-          
-          // snsId로 유저 찾기 시도
-          user = await prisma.user.findFirst({
-            where: { snsId: `user-${headerUserId}` },
-          });
-          
-          if (!user) {
-            console.error("[auth] 유저를 찾을 수 없고 생성도 실패", { userId: headerUserId });
-            // 데모 유저로 폴백
-            user = await prisma.user.findFirst({
-              where: { snsId: "demo-sns", provider: "demo" },
-            });
-            
-            if (!user) {
-              user = await prisma.user.create({
-                data: {
-                  snsId: "demo-sns",
-                  provider: "demo",
-                  nickname: "Demo User",
-                },
-              });
-            }
-          }
-        }
+        return res.status(401).json({ message: "Invalid user id" });
       }
 
       (req as any).userId = user.id;
@@ -97,7 +46,6 @@ const ensureUser = async (
     });
 
     if (!user) {
-      console.log("[auth] 데모 유저 생성 중...");
       user = await prisma.user.create({
         data: {
           snsId: "demo-sns",
@@ -105,18 +53,13 @@ const ensureUser = async (
           nickname: "Demo User",
         },
       });
-      console.log("[auth] 데모 유저 생성 완료", { userId: user.id });
     }
 
     (req as any).userId = user.id;
     next();
-  } catch (err: any) {
-    console.error("[auth] ensureUser error", {
-      message: err.message,
-      stack: err.stack,
-      name: err.name,
-    });
-    res.status(500).json({ message: "Failed to resolve user", error: err.message });
+  } catch (err) {
+    console.error("[auth] ensureUser error", err);
+    res.status(500).json({ message: "Failed to resolve user" });
   }
 };
 

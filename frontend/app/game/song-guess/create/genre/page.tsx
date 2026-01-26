@@ -96,12 +96,32 @@ function GenreSelectionContent() {
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || '방 생성에 실패했습니다.');
+        const errorMessage = error.error || error.message || '방 생성에 실패했습니다.';
+        
+        // Invalid user id 오류인 경우 로그인 페이지로 리다이렉트
+        if (errorMessage.includes('Invalid user id') || res.status === 401) {
+          alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+          localStorage.removeItem('userId');
+          router.push('/auth/login');
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await res.json();
       if (!data.success) {
-        throw new Error(data.error || '방 생성에 실패했습니다.');
+        const errorMessage = data.error || '방 생성에 실패했습니다.';
+        
+        // Invalid user id 오류인 경우 로그인 페이지로 리다이렉트
+        if (errorMessage.includes('Invalid user id')) {
+          alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+          localStorage.removeItem('userId');
+          router.push('/auth/login');
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const newRoom = data.room;

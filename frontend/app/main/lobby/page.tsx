@@ -302,7 +302,7 @@ export default function LobbyPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
               </svg>
               <div className="cyberpunk-btn-text">
-                <span className="cyberpunk-btn-title">노래 전주 듣고 맞추기</span>
+                <span className="cyberpunk-btn-title">노래 맞추기</span>
               </div>
             </div>
             <div className="cyberpunk-btn-shine" />
@@ -324,7 +324,7 @@ export default function LobbyPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
               <div className="cyberpunk-btn-text">
-                <span className="cyberpunk-btn-title">사투리로 게임하기</span>
+                <span className="cyberpunk-btn-title">사투리 가사 맞추기</span>
               </div>
             </div>
             <div className="cyberpunk-btn-shine" />
