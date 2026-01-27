@@ -51,6 +51,15 @@ interface Room {
 // 표시용만 사용 — (1) 붙은 저장값을 비(1) 경로로
 const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
 
+// ElevenLabs TTS 목소리 옵션 (voice_id : 표시 이름)
+const TTS_VOICES: { id: string; name: string }[] = [
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel (기본)' },
+  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam' },
+  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella' },
+];
+const TTS_VOICE_STORAGE_KEY = 'tts-voice-id';
+
 // 3D 모델 컴포넌트 — (1) 없는 GLB, 박스 크기에 맞춤
 function Model({ url, scale = 2 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
@@ -110,6 +119,7 @@ export default function GamePlayPage() {
   // 가사 및 TTS 관련 state
   const [lyrics, setLyrics] = useState<string>(''); // 현재 가사 (사투리 문장)
   const [ttsAudio, setTtsAudio] = useState<HTMLAudioElement | null>(null);
+  const [ttsVoiceId, setTtsVoiceId] = useState<string>('21m00Tcm4TlvDq8ikWAM'); // ElevenLabs voice_id (Rachel 기본)
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
@@ -423,6 +433,13 @@ export default function GamePlayPage() {
     }
   }, [socket, roomId, currentUserId]);
 
+  // TTS 목소리 선택값 localStorage에서 복원
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem(TTS_VOICE_STORAGE_KEY);
+    if (saved && TTS_VOICES.some((v) => v.id === saved)) setTtsVoiceId(saved);
+  }, []);
+
   // -------------------------------------------------------------
 
   // 말풍선 자동 삭제 (3초 후)
@@ -624,11 +641,12 @@ export default function GamePlayPage() {
       }
     };
 
+    const voiceId = typeof window !== "undefined" ? localStorage.getItem(TTS_VOICE_STORAGE_KEY) : null;
     try {
       const res = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, ...(voiceId ? { voice_id: voiceId } : {}) }),
       });
 
       if (!res.ok) {
@@ -1280,6 +1298,38 @@ export default function GamePlayPage() {
               {totalDuration > 0 && isPlaying && (
                 <div style={{ color: "#ffffff", fontSize: "0.85rem", textAlign: "center" }}>
                   {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
+                </div>
+              )}
+              {/* TTS 목소리 설정 — 선택 값은 localStorage에 저장되며 다음 재생부터 적용 */}
+              {((isCurrentUserHost && !showSauturiAnswerModal) || lyrics) && (
+                <div style={{ marginTop: "0.5rem", width: "100%", maxWidth: "200px" }}>
+                  <label style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.75rem", display: "block", marginBottom: "0.25rem" }}>
+                    TTS 목소리
+                  </label>
+                  <select
+                    value={ttsVoiceId}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setTtsVoiceId(v);
+                      if (typeof window !== "undefined") localStorage.setItem(TTS_VOICE_STORAGE_KEY, v);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "0.35rem 0.5rem",
+                      fontSize: "0.8rem",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(0, 255, 255, 0.5)",
+                      background: "rgba(0,0,0,0.6)",
+                      color: "#fff",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {TTS_VOICES.map((v) => (
+                      <option key={v.id} value={v.id} style={{ background: "#1a1a2e", color: "#fff" }}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>

@@ -14,6 +14,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const text = typeof body?.text === "string" ? body.text.trim() : "";
+    const voiceId = typeof body?.voice_id === "string" && body.voice_id.trim()
+      ? body.voice_id.trim()
+      : ELEVENLABS_VOICE_ID;
 
     if (!text) {
       return NextResponse.json(
@@ -22,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}?output_format=mp3_44100_128`;
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`;
     const res = await fetch(url, {
       method: "POST",
       headers: {

@@ -1342,39 +1342,7 @@ export default function GamePlayPage() {
     return `${song.title} ${song.artist}`;
   }, []);
 
-  // ✅ 모든 훅 아래에서만 조건부 return (훅 호출 순서 유지로 #310 방지)
-  if (songsLoading) {
-    return (
-      <main className="lobby-premium-root">
-        <div className="lobby-premium-bg">
-          <div className="lobby-bg-base" />
-          <div className="lobby-city-dense" aria-hidden />
-          <div className="lobby-city-bokeh" aria-hidden />
-          <div className="lobby-city-traffic" aria-hidden />
-          <div className="lobby-interior-overlay" aria-hidden />
-          <div className="lobby-fog" aria-hidden />
-          <div className="lobby-fog-volumetric" aria-hidden />
-          <div className="lobby-floor-reflection" aria-hidden />
-        </div>
-        <div className="lobby-neon-particles" aria-hidden>
-          {[...Array(40)].map((_, i) => {
-            const isPurple = i % 4 === 0;
-            const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
-            return (
-              <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
-            );
-          })}
-        </div>
-        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
-        </div>
-      </main>
-    );
-  }
-  // 친구 API 흐름: 곡은 /api/songs/random으로 방장 재생 시 로드하므로 gameSongs 빈 화면은 사용하지 않음
-
-  // 재생 버튼 클릭 핸들러 (방장만) — backend/songs/ 장르별 랜덤 노래 1곡 재생, 이미 나온 곡 제외
-  // 반드시 모든 조건부 return 앞에 두어 훅 호출 순서를 매 렌더마다 동일하게 유지 (#310 방지)
+  // 재생 버튼 클릭 핸들러 (방장만) — 반드시 모든 조건부 return 위에 두어 훅 호출 순서 동일 유지 (React #310 방지)
   const handlePlayButton = useCallback(async () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
@@ -1466,6 +1434,36 @@ export default function GamePlayPage() {
       startPlaying();
     }
   }, [gamePhase, currentRound, roomGenres]);
+
+  // ✅ 조건부 return은 모든 훅 아래에서만 (훅 호출 순서 동일 유지로 React #310 방지)
+  if (songsLoading) {
+    return (
+      <main className="lobby-premium-root">
+        <div className="lobby-premium-bg">
+          <div className="lobby-bg-base" />
+          <div className="lobby-city-dense" aria-hidden />
+          <div className="lobby-city-bokeh" aria-hidden />
+          <div className="lobby-city-traffic" aria-hidden />
+          <div className="lobby-interior-overlay" aria-hidden />
+          <div className="lobby-fog" aria-hidden />
+          <div className="lobby-fog-volumetric" aria-hidden />
+          <div className="lobby-floor-reflection" aria-hidden />
+        </div>
+        <div className="lobby-neon-particles" aria-hidden>
+          {[...Array(40)].map((_, i) => {
+            const isPurple = i % 4 === 0;
+            const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+            return (
+              <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+            );
+          })}
+        </div>
+        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
+        </div>
+      </main>
+    );
+  }
 
   // 가사 색상 계산 (노래방 스타일)
   const getLyricsWithColors = () => {
