@@ -453,6 +453,29 @@ app.get("/api/games/rooms", async (req: Request, res: Response) => {
 });
 
 /**
+ * 게임 방 단일 조회 (진행 중인 방 옵션/장르 조회용, status 무관)
+ * GET /api/games/rooms/:roomId
+ */
+app.get("/api/games/rooms/:roomId", async (req: Request, res: Response) => {
+  try {
+    const { roomId } = req.params;
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      select: { id: true, options: true, type: true, status: true, hostId: true },
+    });
+    if (!room || !["MUSIC_QUIZ", "DIALECT_QUIZ"].includes(room.type)) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+    const session = gameSessions.get(roomId);
+    const currentPlayers = session ? session.players.size : 0;
+    res.json({ ...room, currentPlayers });
+  } catch (err) {
+    console.error("[GET /api/games/rooms/:roomId] error", err);
+    res.status(500).json({ message: "Failed to load room" });
+  }
+});
+
+/**
  * 게임 방 입장 (비밀번호 검증)
  * POST /api/games/rooms/join
  * body: { roomId, password? }
@@ -837,6 +860,7 @@ app.get("/api/songs/random", async (req: Request, res: Response) => {
     const excludeIds = new Set(
       excludeRaw.split(",").map((s) => s.trim()).filter(Boolean)
     );
+    console.log("[GET /api/songs/random] genre=%s excludeCount=%d", genre, excludeIds.size);
 
     if (!genre) {
       return res.status(400).json({ message: "genre parameter is required" });

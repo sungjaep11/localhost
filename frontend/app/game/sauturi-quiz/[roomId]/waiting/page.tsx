@@ -59,7 +59,7 @@ export default function WaitingRoomPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
   const [players, setPlayers] = useState<Player[]>([]);
   const [isHost, setIsHost] = useState(false);
 
@@ -170,7 +170,17 @@ export default function WaitingRoomPage() {
   // -------------------------------------------------------------
 
   const handleStart = () => {
-    if (!socket || !roomId || !currentUserId) return;
+    if (!socket || !roomId || !currentUserId) {
+      if (!currentUserId) {
+        alert('로그인 정보가 없습니다. 새로고침 후 다시 시도해 주세요.');
+        return;
+      }
+      if (!socket || !isConnected) {
+        alert('서버와 연결 중입니다. 잠시 후 다시 시작해 주세요.');
+        return;
+      }
+      return;
+    }
     
     console.log(`[WaitingRoom] Starting game: roomId=${roomId}, userId=${currentUserId}, isHost=${isHost}`);
     
@@ -287,35 +297,42 @@ export default function WaitingRoomPage() {
           {isHost ? (
             <button
               onClick={handleStart}
+              disabled={!socket || !isConnected || !currentUserId}
               style={{
                 width: "220px",
                 height: "220px",
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))",
+                background: !socket || !isConnected || !currentUserId
+                  ? "rgba(80, 80, 80, 0.5)"
+                  : "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))",
                 border: "4px solid rgba(0, 255, 255, 0.8)",
-                color: "#00ffff",
+                color: !socket || !isConnected || !currentUserId ? "rgba(255,255,255,0.5)" : "#00ffff",
                 fontSize: "2.5rem",
                 fontWeight: 800,
-                cursor: "pointer",
+                cursor: !socket || !isConnected || !currentUserId ? "not-allowed" : "pointer",
                 transition: "all 0.3s ease",
                 textTransform: "uppercase",
                 boxShadow: "0 0 50px rgba(0, 255, 255, 0.5)",
                 letterSpacing: "0.1em",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.4), rgba(255, 0, 255, 0.4))";
-                e.currentTarget.style.borderColor = "rgba(0, 255, 255, 1)";
-                e.currentTarget.style.boxShadow = "0 0 80px rgba(0, 255, 255, 0.8)";
-                e.currentTarget.style.transform = "scale(1.1)";
+                if (socket && isConnected && currentUserId) {
+                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.4), rgba(255, 0, 255, 0.4))";
+                  e.currentTarget.style.borderColor = "rgba(0, 255, 255, 1)";
+                  e.currentTarget.style.boxShadow = "0 0 80px rgba(0, 255, 255, 0.8)";
+                  e.currentTarget.style.transform = "scale(1.1)";
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))";
-                e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
-                e.currentTarget.style.boxShadow = "0 0 50px rgba(0, 255, 255, 0.5)";
-                e.currentTarget.style.transform = "scale(1)";
+                if (socket && isConnected && currentUserId) {
+                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3))";
+                  e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+                  e.currentTarget.style.boxShadow = "0 0 50px rgba(0, 255, 255, 0.5)";
+                  e.currentTarget.style.transform = "scale(1)";
+                }
               }}
             >
-              Start!
+              {!socket || !isConnected ? "연결 중..." : !currentUserId ? "로그인 필요" : "Start!"}
             </button>
           ) : (
             <div

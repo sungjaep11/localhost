@@ -721,7 +721,7 @@ export default function GamePlayPage() {
     setCorrectPlayers([]);
   }, []); // 의존성 제거하여 함수 재생성 방지
 
-  // 현재 사용자 정보 및 방 정보 불러오기 (localStorage 우선, 없으면 API)
+  // 현재 사용자 정보 및 방 정보 불러오기 (진행 중인 방도 roomId로 조회 가능하도록)
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
@@ -735,31 +735,49 @@ export default function GamePlayPage() {
       setSongsLoading(false);
     };
 
-    const STORAGE_KEY = 'song-guess-rooms';
-    const storedRooms = localStorage.getItem(STORAGE_KEY);
-    if (storedRooms) {
+    (async () => {
+      // 1) roomId로 방 단일 조회 (게임 시작 후에도 options 조회 가능)
       try {
-        const rooms: Room[] = JSON.parse(storedRooms);
-        const currentRoom = rooms.find((r) => r.id === roomId);
-        if (currentRoom) {
-          applyRoom(currentRoom);
+        const res = await fetch(`/api/games/rooms/${roomId}`, {
+          headers: { 'x-user-id': userId || '' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const room = data.room ?? data;
+          const opts = room?.options ?? {};
+          applyRoom({
+            rounds: opts.rounds ?? 4,
+            songsPerRound: opts.songsPerRound ?? 5,
+            genres: opts.genres ?? [],
+          });
           return;
         }
       } catch (e) {
-        console.error('Failed to load room info from storage', e);
+        console.error('Failed to load room by id', e);
       }
-    }
 
-    // API에서 방 목록 조회 후 해당 방 옵션 적용 (방이 API로만 생성된 경우 대비)
-    (async () => {
+      // 2) localStorage
+      const STORAGE_KEY = 'song-guess-rooms';
+      const storedRooms = localStorage.getItem(STORAGE_KEY);
+      if (storedRooms) {
+        try {
+          const rooms: Room[] = JSON.parse(storedRooms);
+          const currentRoom = rooms.find((r) => r.id === roomId);
+          if (currentRoom) {
+            applyRoom(currentRoom);
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // 3) 방 목록 API (WAITING만 있음)
       try {
         const res = await fetch(`/api/games/rooms?page=1&pageSize=100`, {
           headers: { 'x-user-id': userId || '' },
         });
         if (res.ok) {
           const data = await res.json();
-          const list = data.rooms ?? data.data ?? [];
-          const room = list.find((r: any) => r.id === roomId);
+          const room = (data.rooms ?? data.data ?? []).find((r: any) => r.id === roomId);
           if (room?.options) {
             applyRoom({
               rounds: room.options.rounds ?? 4,
@@ -769,9 +787,7 @@ export default function GamePlayPage() {
             return;
           }
         }
-      } catch (e) {
-        console.error('Failed to load room from API', e);
-      }
+      } catch (_) {}
       setSongsLoading(false);
       setRoomGenres([]);
     })();
