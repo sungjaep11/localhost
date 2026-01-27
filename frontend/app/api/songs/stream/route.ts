@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     });
 
     if (!res.ok) {
+      console.warn("[GET /api/songs/stream] backend returned", res.status, "for", genre + "/" + file);
       return new NextResponse(null, { status: res.status });
     }
 

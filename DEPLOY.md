@@ -58,6 +58,25 @@ curl -s http://YOUR_EC2_IP:3001
 # 정상이면 {"message":"Backend API Server"} 출력
 ```
 
+## 노래 맞추기에서 노래가 안 나올 때
+
+노래 맞추기는 **backend/songs/<장르>/*.mp3** 파일에서만 재생합니다.  
+`backend/songs/` 는 `.gitignore`에 있어 Git에 올라가지 않으므로, **clone/배포한 환경에서는 비어 있는 것이 정상**입니다.
+
+노래를 쓰려면 **백엔드가 있는 머신에서** 한 번 MP3를 받아두어야 합니다:
+
+1. **yt-dlp, ffmpeg 설치**
+   - macOS: `brew install yt-dlp ffmpeg`
+   - Ubuntu: `sudo apt install yt-dlp ffmpeg`
+2. **backend 디렉터리에서 실행**
+   ```bash
+   cd backend
+   npm run download:songs
+   ```
+3. Docker로 돌리는 경우: 위 명령을 **호스트의 backend 폴더**에서 실행하면, `./backend:/app` 볼륨으로 컨테이너에 그대로 반영됩니다.
+
+이렇게 한 번 실행해 두면, 해당 장르(발라드, K-pop 등)에 맞는 노래가 노래 맞추기에서 재생됩니다.
+
 ## 주의사항
 
 - `.env` 파일은 `.gitignore`에 포함되어 있어 Git에 커밋되지 않습니다.

@@ -1301,18 +1301,24 @@ export default function GamePlayPage() {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
-    if (gamePhase !== 'waiting' && gamePhase !== 'answer_revealed') return;
+    if (gamePhase !== 'waiting' && gamePhase !== 'answer_revealed') {
+      console.warn('[Play] 재생 버튼 무시: gamePhase=', gamePhase);
+      return;
+    }
 
     const genre = roomGenres[currentRound - 1] ?? roomGenres[0] ?? '발라드';
     const exclude = Array.from(usedSongIdsRef.current).join(',');
+    console.log('[Play] 노래 요청: genre=', genre, 'exclude=', exclude || '(없음)');
 
     try {
       const params = new URLSearchParams({ genre });
       if (exclude) params.set('exclude', exclude);
-      const res = await fetch(`/api/songs/random?${params.toString()}`);
+      const url = `/api/songs/random?${params.toString()}`;
+      const res = await fetch(url);
       const data = await res.json();
       const song = res.ok && data?.song ? data.song : data;
       if (!song?.id || !song?.mp3Url) {
+        console.warn('[Play] 노래 없음 또는 URL 없음:', { ok: res.ok, status: res.status, song: !!song, mp3Url: !!song?.mp3Url, data });
         const msg = res.status === 404 ? '이 장르에 재생할 노래가 없어요.' : '노래를 불러오지 못했어요.';
         setLyrics(msg);
         setTotalDuration(5);
@@ -1351,10 +1357,12 @@ export default function GamePlayPage() {
         setIsAudioPlaying(false);
         setCurrentTime(0);
       });
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('[Play] 오디오 로드/재생 실패:', song.mp3Url, e);
         setIsAudioPlaying(false);
         setCurrentTime(0);
       };
+      console.log('[Play] 오디오 재생 시도:', song.mp3Url);
       await audio.play();
       setIsAudioPlaying(true);
       setCurrentTime(0);

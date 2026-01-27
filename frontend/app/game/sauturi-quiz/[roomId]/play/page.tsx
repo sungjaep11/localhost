@@ -126,10 +126,12 @@ export default function GamePlayPage() {
   const goToNextSauturiTurnRef = useRef<() => void>(() => {});
   const sauturiAnswerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handlePlayButtonRef = useRef<() => void>(() => {});
+  const sauturiHasCompletedTurnRef = useRef(false); // 턴 한 번이라도 끝난 뒤에만 자동으로 다음 곡
   const roundSongRef = useRef({ currentRound: 1, currentSong: 1, songsPerRound: 5, totalRounds: 1 });
   roundSongRef.current = { currentRound, currentSong, songsPerRound, totalRounds };
 
   const goToNextSauturiTurn = () => {
+    sauturiHasCompletedTurnRef.current = true; // 다음부터는 시간 끝나면 자동으로 다음 곡
     setShowSauturiAnswerModal(false);
     setLyrics('');
     setSauturiCorrectPlayers([]);
@@ -673,14 +675,14 @@ export default function GamePlayPage() {
   };
   handlePlayButtonRef.current = handlePlayButton;
 
-  // 방장일 때 가사 없으면 자동 재생 (게임 시작/턴 시작 시 가사 자동 로드)
+  // 턴이 끝난 뒤에만 방장 기준으로 다음 가사 자동 재생 (첫 시작은 음표 클릭으로만)
   useEffect(() => {
     if (!currentUserId || !socket || totalRounds <= 0) return;
+    if (!sauturiHasCompletedTurnRef.current) return; // 첫 시작 시에는 자동 재생 안 함
     if (lyrics || showSauturiAnswerModal) return;
-    // 방장만 자동 재생 — players 로드 후 host가 나올 때까지 대기
     const isHost = host?.id === currentUserId;
     if (!isHost) return;
-    if (players.length === 0) return; // 플레이어 목록이 준비된 뒤에만 트리거
+    if (players.length === 0) return;
     const t = setTimeout(() => {
       handlePlayButtonRef.current();
     }, 600);
@@ -1086,9 +1088,11 @@ export default function GamePlayPage() {
                 />
               ))}
               
-              {/* 고정된 음표 아이콘 - 재생은 자동이므로 클릭 비활성 */}
+              {/* 음표 아이콘 - 방장은 처음에만 누르면 시작, 그 다음부터는 시간 끝나면 자동 */}
               <div
                 className="music-note-icon"
+                role={isCurrentUserHost && !lyrics && !showSauturiAnswerModal ? "button" : undefined}
+                onClick={isCurrentUserHost && !lyrics && !showSauturiAnswerModal ? () => handlePlayButton() : undefined}
                 style={{
                   position: "relative",
                   zIndex: 10,
@@ -1103,7 +1107,9 @@ export default function GamePlayPage() {
                     : "drop-shadow(0 0 20px rgba(139, 179, 217, 0.5)) drop-shadow(0 0 40px rgba(139, 179, 217, 0.3))",
                   animation: isPlaying ? "notePulse 1.2s ease-in-out infinite" : "none",
                   transition: "all 0.3s ease",
+                  cursor: isCurrentUserHost && !lyrics && !showSauturiAnswerModal ? "pointer" : "default",
                 }}
+                title={isCurrentUserHost && !lyrics && !showSauturiAnswerModal ? "음표를 눌러 시작" : undefined}
               >
                 <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
