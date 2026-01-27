@@ -675,99 +675,52 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
         .json({ message: "방장만 방을 삭제할 수 있습니다." });
     }
 
-    // 관련 데이터 삭제 (트랜잭션으로 처리)
-    // 스키마에 onDelete: Cascade가 설정되어 있지만, 명시적으로 삭제하여 더 안전하게 처리
+    // 1. (중요) Socket.io로 "방 폭파" 알림 보내기 - 삭제 *전에* 알림을 보내는 것이 안전합니다.
     try {
-      await prisma.$transaction(async (tx: any) => {
-        // 1. GameHistory를 먼저 조회하여 GameResult 삭제
-        const gameHistories = await tx.gameHistory.findMany({
-          where: { roomId },
-          select: { id: true },
-        });
+      if (io) {
+        // 방에 있는 모든 사람에게 '방 삭제됨' 이벤트 전송
+        io.to(roomId).emit("roomDeleted", { roomId });
         
-        const gameHistoryIds = gameHistories.map((h: any) => h.id);
+        // 모든 클라이언트에게도 브로드캐스트 (방 목록 업데이트용)
+        io.emit("room_deleted", { roomId });
         
-        // GameResult 삭제 (GameHistory의 자식)
-        if (gameHistoryIds.length > 0) {
-          await tx.gameResult.deleteMany({
-            where: {
-              gameHistoryId: {
-                in: gameHistoryIds,
-              },
-            },
+        // (선택사항) 해당 방의 소켓 연결 끊기
+        try {
+          const sockets = await io.in(roomId).fetchSockets();
+          sockets.forEach((socket) => {
+            socket.leave(roomId);
           });
+          console.log(`[DELETE /api/rooms/:roomId] Socket notification sent for room ${roomId}`);
+        } catch (fetchErr: any) {
+          // fetchSockets 실패는 무시 (이미 방이 삭제되었을 수 있음)
+          console.warn("[DELETE /api/rooms/:roomId] Failed to fetch sockets:", fetchErr.message);
         }
-
-        // 2. GameHistory 삭제 (Room의 자식)
-        await tx.gameHistory.deleteMany({
-          where: { roomId },
-        });
-
-        // 3. PlaylistTrack 삭제 (Room의 자식)
-        // deleteMany는 레코드가 없어도 에러를 발생시키지 않음
-        await tx.playlistTrack.deleteMany({
-          where: { roomId },
-        });
-
-        // 4. 마지막으로 Room 삭제 (모든 자식 데이터 삭제 후)
-        await tx.room.delete({
-          where: { id: roomId },
-        });
-      });
-    } catch (transactionErr: any) {
-      console.error("[DELETE /api/rooms/:roomId] Transaction error:", transactionErr);
-      console.error("[DELETE /api/rooms/:roomId] Transaction error details:", {
-        message: transactionErr.message,
-        code: transactionErr.code,
-        meta: transactionErr.meta,
-        stack: transactionErr.stack,
-      });
-      throw transactionErr; // Re-throw to be caught by outer catch
+      } else {
+        console.warn("[DELETE /api/rooms/:roomId] Socket.io instance not found - skipping notification");
+      }
+    } catch (socketError: any) {
+      // 소켓 에러가 나도 방 삭제는 진행되어야 하므로 로그만 찍고 넘어감
+      console.error("[DELETE /api/rooms/:roomId] Socket Error:", socketError);
     }
 
-    // 게임 세션 정리
+    // 2. 게임 세션 정리
     if (gameSessions.has(roomId)) {
       gameSessions.delete(roomId);
     }
 
-    // 응답을 먼저 보내기 (Socket 이벤트 전에)
-    if (!res.headersSent) {
-      res.status(200).json({
-        success: true,
-        message: "Room deleted successfully",
-        roomId,
-      });
-    }
+    // 3. DB에서 방 삭제 (Cascade 덕분에 연관 데이터 자동 삭제됨)
+    // 스키마에 onDelete: Cascade가 설정되어 있으므로 Room만 삭제하면 됨
+    await prisma.room.delete({
+      where: { id: roomId },
+    });
 
-    // 응답 전송 후 Socket.io 이벤트를 비동기로 보내기 (에러가 발생해도 응답은 이미 전송됨)
-    // 이렇게 하면 Socket 에러가 발생해도 클라이언트는 정상 응답을 받을 수 있음
-    setImmediate(async () => {
-      try {
-        if (io) {
-          // 해당 방의 모든 클라이언트에게 알림
-          io.to(roomId).emit("room_deleted", {
-            roomId,
-            message: "Room has been deleted by the host",
-          });
-          
-          // 모든 클라이언트에게도 브로드캐스트 (방 목록 업데이트용)
-          io.emit("room_deleted", { roomId });
-          
-          // 소켓 룸에서 모든 사용자 제거 (안전하게 처리)
-          try {
-            const socketsInRoom = await io.in(roomId).fetchSockets();
-            socketsInRoom.forEach(socket => {
-              socket.leave(roomId);
-            });
-          } catch (fetchErr: any) {
-            // fetchSockets 실패는 무시 (이미 방이 삭제되었을 수 있음)
-            console.warn("[DELETE /api/rooms/:roomId] Failed to fetch sockets:", fetchErr.message);
-          }
-        }
-      } catch (socketErr: any) {
-        // Socket 에러는 로그만 남기고 무시 (응답은 이미 전송됨)
-        console.warn("[DELETE /api/rooms/:roomId] Failed to emit socket event:", socketErr.message);
-      }
+    console.log(`[DELETE /api/rooms/:roomId] Successfully deleted room ${roomId}`);
+    
+    // 4. 성공 응답 반환
+    return res.status(200).json({ 
+      success: true, 
+      message: "방이 삭제되었습니다.",
+      roomId 
     });
   } catch (err: any) {
     console.error("[DELETE /api/rooms/:roomId] error", err);
