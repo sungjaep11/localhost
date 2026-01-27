@@ -39,34 +39,6 @@ export default function LobbyPage() {
     router.push('/auth/login');
   };
 
-  const handleRoomPreview = (gameType: 'MUSIC' | 'DIALECT') => {
-    const base = gameType === 'MUSIC' ? '/game/song-guess' : '/game/sauturi-quiz';
-    router.push(`${base}/preview-room/waiting`);
-  };
-
-  const handleDebugRoom = () => {
-    const testRoomId = 'debug-room-123';
-    const userId = localStorage.getItem('userId') || 'test-user';
-    const userName = localStorage.getItem('userName') || '테스트유저';
-    const testPlayers = [
-      {
-        id: userId,
-        name: userName,
-        isHost: true,
-        score: 0,
-        character: (localStorage.getItem(`equipped-character-${userId}`) || '/character1.glb').replace(/\s*\(1\)\s*\.glb$/i, '.glb'),
-      },
-    ];
-    localStorage.setItem(`sauturi-quiz-room-${testRoomId}-players`, JSON.stringify(testPlayers));
-    const testRoom = { id: testRoomId, name: '디버그 방', rounds: 1, songsPerRound: 1 };
-    const rooms = JSON.parse(localStorage.getItem('sauturi-quiz-rooms') || '[]');
-    const idx = rooms.findIndex((r: { id: string }) => r.id === testRoomId);
-    if (idx >= 0) rooms[idx] = testRoom;
-    else rooms.push(testRoom);
-    localStorage.setItem('sauturi-quiz-rooms', JSON.stringify(rooms));
-    router.push(`/game/sauturi-quiz/${testRoomId}/play`);
-  };
-
   return (
     <main className="lobby-premium-root">
       {/* Layered background: dense cyberpunk city skyline + bokeh + fog */}
@@ -143,19 +115,6 @@ export default function LobbyPage() {
         </svg>
         <span className="lobby-shop-float-label">상점</span>
       </button>
-
-      {/* 나중에 없앨 버튼들 — 임시로 좌하단 배치 */}
-      <div className="lobby-temp-buttons">
-        <button type="button" className="lobby-pill lobby-pill-cyan" onClick={() => handleRoomPreview('MUSIC')}>
-          방미리(노래)
-        </button>
-        <button type="button" className="lobby-pill lobby-pill-amber" onClick={() => handleRoomPreview('DIALECT')}>
-          방미리(사투리)
-        </button>
-        <button type="button" className="lobby-pill lobby-pill-orange" onClick={handleDebugRoom}>
-          디버그
-        </button>
-      </div>
 
       {/* 3D character on holographic podium + companion drones */}
       <div className="lobby-character-stage">
