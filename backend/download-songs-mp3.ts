@@ -12,7 +12,7 @@
  *   (이미 있는 mp3는 건너뛰고 없는 곡만 다운로드)
  */
 
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { songs } from "./seed-songs-data";
@@ -26,46 +26,60 @@ function safeFilename(s: string, maxLen = 80): string {
   return s.replace(INVALID_CHARS, "_").replace(/\s+/g, " ").trim().slice(0, maxLen);
 }
 
+/** (제목)_(가수) 형태 파일명용 */
+function fileBase(s: (typeof songs)[0]): string {
+  return `${safeFilename(s.title)}_${safeFilename(s.artist)}`;
+}
+
 function getVideoId(url: string): string | null {
   const u = (url || "").trim();
   const m = u.match(/(?:youtube\.com\/watch\?.*?v=)([a-zA-Z0-9_-]{11})/) || u.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
 }
 
+export interface YtDlpError extends Error {
+  stderr?: string;
+  stdout?: string;
+}
+
 function runYtDlp(url: string, outTemplate: string): void {
   const isYoutube = /youtube\.com|youtu\.be/.test(url);
-  const baseArgs = [
+
+  // 기본 옵션 (URL과 출력 경로는 나중에 추가)
+  const args = [
     "-x",
-    "--audio-format",
-    "mp3",
+    "--audio-format", "mp3",
     "--no-playlist",
     "--no-warnings",
-    "--retries",
-    "5",
-    "--fragment-retries",
-    "5",
-    "--socket-timeout",
-    "60",
+    "--retries", "5",
+    "--fragment-retries", "5",
+    // "--socket-timeout", "60", // 타임아웃 때문에 끊길 수 있어 주석 처리
     "--force-ipv4",
-    "-o",
-    outTemplate,
-    url,
   ];
-  const args = isYoutube
-    ? [
-        ...baseArgs.slice(0, -2),
-        "--extractor-args",
-        "youtube:player_client=web,mweb,android",
-        "-o",
-        outTemplate,
-        url,
-      ]
-    : baseArgs;
-  execSync("yt-dlp " + args.map((a) => JSON.stringify(a)).join(" "), {
-    stdio: "inherit",
+
+  if (isYoutube) {
+    // 차단 우회를 위해 ios 클라이언트 흉내
+    args.push("--extractor-args", "youtube:player_client=ios");
+  }
+
+  // 출력 경로와 URL을 맨 마지막에 추가
+  args.push("-o", outTemplate, url);
+
+  const result = spawnSync("yt-dlp", args, {
+    stdio: ["inherit", "inherit", "pipe"],
     cwd: __dirname,
     maxBuffer: 10 * 1024 * 1024,
+    encoding: "utf8",
   });
+
+  if (result.status !== 0) {
+    const err: YtDlpError = new Error(
+      result.stderr || result.error?.message || "yt-dlp exited with non-zero code"
+    ) as YtDlpError;
+    err.stderr = (result.stderr || "").trim();
+    err.stdout = (result.stdout || "").trim();
+    throw err;
+  }
 }
 
 function main() {
@@ -79,9 +93,7 @@ function main() {
     ? songs
         .map((s, i) => ({ s, i }))
         .filter(({ s }) => {
-          const vid = getVideoId(s.youtubeUrl);
-          if (!vid) return false;
-          const base = `${vid}-${safeFilename(s.artist)}-${safeFilename(s.title)}`;
+          const base = fileBase(s);
           return !fs.existsSync(path.join(SONGS_DIR, `${base}.mp3`));
         })
     : songs.map((s, i) => ({ s, i }));
@@ -100,7 +112,7 @@ function main() {
       skip++;
       continue;
     }
-    const base = `${vid}-${safeFilename(s.artist)}-${safeFilename(s.title)}`;
+    const base = fileBase(s);
     const outFile = path.join(SONGS_DIR, `${base}.mp3`);
     if (seen.has(vid)) {
       console.log(`[${i + 1}/${songs.length}] skip (already have vid ${vid}): ${s.title} - ${s.artist}`);
@@ -124,19 +136,16 @@ function main() {
           console.log(`[${i + 1}/${songs.length}] ok: ${base}.mp3`);
           break;
         }
-        const anyMp3 = fs.readdirSync(SONGS_DIR).find((f) => f.startsWith(vid) && f.endsWith(".mp3"));
-        if (anyMp3) {
-          const fromPath = path.join(SONGS_DIR, anyMp3);
-          fs.renameSync(fromPath, outFile);
-          seen.add(vid);
-          ok++;
-          console.log(`[${i + 1}/${songs.length}] ok (renamed): ${base}.mp3`);
-          break;
-        }
       } catch (e) {
         lastError = e;
         const last = attempt === MAX_ATTEMPTS;
-        console.error(`[${i + 1}/${songs.length}] attempt ${attempt}/${MAX_ATTEMPTS} failed: ${s.title} - ${s.artist}`, last ? String(e) : "");
+        console.error(`[${i + 1}/${songs.length}] attempt ${attempt}/${MAX_ATTEMPTS} failed: ${s.title} - ${s.artist}`);
+        const ytErr = e as YtDlpError;
+        if (typeof ytErr?.stderr === "string" && ytErr.stderr) {
+          console.error("[다운 실패 이유] yt-dlp stderr:\n" + ytErr.stderr);
+        } else {
+          console.error("  ", String(e));
+        }
         if (!last) {
           console.log(`  retrying in ${RETRY_DELAY_MS / 1000}s...`);
           const sec = Math.ceil(RETRY_DELAY_MS / 1000);
@@ -158,7 +167,12 @@ function main() {
     }
     if (!seen.has(vid)) {
       err++;
-      if (lastError) console.error(`[${i + 1}/${songs.length}] failed: ${s.title} - ${s.artist}`, lastError);
+      const ytErr = lastError as YtDlpError;
+      if (typeof ytErr?.stderr === "string" && ytErr.stderr) {
+        console.error(`[${i + 1}/${songs.length}] 최종 실패 요약 — ${s.title} / ${s.artist}\n[다운 실패 이유]\n${ytErr.stderr}`);
+      } else if (lastError) {
+        console.error(`[${i + 1}/${songs.length}] failed: ${s.title} - ${s.artist}`, lastError);
+      }
     }
   }
 
