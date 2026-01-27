@@ -1306,13 +1306,10 @@ io.on("connection", (socket) => {
           });
         }
 
-        // 플레이어가 없으면 세션 삭제
+        // 모두 나가면 방 삭제 (세션·DB 삭제, room_deleted 알림)
         if (session.players.size === 0) {
-          gameSessions.delete(roomId);
-          await prisma.room.update({
-            where: { id: roomId },
-            data: { status: "WAITING" },
-          });
+          socket.leave(roomId);
+          await deleteRoomAfterGame(roomId);
         } else {
           // 남은 플레이어들에게 업데이트 전송
           io.to(roomId).emit("game_players_update", {
@@ -1320,9 +1317,8 @@ io.on("connection", (socket) => {
             players: getPlayersArray(session),
             sessionStatus: session.status,
           });
+          socket.leave(roomId);
         }
-
-        socket.leave(roomId);
         console.log(`[Game] User ${userId} left game room ${roomId}`);
       }
     } catch (error) {
@@ -1571,13 +1567,9 @@ io.on("connection", (socket) => {
       if (session && session.players.has(socketUserId)) {
         session.players.delete(socketUserId);
 
-        // 플레이어가 없으면 세션 삭제
+        // 모두 나가면 방 삭제 (세션·DB 삭제, room_deleted 알림)
         if (session.players.size === 0) {
-          gameSessions.delete(socketRoomId);
-          await prisma.room.update({
-            where: { id: socketRoomId },
-            data: { status: "WAITING" },
-          });
+          await deleteRoomAfterGame(socketRoomId);
         } else {
           // 남은 플레이어들에게 업데이트 전송
           io.to(socketRoomId).emit("game_players_update", {

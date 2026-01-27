@@ -94,15 +94,27 @@ export default function WaitingRoomPage() {
           const equippedCharacter = typeof window !== 'undefined' 
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
-          
+          const url = equippedCharacter || '/character1.glb';
           return {
             id: player.id,
             name: player.name,
             isHost: player.isHost,
-            characterUrl: equippedCharacter || '/character1.glb',
+            characterUrl: url,
             joinedAt: player.joinedAt,
           };
         });
+        
+        // 플레이 페이지 재입장 시 복구용: 같은 키에 저장 (캐릭터/재생버튼이 다시 뜨도록)
+        if (typeof window !== 'undefined' && playersWithCharacters.length > 0) {
+          try {
+            const forPlay = playersWithCharacters.map((p) => ({
+              ...p,
+              character: p.characterUrl,
+              score: 0,
+            }));
+            localStorage.setItem(`song-guess-room-${roomId}-players`, JSON.stringify(forPlay));
+          } catch (_) {}
+        }
         
         // 중요: 무한 렌더링 방지를 위해 값이 실제로 다를 때만 setState 호출
         setPlayers(prev => {

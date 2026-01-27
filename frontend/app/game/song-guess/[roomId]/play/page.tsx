@@ -948,6 +948,13 @@ export default function GamePlayPage() {
           };
         });
         
+        // 재입장 시 복구용: 받은 목록을 localStorage에 저장 (캐릭터/재생버튼이 다시 뜨도록)
+        if (typeof window !== 'undefined' && playersWithCharacters.length > 0) {
+          try {
+            localStorage.setItem(`song-guess-room-${roomId}-players`, JSON.stringify(playersWithCharacters));
+          } catch (_) {}
+        }
+        
         // 중요: 무한 렌더링 방지를 위해 값이 실제로 다를 때만 setPlayers 호출
         setPlayers(prev => {
           if (JSON.stringify(prev) === JSON.stringify(playersWithCharacters)) return prev;
@@ -1054,7 +1061,7 @@ export default function GamePlayPage() {
 
   // =============================================================
 
-  // 참가자 목록 불러오기 (localStorage 백업) — players.length를 의존성에 넣지 않음 (무한 렌더 방지)
+  // 참가자 목록 불러오기 (localStorage 백업) — 재입장 시 캐릭터/재생버튼 복구
   useEffect(() => {
     const loadPlayers = () => {
       const playersKey = `song-guess-room-${roomId}-players`;
@@ -1068,7 +1075,7 @@ export default function GamePlayPage() {
             character: p.character || p.characterUrl || '/character1.glb',
             characterUrl: p.characterUrl || p.character || '/character1.glb',
           }));
-          // 함수형 업데이트: 소켓에서 이미 받은 플레이어가 있으면 덮어쓰지 않음
+          // 재입장 시: 소켓에서 아직 안 왔어도 저장된 목록으로 먼저 그리기
           setPlayers((prev) => (prev.length > 0 ? prev : playersWithScore));
         } catch (e) {
           console.error('Failed to parse players', e);
@@ -1077,7 +1084,7 @@ export default function GamePlayPage() {
     };
 
     loadPlayers();
-    const interval = setInterval(loadPlayers, 1000);
+    const interval = setInterval(loadPlayers, 800);
     return () => clearInterval(interval);
   }, [roomId]);
 
