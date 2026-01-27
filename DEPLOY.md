@@ -37,12 +37,6 @@ docker-compose up --build -d
 docker-compose logs -f
 ```
 
-4. 데이터베이스 마이그레이션 (스키마 변경 시):
-```bash
-# 실행 중인 backend 컨테이너에서 마이그레이션 적용
-docker-compose exec backend npx prisma migrate deploy
-```
-
 ## 주의사항
 
 - `.env` 파일은 `.gitignore`에 포함되어 있어 Git에 커밋되지 않습니다.
