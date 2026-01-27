@@ -49,7 +49,7 @@ export default function SongGuessPage() {
         const res = await fetch('/api/games/rooms?page=1&pageSize=50', {
           headers: userId ? { 'x-user-id': userId } : {},
         });
-        
+
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.rooms) {
@@ -57,23 +57,23 @@ export default function SongGuessPage() {
             const musicRooms = data.rooms
               .filter((room: BackendRoom) => room.type === 'MUSIC_QUIZ' && room.status === 'WAITING')
               .map((room: BackendRoom) => mapBackendRoomToFrontend(room));
-            
+
             // 데이터가 실제로 변경되었을 때만 업데이트 (깜빡임 방지)
             setRooms((prevRooms) => {
               // 방 ID와 currentPlayers를 비교하여 변경사항 확인
               if (prevRooms.length !== musicRooms.length) {
                 return musicRooms;
               }
-              
+
               // Map을 사용하여 더 정확한 비교
               const prevRoomsMap = new Map(prevRooms.map(r => [r.id, r]));
               const hasChanged = musicRooms.some((newRoom: Room) => {
                 const prevRoom = prevRoomsMap.get(newRoom.id);
-                return !prevRoom || 
+                return !prevRoom ||
                   prevRoom.currentPlayers !== newRoom.currentPlayers ||
                   prevRoom.name !== newRoom.name;
               });
-              
+
               return hasChanged ? musicRooms : prevRooms;
             });
           }
@@ -89,10 +89,10 @@ export default function SongGuessPage() {
 
     // 초기 로드 시에만 loading 표시
     fetchRooms(true);
-    
+
     // 주기적으로 방 목록 새로고침 (플레이어 수 업데이트) - loading 없이
     const interval = setInterval(() => fetchRooms(false), 5000); // 5초마다 새로고침 (간격 증가)
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -221,7 +221,7 @@ export default function SongGuessPage() {
 
     const userId = localStorage.getItem('userId');
     console.log(`[DeleteRoom] Attempting to delete room ${room.id}, userId: ${userId}, room.hostId: ${room.hostId}, isHost: ${room.hostId === userId}`);
-    
+
     if (!userId) {
       alert('로그인이 필요합니다.');
       return;
@@ -298,7 +298,7 @@ export default function SongGuessPage() {
         {[...Array(6)].map((_, i) => (
           <div key={i} className={`floating-note note-${i}`}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
             </svg>
           </div>
         ))}
@@ -513,8 +513,8 @@ export default function SongGuessPage() {
                     onClick={() => handleJoinRoom(room)}
                     disabled={room.currentPlayers >= room.maxPlayers}
                     style={{
-                      background: room.currentPlayers >= room.maxPlayers 
-                        ? "rgba(0, 0, 0, 0.4)" 
+                      background: room.currentPlayers >= room.maxPlayers
+                        ? "rgba(0, 0, 0, 0.4)"
                         : "rgba(0, 0, 0, 0.6)",
                       backdropFilter: "blur(10px)",
                       border: room.currentPlayers >= room.maxPlayers

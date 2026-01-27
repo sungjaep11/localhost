@@ -639,80 +639,41 @@ app.post(
   }
 );
 
-/**
- * 방 삭제 (방 생성자만 가능)
- * DELETE /api/rooms/:roomId
- */
 app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
-  // ensureUser 미들웨어를 거쳤으므로 userId가 보장됨
-  const userId = (req as any).userId as string;
   const roomId = req.params.roomId;
+  const userId = (req as any).userId as string;
 
   console.log(`[DeleteRoom] Request: roomId=${roomId}, userId=${userId}`);
 
   try {
-    if (!roomId) {
-      return res.status(400).json({ success: false, error: "방 ID가 필요합니다." });
-    }
+    if (!roomId) return res.status(400).json({ success: false, error: "roomId required" });
 
-    // 1. 방 정보 조회 (DB)
-    const room = await prisma.room.findUnique({
-      where: { id: roomId },
-    });
+    // 1. 방 조회
+    const room = await prisma.room.findUnique({ where: { id: roomId } });
+    if (!room) return res.status(404).json({ success: false, error: "Room not found" });
+    if (room.hostId !== userId) return res.status(403).json({ success: false, error: "Not authorized" });
 
-    // 방이 없으면 404
-    if (!room) {
-      return res.status(404).json({ success: false, error: "방을 찾을 수 없습니다." });
-    }
-
-    // 방장이 아니면 403
-    if (room.hostId !== userId) {
-      return res.status(403).json({ success: false, error: "방장만 방을 삭제할 수 있습니다." });
-    }
-
-    // 2. Socket.io 알림 전송 (전역 'io' 변수 사용)
-    // 에러가 나더라도 방 삭제는 진행되어야 하므로 별도 try-catch
+    // 2. Socket 알림 (전역 io 변수 사용)
     try {
-      // "방 삭제됨" 이벤트 전송
       io.to(roomId).emit("roomDeleted", { roomId });
-      io.emit("room_deleted", { roomId }); // 대기실 목록 갱신용
-      
-      // 해당 방의 모든 소켓 연결 끊기 (선택사항)
+      io.emit("room_deleted", { roomId });
+
       const sockets = await io.in(roomId).fetchSockets();
-      sockets.forEach((socket) => {
-        socket.leave(roomId);
-      });
-      
-      console.log(`[DeleteRoom] Socket notification sent for room ${roomId}`);
-    } catch (socketError) {
-      console.error("[DeleteRoom] Socket Error (Ignored):", socketError);
+      sockets.forEach((s) => s.leave(roomId));
+    } catch (e) {
+      console.error("Socket error ignored:", e);
     }
 
-    // 3. 메모리 내 게임 세션 정리
-    if (gameSessions.has(roomId)) {
-      gameSessions.delete(roomId);
-    }
+    // 3. 세션 정리
+    if (gameSessions.has(roomId)) gameSessions.delete(roomId);
 
-    // 4. DB에서 방 삭제
-    // (schema.prisma에 onDelete: Cascade가 적용되어 있어야 함)
-    await prisma.room.delete({
-      where: { id: roomId },
-    });
+    // 4. DB 삭제
+    await prisma.room.delete({ where: { id: roomId } });
 
-    console.log(`[DeleteRoom] Successfully deleted room ${roomId}`);
-    return res.status(200).json({ success: true, message: "방이 삭제되었습니다." });
-
+    return res.status(200).json({ success: true });
   } catch (error: any) {
-    console.error("[DeleteRoom] Critical Error:", error);
-    
-    // 이미 응답을 보냈는지 확인 후 에러 응답
-    if (!res.headersSent) {
-      return res.status(500).json({ 
-        success: false, 
-        error: "서버 내부 오류가 발생했습니다.",
-        details: error.message 
-      });
-    }
+    console.error("[DeleteRoom] Error:", error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -1769,6 +1730,8 @@ async function endGame(roomId: string) {
   console.log(`[Game] Game finished in room ${roomId}`);
 }
 
-httpServer.listen(port, () => {
-  console.log(`> 🚀 Backend Server ready at http://localhost:${port}`);
+// Docker/EC2에서는 0.0.0.0에 바인딩해야 호스트 외부에서 접속 가능
+const host = process.env.HOST || "0.0.0.0";
+httpServer.listen(Number(port), host, () => {
+  console.log(`> 🚀 Backend Server ready at http://${host}:${port}`);
 });

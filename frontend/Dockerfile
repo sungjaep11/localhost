@@ -27,6 +27,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# EC2 배포 시 docker-compose build-args로 NEXT_PUBLIC_BACKEND_URL 등 전달
+ARG NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
+
 # Build Next.js app
 RUN npm run build
 
