@@ -67,7 +67,7 @@ export default function SongGuessPage() {
               
               // Map을 사용하여 더 정확한 비교
               const prevRoomsMap = new Map(prevRooms.map(r => [r.id, r]));
-              const hasChanged = musicRooms.some(newRoom => {
+              const hasChanged = musicRooms.some((newRoom: Room) => {
                 const prevRoom = prevRoomsMap.get(newRoom.id);
                 return !prevRoom || 
                   prevRoom.currentPlayers !== newRoom.currentPlayers ||
