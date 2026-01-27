@@ -669,31 +669,6 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
         .json({ message: "방장만 방을 삭제할 수 있습니다." });
     }
 
-    // 게임 세션이 있으면 정리
-    if (gameSessions.has(roomId)) {
-      const session = gameSessions.get(roomId);
-      if (session) {
-        // 모든 플레이어에게 방 삭제 알림
-        try {
-          if (io) {
-            io.to(roomId).emit("room_deleted", {
-              roomId,
-              message: "Room has been deleted by the host",
-            });
-            // 소켓 룸에서 모든 사용자 제거
-            const socketsInRoom = await io.in(roomId).fetchSockets();
-            socketsInRoom.forEach(socket => {
-              socket.leave(roomId);
-            });
-          }
-        } catch (socketErr: any) {
-          console.warn("[DELETE /api/rooms/:roomId] Failed to emit socket event:", socketErr.message);
-          // Socket 에러는 무시하고 계속 진행
-        }
-      }
-      gameSessions.delete(roomId);
-    }
-
     // 관련 데이터 삭제 (트랜잭션으로 처리)
     // 순서 중요: 자식 데이터를 먼저 삭제한 후 부모 데이터 삭제
     try {
@@ -733,17 +708,12 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
       throw transactionErr; // Re-throw to be caught by outer catch
     }
 
-    // 모든 클라이언트에게 방 삭제 알림
-    try {
-      if (io) {
-        io.emit("room_deleted", { roomId });
-      }
-    } catch (socketErr: any) {
-      console.warn("[DELETE /api/rooms/:roomId] Failed to emit socket event:", socketErr.message);
-      // Socket 에러는 무시하고 계속 진행
+    // 게임 세션 정리
+    if (gameSessions.has(roomId)) {
+      gameSessions.delete(roomId);
     }
 
-    // 응답이 이미 전송되었는지 확인
+    // 응답을 먼저 보내기 (Socket 이벤트 전에)
     if (!res.headersSent) {
       res.status(200).json({
         success: true,
@@ -751,6 +721,37 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
         roomId,
       });
     }
+
+    // 응답 전송 후 Socket.io 이벤트를 비동기로 보내기 (에러가 발생해도 응답은 이미 전송됨)
+    // 이렇게 하면 Socket 에러가 발생해도 클라이언트는 정상 응답을 받을 수 있음
+    setImmediate(async () => {
+      try {
+        if (io) {
+          // 해당 방의 모든 클라이언트에게 알림
+          io.to(roomId).emit("room_deleted", {
+            roomId,
+            message: "Room has been deleted by the host",
+          });
+          
+          // 모든 클라이언트에게도 브로드캐스트 (방 목록 업데이트용)
+          io.emit("room_deleted", { roomId });
+          
+          // 소켓 룸에서 모든 사용자 제거 (안전하게 처리)
+          try {
+            const socketsInRoom = await io.in(roomId).fetchSockets();
+            socketsInRoom.forEach(socket => {
+              socket.leave(roomId);
+            });
+          } catch (fetchErr: any) {
+            // fetchSockets 실패는 무시 (이미 방이 삭제되었을 수 있음)
+            console.warn("[DELETE /api/rooms/:roomId] Failed to fetch sockets:", fetchErr.message);
+          }
+        }
+      } catch (socketErr: any) {
+        // Socket 에러는 로그만 남기고 무시 (응답은 이미 전송됨)
+        console.warn("[DELETE /api/rooms/:roomId] Failed to emit socket event:", socketErr.message);
+      }
+    });
   } catch (err: any) {
     console.error("[DELETE /api/rooms/:roomId] error", err);
     console.error("[DELETE /api/rooms/:roomId] error details:", {
