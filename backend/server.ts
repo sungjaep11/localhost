@@ -870,10 +870,27 @@ app.get("/api/songs", async (req: Request, res: Response) => {
     }
 
     // @ts-ignore - Prisma Client 타입이 아직 업데이트되지 않았을 수 있음 (TypeScript 캐시 문제)
-    const songs = await prisma.song.findMany({
+    let songs = await prisma.song.findMany({
       where,
       orderBy: { createdAt: "desc" },
     });
+
+    // DB에 노래가 없으면 seed-songs-data에서 반환 (노래 맞추기에서 바로 재생 가능)
+    if (songs.length === 0) {
+      try {
+        const mod = await import("./seed-songs-data");
+        songs = mod.songs.map((s: { genre: string; title: string; artist: string; youtubeUrl: string }) => ({
+          id: `seed-${s.title}-${s.artist}`.replace(/\s/g, "_"),
+          genre: s.genre,
+          title: s.title,
+          artist: s.artist,
+          youtubeUrl: s.youtubeUrl,
+          createdAt: new Date(),
+        }));
+      } catch (_) {
+        // seed-songs-data 없음 → 빈 배열 유지
+      }
+    }
 
     res.json(songs);
   } catch (err) {

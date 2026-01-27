@@ -117,7 +117,7 @@ const CharacterViewer = memo(({ characterUrl, size = 150 }: { characterUrl: stri
           powerPreference: "high-performance"
         }}
         dpr={[1, 2]}
-        frameloop="demand"
+        frameloop="always"
       >
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
@@ -1264,7 +1264,23 @@ export default function GamePlayPage() {
     }
   };
 
-  // YouTube 검색어 추출 (seed의 youtubeUrl이 search_query인 경우)
+  // YouTube 영상 ID 추출 (watch?v=xxx, youtu.be/xxx, embed/xxx 형식만 재생 가능. search_query= 은 소리 안 남)
+  const getYoutubeVideoId = useCallback((song: GameSong | null): string | null => {
+    if (!song?.youtubeUrl) return null;
+    const u = song.youtubeUrl.trim();
+    // watch?v=VIDEO_ID
+    const watch = u.match(/(?:youtube\.com\/watch\?.*?[?&]v=)([a-zA-Z0-9_-]{11})/);
+    if (watch) return watch[1];
+    // youtu.be/VIDEO_ID
+    const short = u.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (short) return short[1];
+    // embed/VIDEO_ID
+    const embed = u.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+    if (embed) return embed[1];
+    return null;
+  }, []);
+
+  // YouTube 검색어 추출 (seed의 youtubeUrl이 search_query인 경우 — 재생 불가, 힌트용)
   const getYoutubeSearchQuery = useCallback((song: GameSong | null): string => {
     if (!song) return '';
     if (song.youtubeUrl && song.youtubeUrl.includes('search_query=')) {
@@ -1294,6 +1310,7 @@ export default function GamePlayPage() {
   }
 
   // 재생 버튼 클릭 핸들러 (방장만) — YouTube iframe API로 실제 노래 재생
+  // 노래가 들리려면 youtubeUrl에 "영상 링크(watch?v=영상ID)"를 넣어야 함. 검색 링크(search_query=)는 소리 안 남.
   const handlePlayButton = () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
@@ -1301,15 +1318,20 @@ export default function GamePlayPage() {
     }
 
     const player = youtubePlayerRef.current;
-    const searchQuery = getYoutubeSearchQuery(currentSongData);
+    const videoId = getYoutubeVideoId(currentSongData);
 
-    if (ytReady && player && searchQuery && (gamePhase === 'waiting' || gamePhase === 'answer_revealed')) {
+    if (ytReady && player && (gamePhase === 'waiting' || gamePhase === 'answer_revealed')) {
       try {
-        player.loadPlaylist({ listType: 'search', list: searchQuery });
-        player.playVideo();
-        setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
-        setIsAudioPlaying(true);
-        startPlaying();
+        if (videoId && typeof (player as any).loadVideoById === 'function') {
+          (player as any).loadVideoById(videoId);
+          (player as any).playVideo();
+          setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
+          setIsAudioPlaying(true);
+          startPlaying();
+        } else {
+          // videoId 없음(=검색 링크만 있음) → 실제 재생 불가, 가사만 시뮬레이션
+          fallbackSimulatePlay();
+        }
       } catch (e) {
         console.error('YouTube play failed', e);
         fallbackSimulatePlay();
