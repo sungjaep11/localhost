@@ -900,6 +900,29 @@ app.get("/api/songs", async (req: Request, res: Response) => {
 });
 
 /**
+ * 사투리 가사 맞추기: 장르별 랜덤 가사 1개
+ * GET /api/dialect-lyrics/random?genre=발라드
+ */
+app.get("/api/dialect-lyrics/random", async (req: Request, res: Response) => {
+  try {
+    const genre = (req.query.genre as string)?.trim();
+    if (!genre) {
+      return res.status(400).json({ message: "genre parameter is required" });
+    }
+    const { dialectLyrics } = await import("./lyrics-data");
+    const byGenre = dialectLyrics.filter((l) => l.genre === genre);
+    if (byGenre.length === 0) {
+      return res.status(404).json({ message: `No dialect lyrics for genre: ${genre}` });
+    }
+    const one = byGenre[Math.floor(Math.random() * byGenre.length)];
+    res.json(one);
+  } catch (err) {
+    console.error("[GET /api/dialect-lyrics/random] error", err);
+    res.status(500).json({ message: "Failed to load random dialect lyric" });
+  }
+});
+
+/**
  * 아이템 구매
  * POST /api/shop/buy
  * body: { itemId }

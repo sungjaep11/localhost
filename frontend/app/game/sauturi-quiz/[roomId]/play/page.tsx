@@ -66,11 +66,11 @@ function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
 }
 
-// 캐릭터 뷰어 컴포넌트
+// 캐릭터 뷰어 컴포넌트 (frameloop="always"로 캐릭터가 보이게)
 function CharacterViewer({ characterUrl, size = 150 }: { characterUrl: string; size?: number }) {
   return (
     <div style={{ width: size, height: size }}>
-      <Canvas camera={{ position: [0, 1, 4], fov: 50 }}>
+      <Canvas camera={{ position: [0, 1, 4], fov: 50 }} frameloop="always">
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
@@ -94,6 +94,7 @@ export default function GamePlayPage() {
   const [currentSong, setCurrentSong] = useState(1);
   const [totalRounds, setTotalRounds] = useState(1);
   const [songsPerRound, setSongsPerRound] = useState(5);
+  const [roomGenres, setRoomGenres] = useState<string[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [bubbleMessages, setBubbleMessages] = useState<BubbleMessage[]>([]);
@@ -131,8 +132,10 @@ export default function GamePlayPage() {
           const data = await res.json();
           const currentRoom = data.rooms?.find((r: any) => r.id === roomId);
           if (currentRoom) {
-            setTotalRounds((currentRoom.options as any)?.rounds || 4);
-            setSongsPerRound((currentRoom.options as any)?.songsPerRound || 5);
+            const opts = currentRoom.options as any;
+            setTotalRounds(opts?.rounds ?? 4);
+            setSongsPerRound(opts?.songsPerRound ?? 5);
+            setRoomGenres(Array.isArray(opts?.genres) ? opts.genres : []);
           }
         }
       } catch (e) {
@@ -147,6 +150,7 @@ export default function GamePlayPage() {
             if (currentRoom) {
               setTotalRounds(currentRoom.rounds);
               setSongsPerRound(currentRoom.songsPerRound);
+              setRoomGenres(Array.isArray(currentRoom.genres) ? currentRoom.genres : []);
             }
           } catch (err) {
             console.error('Failed to parse stored rooms', err);
@@ -159,7 +163,7 @@ export default function GamePlayPage() {
       fetchRoomInfo();
     }
 
-    // 플레이어 목록 불러오기 (localStorage에서)
+    // 플레이어 목록 불러오기 (localStorage) — 재입장/게임 시작 시 캐릭터·UI 복구
     const loadPlayers = () => {
       const playersKey = `sauturi-quiz-room-${roomId}-players`;
       const storedPlayers = localStorage.getItem(playersKey);
@@ -168,11 +172,11 @@ export default function GamePlayPage() {
           const parsedPlayers = JSON.parse(storedPlayers);
           const playersWithScore = parsedPlayers.map((p: Player) => ({
             ...p,
-            score: p.score || 0,
+            score: p.score ?? 0,
             character: p.character || p.characterUrl || '/character1.glb',
             characterUrl: p.characterUrl || p.character || '/character1.glb',
           }));
-          setPlayers(playersWithScore);
+          setPlayers((prev) => (prev.length > 0 ? prev : playersWithScore));
         } catch (e) {
           console.error('Failed to parse players', e);
         }
@@ -180,8 +184,12 @@ export default function GamePlayPage() {
     };
 
     loadPlayers();
-    const interval = setInterval(loadPlayers, 1000);
-    return () => clearInterval(interval);
+    const t = setTimeout(loadPlayers, 150); // countdown→play 직후 방금 쓴 데이터 반영
+    const interval = setInterval(loadPlayers, 500);
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
   }, [roomId]);
 
   // -------------------------------------------------------------
@@ -206,17 +214,24 @@ export default function GamePlayPage() {
           const equippedCharacter = typeof window !== 'undefined' 
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
-          
+          const url = equippedCharacter || '/character1.glb';
           return {
             id: player.id,
             name: player.name,
             isHost: player.isHost,
             score: 0,
-            character: equippedCharacter || '/character1.glb',
-            characterUrl: equippedCharacter || '/character1.glb',
+            character: url,
+            characterUrl: url,
             joinedAt: player.joinedAt,
           };
         });
+        
+        // 재입장 시 복구용: 받은 목록을 localStorage에 저장 (캐릭터/UI가 다시 뜨도록)
+        if (typeof window !== 'undefined' && playersWithCharacters.length > 0) {
+          try {
+            localStorage.setItem(`sauturi-quiz-room-${roomId}-players`, JSON.stringify(playersWithCharacters));
+          } catch (_) {}
+        }
         
         // 중요: 무한 렌더링 방지를 위해 값이 실제로 다를 때만 setPlayers 호출
         setPlayers(prev => {
@@ -465,41 +480,76 @@ export default function GamePlayPage() {
     };
   };
 
-  // 테스트용: 방장이 재생 버튼을 누르면 예시 가사 재생 (나중에 실제 TTS API로 교체)
-  const handlePlayButton = () => {
-    // 기존 시뮬레이션 interval 정리
+  // 방장이 재생 버튼을 누르면 현재 라운드 장르에 맞는 랜덤 사투리 가사 1개 로드 후 재생
+  const handlePlayButton = async () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
-    
-    // 예시 가사와 TTS (실제로는 API에서 가져올 것)
-    const exampleLyrics = '안녕하세요 오늘도 좋은 하루 되세요. 반갑습니다 즐거운 시간 되세요.';
-    const exampleTTS = ''; // TTS URL이 있으면 여기에 입력
-    
-    if (exampleTTS) {
-      startTTS(exampleLyrics, exampleTTS);
-    } else {
-      // TTS가 없을 때는 가사만 표시하고 시뮬레이션으로 색상 변화 (테스트용)
-      setLyrics(exampleLyrics);
-      setTotalDuration(5); // 5초로 설정
+
+    const genre = roomGenres[currentRound - 1] ?? roomGenres[0] ?? "발라드";
+    try {
+      const res = await fetch(
+        `/api/dialect-lyrics/random?genre=${encodeURIComponent(genre)}`
+      );
+      if (!res.ok) {
+        setLyrics("이 장르의 가사를 불러오지 못했어요.");
+        setTotalDuration(5);
+        setCurrentTime(0);
+        setIsPlaying(true);
+        let simTime = 0;
+        const interval = setInterval(() => {
+          simTime += 0.1;
+          setCurrentTime(simTime);
+          if (simTime >= 5) {
+            clearInterval(interval);
+            setIsPlaying(false);
+            setCurrentTime(0);
+          }
+        }, 100);
+        simulationIntervalRef.current = interval;
+        return;
+      }
+      const data = (await res.json()) as {
+        dialect: string;
+        original?: string;
+        title?: string;
+        artist?: string;
+      };
+      const text = data.dialect || "";
+      setLyrics(text);
+      const duration = Math.max(5, Math.ceil((text.length || 10) * 0.15));
+      setTotalDuration(duration);
       setCurrentTime(0);
       setIsPlaying(true);
-      
-      // 시뮬레이션: 5초 동안 시간이 흐르도록
       let simTime = 0;
       const interval = setInterval(() => {
         simTime += 0.1;
         setCurrentTime(simTime);
-        
-        if (simTime >= 5) {
+        if (simTime >= duration) {
           clearInterval(interval);
           simulationIntervalRef.current = null;
           setIsPlaying(false);
           setCurrentTime(0);
         }
       }, 100);
-      
+      simulationIntervalRef.current = interval;
+    } catch (e) {
+      console.error("Failed to load dialect lyric", e);
+      setLyrics("가사를 불러오는 중 오류가 났어요.");
+      setTotalDuration(5);
+      setCurrentTime(0);
+      setIsPlaying(true);
+      let simTime = 0;
+      const interval = setInterval(() => {
+        simTime += 0.1;
+        setCurrentTime(simTime);
+        if (simTime >= 5) {
+          clearInterval(interval);
+          setIsPlaying(false);
+          setCurrentTime(0);
+        }
+      }, 100);
       simulationIntervalRef.current = interval;
     }
   };

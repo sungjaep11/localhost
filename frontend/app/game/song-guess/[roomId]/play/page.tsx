@@ -1410,11 +1410,22 @@ export default function GamePlayPage() {
         position: "relative",
       }}
     >
-      {/* YouTube iframe API용 플레이어 컨테이너 (화면 밖에 배치해 재생만 사용) */}
+      {/* YouTube iframe: 뷰포트 안에 두고 투명 처리해서 소리만 들리게 (화면 밖이면 브라우저가 음소거할 수 있음) */}
       <div
         id="youtube-player-host"
         ref={youtubeContainerRef}
-        style={{ position: 'absolute', left: -9999, top: 0, width: 320, height: 180, overflow: 'hidden' }}
+        style={{
+          position: 'fixed',
+          left: 0,
+          bottom: 0,
+          width: 320,
+          height: 180,
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: -1,
+          overflow: 'hidden',
+        }}
+        aria-hidden="true"
       />
       {/* 떠다니는 음표들 */}
       <div className="floating-notes">
