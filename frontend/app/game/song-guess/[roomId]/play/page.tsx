@@ -916,10 +916,13 @@ export default function GamePlayPage() {
   };
 
   // -------------------------------------------------------------
-  // [수정된 부분] 소켓 연결 로직 분리 (무한 재렌더링 방지)
+  // [수정된 부분] 소켓 연결 로직 (무한 루프 방지 버전)
   // -------------------------------------------------------------
 
-  // 1. 소켓 이벤트 리스너 등록 (Join/Leave 로직 없음)
+  // 중복 조인 방지용 ref
+  const hasJoinedRef = useRef(false);
+
+  // 1. 소켓 이벤트 리스너 등록
   useEffect(() => {
     if (!socket || !roomId) return;
 
@@ -944,7 +947,12 @@ export default function GamePlayPage() {
             joinedAt: player.joinedAt,
           };
         });
-        setPlayers(playersWithCharacters);
+        
+        // 중요: 무한 렌더링 방지를 위해 값이 실제로 다를 때만 setPlayers 호출
+        setPlayers(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(playersWithCharacters)) return prev;
+          return playersWithCharacters;
+        });
       }
     };
 
@@ -1033,23 +1041,18 @@ export default function GamePlayPage() {
     };
   }, [socket, roomId]); // 의존성: socket과 roomId만
 
-  // 2. 방 입장/퇴장 처리 (Mount/Unmount 시에만 실행)
+  // 2. 방 입장 처리 (퇴장 로직 완전 제거)
   useEffect(() => {
-    if (socket && roomId && currentUserId) {
+    if (socket && roomId && currentUserId && !hasJoinedRef.current) {
+      console.log('[Play] Joining game room:', roomId);
       socket.emit('game_join', { roomId, userId: currentUserId });
+      hasJoinedRef.current = true;
     }
     
-    // 컴포넌트가 사라질 때만 Leave (페이지 이동 등)
-    return () => {
-      if (socket && roomId && currentUserId) {
-        // 페이지를 떠날 때만 실행됨
-        // socket.emit('game_leave', { roomId, userId: currentUserId }); 
-        // 주의: React 18 Strict Mode에서는 mount/unmount가 두 번 일어나서 바로 나가버릴 수 있음
-        // 따라서 명시적인 '나가기 버튼'을 눌렀을 때만 leave를 하거나, 
-        // socket disconnect가 서버에서 처리하도록 두는 것이 안전함.
-      }
-    };
-  }, [socket, roomId, currentUserId]); // 접속 시 한 번만 실행
+    // 중요: 여기서 return () => { socket.emit('game_leave') } 를 절대 하지 마세요!
+    // React Strict Mode 때문에 마운트/언마운트가 반복되면서 무한 루프가 생깁니다.
+    // 방 퇴장은 유저가 '나가기' 버튼을 눌렀을 때만 명시적으로 실행합니다.
+  }, [socket, roomId, currentUserId]);
 
   // -------------------------------------------------------------
 

@@ -184,12 +184,16 @@ export default function GamePlayPage() {
     return () => clearInterval(interval);
   }, [roomId]);
 
-  // 소켓 연결 및 게임 입장
-  useEffect(() => {
-    if (!socket || !roomId || !currentUserId) return;
+  // -------------------------------------------------------------
+  // [수정된 부분] 소켓 연결 로직 (무한 루프 방지 버전)
+  // -------------------------------------------------------------
 
-    // 방 입장
-    socket.emit('game_join', { roomId, userId: currentUserId });
+  // 중복 조인 방지용 ref
+  const hasJoinedRef = useRef(false);
+
+  // 1. 소켓 이벤트 리스너 등록
+  useEffect(() => {
+    if (!socket || !roomId) return;
 
     // 플레이어 목록 업데이트 리스너
     const handlePlayersUpdate = (data: { 
@@ -198,9 +202,7 @@ export default function GamePlayPage() {
       sessionStatus: string;
     }) => {
       if (data.roomId === roomId) {
-        // 각 플레이어의 캐릭터 정보 확인 (localStorage에서 가져오기)
         const playersWithCharacters = data.players.map((player) => {
-          // localStorage에서 각 플레이어의 장착된 캐릭터 가져오기
           const equippedCharacter = typeof window !== 'undefined' 
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
@@ -215,7 +217,12 @@ export default function GamePlayPage() {
             joinedAt: player.joinedAt,
           };
         });
-        setPlayers(playersWithCharacters);
+        
+        // 중요: 무한 렌더링 방지를 위해 값이 실제로 다를 때만 setPlayers 호출
+        setPlayers(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(playersWithCharacters)) return prev;
+          return playersWithCharacters;
+        });
       }
     };
 
@@ -236,16 +243,11 @@ export default function GamePlayPage() {
           timestamp: data.timestamp,
         };
 
-        // 채팅 메시지 추가
         setChatMessages(prev => {
-          // 중복 방지
-          if (prev.some(msg => msg.id === newMessage.id)) {
-            return prev;
-          }
+          if (prev.some(msg => msg.id === newMessage.id)) return prev;
           return [...prev, newMessage];
         });
 
-        // 말풍선 추가 (3초 후 만료)
         const newBubble: BubbleMessage = {
           id: `${data.playerId}-${data.timestamp}`,
           playerId: data.playerId,
@@ -253,10 +255,7 @@ export default function GamePlayPage() {
           expiresAt: Date.now() + 3000,
         };
         setBubbleMessages(prev => {
-          // 중복 방지
-          if (prev.some(msg => msg.id === newBubble.id)) {
-            return prev;
-          }
+          if (prev.some(msg => msg.id === newBubble.id)) return prev;
           return [...prev, newBubble];
         });
       }
@@ -265,15 +264,26 @@ export default function GamePlayPage() {
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
 
+    // Cleanup: 리스너만 제거 (game_leave 절대 하지 않음!)
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
-      // 방 나가기
-      if (socket && roomId && currentUserId) {
-        socket.emit('game_leave', { roomId, userId: currentUserId });
-      }
     };
+  }, [socket, roomId]);
+
+  // 2. 방 입장 처리 (퇴장 로직 완전 제거)
+  useEffect(() => {
+    if (socket && roomId && currentUserId && !hasJoinedRef.current) {
+      console.log('[Play] Joining game room:', roomId);
+      socket.emit('game_join', { roomId, userId: currentUserId });
+      hasJoinedRef.current = true;
+    }
+    
+    // 중요: 여기서 return () => { socket.emit('game_leave') } 를 절대 하지 마세요!
+    // React Strict Mode 때문에 마운트/언마운트가 반복되면서 무한 루프가 생깁니다.
   }, [socket, roomId, currentUserId]);
+
+  // -------------------------------------------------------------
 
   // 말풍선 자동 삭제 (3초 후)
   useEffect(() => {

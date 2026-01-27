@@ -63,15 +63,25 @@ export default function WaitingRoomPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isHost, setIsHost] = useState(false);
 
-  // 현재 사용자 정보
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
-
-  // 소켓 연결 및 게임 입장
+  // 현재 사용자 정보 - useState로 관리하여 무한 렌더 방지
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  
+  // 중복 조인 방지용 ref
+  const hasJoinedRef = useRef(false);
+  
+  // 컴포넌트 마운트 시 한 번만 userId 로드
   useEffect(() => {
-    if (!socket || !roomId || !currentUserId) return;
+    const userId = localStorage.getItem('userId') || '';
+    setCurrentUserId(userId);
+  }, []);
 
-    // 방 입장
-    socket.emit('game_join', { roomId, userId: currentUserId });
+  // -------------------------------------------------------------
+  // [수정된 부분] 소켓 연결 로직 (무한 루프 방지 버전)
+  // -------------------------------------------------------------
+
+  // 1. 소켓 이벤트 리스너 등록
+  useEffect(() => {
+    if (!socket || !roomId) return;
 
     // 플레이어 목록 업데이트 리스너
     const handlePlayersUpdate = (data: { 
@@ -80,9 +90,7 @@ export default function WaitingRoomPage() {
       sessionStatus: string;
     }) => {
       if (data.roomId === roomId) {
-        // 각 플레이어의 캐릭터 정보 확인 (localStorage에서 가져오기)
         const playersWithCharacters = data.players.map((player) => {
-          // localStorage에서 각 플레이어의 장착된 캐릭터 가져오기
           const equippedCharacter = typeof window !== 'undefined' 
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
@@ -91,17 +99,22 @@ export default function WaitingRoomPage() {
             id: player.id,
             name: player.name,
             isHost: player.isHost,
-            characterUrl: equippedCharacter || '/character1.glb', // 기본 캐릭터
+            characterUrl: equippedCharacter || '/character1.glb',
             joinedAt: player.joinedAt,
           };
         });
-        setPlayers(playersWithCharacters);
+        
+        // 중요: 무한 렌더링 방지를 위해 값이 실제로 다를 때만 setState 호출
+        setPlayers(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(playersWithCharacters)) return prev;
+          return playersWithCharacters;
+        });
         
         // 현재 사용자가 방장인지 확인
         const currentPlayer = playersWithCharacters.find(p => p.id === currentUserId);
         const hostStatus = currentPlayer?.isHost || false;
-        console.log(`[WaitingRoom] Current user: ${currentUserId}, isHost: ${hostStatus}, players:`, playersWithCharacters.map(p => ({ id: p.id, name: p.name, isHost: p.isHost })));
-        setIsHost(hostStatus);
+        console.log(`[WaitingRoom] Current user: ${currentUserId}, isHost: ${hostStatus}`);
+        setIsHost(prev => prev === hostStatus ? prev : hostStatus);
       }
     };
 
@@ -122,16 +135,27 @@ export default function WaitingRoomPage() {
     socket.on('game_countdown_start', handleGameStart);
     socket.on('game_error', handleGameError);
 
+    // Cleanup: 리스너만 제거 (game_leave 절대 하지 않음!)
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_countdown_start', handleGameStart);
       socket.off('game_error', handleGameError);
-      // 방 나가기
-      if (socket && roomId && currentUserId) {
-        socket.emit('game_leave', { roomId, userId: currentUserId });
-      }
     };
   }, [socket, roomId, currentUserId, router]);
+
+  // 2. 방 입장 처리 (퇴장 로직 완전 제거)
+  useEffect(() => {
+    if (socket && roomId && currentUserId && !hasJoinedRef.current) {
+      console.log('[WaitingRoom] Joining game room:', roomId);
+      socket.emit('game_join', { roomId, userId: currentUserId });
+      hasJoinedRef.current = true;
+    }
+    
+    // 중요: 여기서 return () => { socket.emit('game_leave') } 를 절대 하지 마세요!
+    // React Strict Mode 때문에 마운트/언마운트가 반복되면서 무한 루프가 생깁니다.
+  }, [socket, roomId, currentUserId]);
+
+  // -------------------------------------------------------------
 
   const handleStart = () => {
     if (!socket || !roomId || !currentUserId) return;
