@@ -904,6 +904,16 @@ export default function GamePlayPage() {
     if (snap) nextSongSnapshotRef.current = null;
     const { currentRound: r, currentSong: s, totalRounds: tr, songsPerRound: spr } = data;
 
+    // 오디오 정리 및 상태 초기화
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setLyrics('');
+    setIsAudioPlaying(false);
+    setCurrentTime(0);
+    setTotalDuration(0);
+
     if (s >= spr) {
       // 이번 라운드 마지막 곡까지 끝남 → 라운드 종료
       if (r >= tr) {
@@ -926,6 +936,17 @@ export default function GamePlayPage() {
   // 다음 라운드 시작
   const startNextRound = () => {
     setShowRoundEndModal(false);
+    
+    // 오디오 정리 및 상태 초기화
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setLyrics('');
+    setIsAudioPlaying(false);
+    setCurrentTime(0);
+    setTotalDuration(0);
+    
     setCurrentRound(prev => prev + 1);
     setCurrentSong(1);
     setCurrentSongData(null);
