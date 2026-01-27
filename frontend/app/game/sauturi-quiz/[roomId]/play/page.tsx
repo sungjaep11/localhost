@@ -121,8 +121,8 @@ export default function GamePlayPage() {
   const [showSauturiAnswerModal, setShowSauturiAnswerModal] = useState(false);
   const [sauturiNobodyGotIt, setSauturiNobodyGotIt] = useState(false);
   const sauturiGotCorrectRef = useRef(false);
-  const sauturiStateRef = useRef({ currentRoundAnswer: '', sauturiCorrectPlayers: [] as string[] });
-  sauturiStateRef.current = { currentRoundAnswer, sauturiCorrectPlayers };
+  const sauturiStateRef = useRef({ currentRoundAnswer: '', currentRoundTitle: '', sauturiCorrectPlayers: [] as string[] });
+  sauturiStateRef.current = { currentRoundAnswer, currentRoundTitle, sauturiCorrectPlayers };
   const goToNextSauturiTurnRef = useRef<() => void>(() => {});
   const sauturiAnswerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -301,11 +301,14 @@ export default function GamePlayPage() {
           return [...prev, newBubble];
         });
 
-        // 사투리 정답 체크: 원문 가사(표준어)와 비교
+        // 사투리 정답 체크: 원문 가사(표준어) 또는 제목 맞춰도 인정
         const state = sauturiStateRef.current;
-        const answer = (state.currentRoundAnswer || '').trim().replace(/\s+/g, ' ');
+        const origNorm = (state.currentRoundAnswer || '').trim().replace(/\s+/g, ' ');
+        const titleNorm = (state.currentRoundTitle || '').trim().replace(/\s+/g, ' ');
         const msgNorm = (data.message || '').trim().replace(/\s+/g, ' ');
-        if (answer && msgNorm && answer === msgNorm && !state.sauturiCorrectPlayers.includes(data.playerId)) {
+        const accepted = [origNorm, titleNorm].filter(Boolean);
+        const isCorrect = accepted.length > 0 && msgNorm && accepted.some(a => a === msgNorm) && !state.sauturiCorrectPlayers.includes(data.playerId);
+        if (isCorrect) {
           setSauturiCorrectPlayers(prev => [...prev, data.playerId]);
           setShowSauturiAnswerModal(true);
           setSauturiNobodyGotIt(false);
@@ -395,6 +398,7 @@ export default function GamePlayPage() {
 
   const host = players.find(p => p.isHost);
   const otherPlayers = players.filter(p => !p.isHost);
+  const isCurrentUserHost = host?.id === currentUserId;
 
   // 채팅 전송
   const sendChat = () => {
@@ -557,8 +561,9 @@ export default function GamePlayPage() {
     };
   };
 
-  // 방장이 재생 버튼을 누르면 현재 라운드 장르에 맞는 랜덤 사투리 가사 1개 로드 후 재생
+  // 방장이 재생 버튼을 누르면 현재 라운드 장르에 맞는 랜덤 사투리 가사 1개 로드 후 재생 (그 턴 방장만 가능)
   const handlePlayButton = async () => {
+    if (players.find(p => p.isHost)?.id !== currentUserId) return;
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
@@ -571,14 +576,14 @@ export default function GamePlayPage() {
       );
       if (!res.ok) {
         setLyrics("이 장르의 가사를 불러오지 못했어요.");
-        setTotalDuration(5);
+        setTotalDuration(15);
         setCurrentTime(0);
         setIsPlaying(true);
         let simTime = 0;
         const interval = setInterval(() => {
           simTime += 0.1;
           setCurrentTime(simTime);
-          if (simTime >= 5) {
+          if (simTime >= 15) {
             clearInterval(interval);
             setIsPlaying(false);
             setCurrentTime(0);
@@ -606,7 +611,7 @@ export default function GamePlayPage() {
       if (socket && roomId) {
         socket.emit("sauturi_lyric_sync", { roomId, dialect: text, original: orig, title, artist });
       }
-      const duration = Math.max(5, Math.ceil((text.length || 10) * 0.15));
+      const duration = Math.max(15, Math.ceil((text.length || 10) * 0.15));
       setTotalDuration(duration);
       setCurrentTime(0);
       setIsPlaying(true);
@@ -628,14 +633,14 @@ export default function GamePlayPage() {
     } catch (e) {
       console.error("Failed to load dialect lyric", e);
       setLyrics("가사를 불러오는 중 오류가 났어요.");
-      setTotalDuration(5);
+      setTotalDuration(15);
       setCurrentTime(0);
       setIsPlaying(true);
       let simTime = 0;
       const interval = setInterval(() => {
         simTime += 0.1;
         setCurrentTime(simTime);
-        if (simTime >= 5) {
+        if (simTime >= 15) {
           clearInterval(interval);
           setIsPlaying(false);
           setCurrentTime(0);
@@ -985,62 +990,61 @@ export default function GamePlayPage() {
               {host.name}
             </div>
 
-            {/* 재생 컨트롤 */}
-            <div
-              style={{
-                display: "flex",
-                gap: "1rem",
-                alignItems: "center",
-                marginTop: "0.5rem",
-              }}
-            >
-              <button
-                onClick={() => {
-                  if (!lyrics) {
-                    handlePlayButton();
-                  } else {
-                    toggleTTS();
-                  }
-                }}
+            {/* 재생 컨트롤 — 그 턴 방장만 표시/동작 */}
+            {isCurrentUserHost && (
+              <div
                 style={{
-                  width: "50px",
-                  height: "50px",
-                  borderRadius: "50%",
-                  background: isPlaying 
-                    ? "rgba(0, 255, 0, 0.2)" 
-                    : "rgba(0, 255, 255, 0.2)",
-                  border: `2px solid ${isPlaying ? "rgba(0, 255, 0, 0.6)" : "rgba(0, 255, 255, 0.6)"}`,
-                  color: isPlaying ? "#00ff00" : "#00ffff",
-                  cursor: "pointer",
                   display: "flex",
+                  gap: "1rem",
                   alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.3s ease",
+                  marginTop: "0.5rem",
                 }}
               >
-                {isPlaying ? (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                  </svg>
-                ) : (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                )}
-              </button>
-              {totalDuration > 0 && (
-                <div
+                <button
+                  onClick={() => {
+                    if (!lyrics) handlePlayButton();
+                    else toggleTTS();
+                  }}
                   style={{
-                    color: "#ffffff",
-                    fontSize: "0.85rem",
-                    minWidth: "80px",
-                    textAlign: "center",
+                    width: "50px",
+                    height: "50px",
+                    borderRadius: "50%",
+                    background: isPlaying 
+                      ? "rgba(0, 255, 0, 0.2)" 
+                      : "rgba(0, 255, 255, 0.2)",
+                    border: `2px solid ${isPlaying ? "rgba(0, 255, 0, 0.6)" : "rgba(0, 255, 255, 0.6)"}`,
+                    color: isPlaying ? "#00ff00" : "#00ffff",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.3s ease",
                   }}
                 >
-                  {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
-                </div>
-              )}
-            </div>
+                  {isPlaying ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                    </svg>
+                  ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
+                {totalDuration > 0 && (
+                  <div
+                    style={{
+                      color: "#ffffff",
+                      fontSize: "0.85rem",
+                      minWidth: "80px",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1087,15 +1091,13 @@ export default function GamePlayPage() {
                 />
               ))}
               
-              {/* 고정된 음표 아이콘 - 항상 표시, 클릭 시 TTS 시작 */}
+              {/* 고정된 음표 아이콘 - 그 턴 방장만 클릭 시 재생/일시정지 가능 */}
               <div
                 className="music-note-icon"
                 onClick={() => {
-                  if (!isPlaying) {
-                    handlePlayButton();
-                  } else {
-                    toggleTTS();
-                  }
+                  if (!isCurrentUserHost) return;
+                  if (!isPlaying) handlePlayButton();
+                  else toggleTTS();
                 }}
                 style={{
                   position: "relative",
@@ -1111,7 +1113,8 @@ export default function GamePlayPage() {
                     : "drop-shadow(0 0 20px rgba(139, 179, 217, 0.5)) drop-shadow(0 0 40px rgba(139, 179, 217, 0.3))",
                   animation: isPlaying ? "notePulse 1.2s ease-in-out infinite" : "none",
                   transition: "all 0.3s ease",
-                  cursor: "pointer",
+                  cursor: isCurrentUserHost ? "pointer" : "default",
+                  opacity: isCurrentUserHost ? 1 : 0.7,
                 }}
                 onMouseEnter={(e) => {
                   if (!isPlaying) {

@@ -1113,7 +1113,12 @@ export default function GamePlayPage() {
   useEffect(() => {
     const id = 'youtube-player-host';
     (window as any).onYouTubeIframeAPIReady = () => {
-      if (!document.getElementById(id) || !(window as any).YT?.Player) return;
+      if (!(window as any).YT?.Player) return;
+      const el = document.getElementById(id);
+      if (!el) {
+        setTimeout(() => (window as any).onYouTubeIframeAPIReady?.(), 200);
+        return;
+      }
       try {
         new (window as any).YT.Player(id, {
           width: 560,
@@ -1139,7 +1144,10 @@ export default function GamePlayPage() {
       }
     };
     if ((window as any).YT?.Player) (window as any).onYouTubeIframeAPIReady();
-    if (document.querySelector('script[src*="youtube.com/iframe_api"]')) return;
+    if (document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      setTimeout(() => (window as any).onYouTubeIframeAPIReady?.(), 100);
+      return;
+    }
     const s = document.createElement('script');
     s.src = 'https://www.youtube.com/iframe_api';
     s.async = true;
@@ -1350,10 +1358,12 @@ export default function GamePlayPage() {
           setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
           setIsAudioPlaying(true);
           startPlaying();
-          // 로드 완료 후 재생 (너무 빨리 playVideo 하면 "An error occurred" 낼 수 있음)
-          setTimeout(() => {
-            try { (player as any).playVideo?.(); } catch (_) {}
-          }, 800);
+          // 사용자 제스처 직후에 playVideo 호출 (지연 길면 브라우저가 자동재생 차단)
+          const tryPlay = () => { try { (player as any).playVideo?.(); } catch (_) {} };
+          tryPlay();
+          setTimeout(tryPlay, 150);
+          setTimeout(tryPlay, 500);
+          setTimeout(tryPlay, 1000);
         } else {
           // videoId 없음(=검색 링크만 있음) → 실제 재생 불가, 가사만 시뮬레이션
           fallbackSimulatePlay();
