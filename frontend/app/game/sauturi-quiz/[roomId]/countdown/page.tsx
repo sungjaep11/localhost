@@ -46,39 +46,34 @@ export default function CountdownPage() {
   }, [countdown, router, roomId]);
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        position: "relative",
-      }}
-    >
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
       </div>
-
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+          );
+        })}
+      </div>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem 0.75rem', width: '100%' }}>
       <div
         style={{
           display: "flex",
           width: "100%",
-          maxWidth: "1200px",
           gap: "3rem",
           alignItems: "center",
+          boxSizing: "border-box",
         }}
       >
         {/* 왼쪽 - 카운트다운 */}
@@ -121,13 +116,15 @@ export default function CountdownPage() {
           </div>
         </div>
 
-        {/* 오른쪽 - 참가자들 */}
+        {/* 오른쪽 - 대기방(참가자들), 칸 늘림 */}
         <div
           style={{
             flex: 1,
+            marginRight: "96px",
+            maxWidth: "420px",
             display: "flex",
             flexDirection: "column",
-            gap: "1.5rem",
+            gap: "1.75rem",
           }}
         >
           {players.map((player) => (
@@ -137,11 +134,11 @@ export default function CountdownPage() {
                 background: "rgba(0, 0, 0, 0.6)",
                 backdropFilter: "blur(10px)",
                 border: "2px solid rgba(0, 255, 255, 0.5)",
-                borderRadius: "16px",
-                padding: "1rem 1.5rem",
+                borderRadius: "18px",
+                padding: "1.25rem 1.75rem",
                 display: "flex",
                 alignItems: "center",
-                gap: "1rem",
+                gap: "1.25rem",
                 position: "relative",
               }}
             >
@@ -150,20 +147,20 @@ export default function CountdownPage() {
                 <div
                   style={{
                     position: "absolute",
-                    top: "-8px",
-                    left: "1rem",
+                    top: "-10px",
+                    left: "1.25rem",
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
                     background: "rgba(255, 215, 0, 0.9)",
-                    padding: "0.25rem 0.75rem",
+                    padding: "0.35rem 0.9rem",
                     borderRadius: "20px",
                     color: "#000",
-                    fontSize: "0.85rem",
+                    fontSize: "0.9rem",
                     fontWeight: 700,
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                   </svg>
                   방장
@@ -173,29 +170,23 @@ export default function CountdownPage() {
               {/* 캐릭터 아이콘 */}
               <div
                 style={{
-                  width: "60px",
-                  height: "60px",
+                  width: "76px",
+                  height: "76px",
                   background: "rgba(0, 255, 255, 0.1)",
-                  borderRadius: "12px",
+                  borderRadius: "14px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   border: "1px solid rgba(0, 255, 255, 0.3)",
                 }}
               >
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
 
               {/* 이름 */}
-              <div
-                style={{
-                  color: "#ffffff",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                }}
-              >
+              <div style={{ color: "#ffffff", fontSize: "1.1rem", fontWeight: 600 }}>
                 {player.name}
               </div>
             </div>
@@ -215,6 +206,7 @@ export default function CountdownPage() {
           }
         }
       `}</style>
+      </div>
     </main>
   );
 }

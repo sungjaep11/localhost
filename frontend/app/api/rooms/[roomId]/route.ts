@@ -78,24 +78,16 @@ export async function DELETE(
 
     if (error.name === "AbortError") {
       return NextResponse.json(
-        {
-          success: false,
-          error: "요청 시간이 초과되었습니다. 백엔드 서버가 응답하지 않습니다.",
-        },
+        { success: false, error: "요청 시간이 초과되었습니다. 백엔드 서버가 응답하지 않습니다." },
         { status: 503 }
       );
     }
-
     if (error.name === "TypeError" && error.message?.includes("fetch")) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.",
-        },
+        { success: false, error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요." },
         { status: 503 }
       );
     }
-
     return NextResponse.json(
       { success: false, error: error.message || "방 삭제에 실패했습니다." },
       { status: 500 }

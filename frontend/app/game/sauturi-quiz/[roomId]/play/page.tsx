@@ -48,10 +48,14 @@ interface Room {
   createdAt: number;
 }
 
-// 3D 모델 컴포넌트
-function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
+// 표시용만 사용 — (1) 붙은 저장값을 비(1) 경로로
+const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
+
+// 3D 모델 컴포넌트 — (1) 없는 GLB, 박스 크기에 맞춤
+function Model({ url, scale = 2 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF(url);
+  const loadUrl = (url || '').replace(/ /g, '%20');
+  const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   
@@ -59,27 +63,26 @@ function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
     Object.values(actions).forEach(action => action?.stop());
   }, [actions]);
   
-  // character1은 축이 달라서 다른 position 적용
   const isCharacter1 = url.includes('character1');
-  const positionY = isCharacter1 ? -2.0 : -0.8;
-  
-  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const positionY = isCharacter1 ? -1.2 : -0.6;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
-// 캐릭터 뷰어 컴포넌트
-function CharacterViewer({ characterUrl, size = 150 }: { characterUrl: string; size?: number }) {
+// 캐릭터 뷰어 — 박스(size×size)에 맞게. character1은 프레임 안에 들어오도록 더 작게
+function CharacterViewer({ characterUrl, size = 200 }: { characterUrl: string; size?: number }) {
+  const displayUrl = toDisplayModelUrl(characterUrl);
+  const isChar1 = displayUrl.includes('character1');
+  const scale = isChar1 ? (size > 250 ? 1.6 : 1.2) : (size > 250 ? 2.4 : 1.8);
+  const camZ = size > 250 ? 4 : 3.5;
   return (
-    <div style={{ width: size, height: size }}>
-      <Canvas camera={{ position: [0, 1, 4], fov: 50 }}>
+    <div style={{ width: size, height: size, overflow: "hidden" }}>
+      <Canvas camera={{ position: [0, 0.2, camZ], fov: 50 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <Model url={characterUrl} scale={size > 150 ? 3 : 2} />
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
-        />
+        <Model url={displayUrl} scale={scale} />
+        <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} />
       </Canvas>
     </div>
   );
@@ -112,51 +115,50 @@ export default function GamePlayPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 현재 사용자 정보 및 방 정보 불러오기
+  // 현재 사용자 정보 및 방 정보 불러오기 (미리보기 시 API 스킵)
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
     if (userId) setCurrentUserId(userId);
     if (userName) setCurrentUserName(userName);
 
-    // 방 정보 불러오기 (API에서 가져오기)
-    const fetchRoomInfo = async () => {
-      try {
-        const res = await fetch(`/api/games/rooms?page=1&pageSize=100`, {
-          headers: {
-            'x-user-id': userId || '',
-          },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const currentRoom = data.rooms?.find((r: any) => r.id === roomId);
-          if (currentRoom) {
-            setTotalRounds((currentRoom.options as any)?.rounds || 4);
-            setSongsPerRound((currentRoom.options as any)?.songsPerRound || 5);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load room info', e);
-        // 폴백: localStorage에서 가져오기
-        const STORAGE_KEY = 'sauturi-quiz-rooms';
-        const storedRooms = localStorage.getItem(STORAGE_KEY);
-        if (storedRooms) {
-          try {
-            const rooms: Room[] = JSON.parse(storedRooms);
-            const currentRoom = rooms.find(r => r.id === roomId);
+    if (roomId === 'preview-room') {
+      setTotalRounds(4);
+      setSongsPerRound(1);
+    } else {
+      // 방 정보 불러오기 (API에서 가져오기)
+      const fetchRoomInfo = async () => {
+        try {
+          const res = await fetch(`/api/games/rooms?page=1&pageSize=100`, {
+            headers: { 'x-user-id': userId || '' },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const currentRoom = data.rooms?.find((r: any) => r.id === roomId);
             if (currentRoom) {
-              setTotalRounds(currentRoom.rounds);
-              setSongsPerRound(currentRoom.songsPerRound);
+              setTotalRounds((currentRoom.options as any)?.rounds || 4);
+              setSongsPerRound((currentRoom.options as any)?.songsPerRound || 5);
             }
-          } catch (err) {
-            console.error('Failed to parse stored rooms', err);
+          }
+        } catch (e) {
+          console.error('Failed to load room info', e);
+          const STORAGE_KEY = 'sauturi-quiz-rooms';
+          const storedRooms = localStorage.getItem(STORAGE_KEY);
+          if (storedRooms) {
+            try {
+              const rooms: Room[] = JSON.parse(storedRooms);
+              const currentRoom = rooms.find(r => r.id === roomId);
+              if (currentRoom) {
+                setTotalRounds(currentRoom.rounds);
+                setSongsPerRound(currentRoom.songsPerRound);
+              }
+            } catch (err) {
+              console.error('Failed to parse stored rooms', err);
+            }
           }
         }
-      }
-    };
-
-    if (userId) {
-      fetchRoomInfo();
+      };
+      if (userId) fetchRoomInfo();
     }
 
     // 플레이어 목록 불러오기 (localStorage에서)
@@ -166,12 +168,10 @@ export default function GamePlayPage() {
       if (storedPlayers) {
         try {
           const parsedPlayers = JSON.parse(storedPlayers);
-          const playersWithScore = parsedPlayers.map((p: Player) => ({
-            ...p,
-            score: p.score || 0,
-            character: p.character || p.characterUrl || '/character1.glb',
-            characterUrl: p.characterUrl || p.character || '/character1.glb',
-          }));
+          const playersWithScore = parsedPlayers.map((p: Player) => {
+            const url = toDisplayModelUrl(p.character || p.characterUrl || '/character1.glb');
+            return { ...p, score: p.score || 0, character: url, characterUrl: url };
+          });
           setPlayers(playersWithScore);
         } catch (e) {
           console.error('Failed to parse players', e);
@@ -191,9 +191,9 @@ export default function GamePlayPage() {
   // 중복 조인 방지용 ref
   const hasJoinedRef = useRef(false);
 
-  // 1. 소켓 이벤트 리스너 등록
+  // 1. 소켓 이벤트 리스너 등록 (미리보기 시 스킵)
   useEffect(() => {
-    if (!socket || !roomId) return;
+    if (roomId === 'preview-room' || !socket || !roomId) return;
 
     // 플레이어 목록 업데이트 리스너
     const handlePlayersUpdate = (data: { 
@@ -207,13 +207,14 @@ export default function GamePlayPage() {
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
           
+          const displayUrl = toDisplayModelUrl(equippedCharacter || '/character1.glb');
           return {
             id: player.id,
             name: player.name,
             isHost: player.isHost,
             score: 0,
-            character: equippedCharacter || '/character1.glb',
-            characterUrl: equippedCharacter || '/character1.glb',
+            character: displayUrl,
+            characterUrl: displayUrl,
             joinedAt: player.joinedAt,
           };
         });
@@ -271,16 +272,14 @@ export default function GamePlayPage() {
     };
   }, [socket, roomId]);
 
-  // 2. 방 입장 처리 (퇴장 로직 완전 제거)
+  // 2. 방 입장 처리 (퇴장 로직 완전 제거, 미리보기 시 스킵)
   useEffect(() => {
+    if (roomId === 'preview-room') return;
     if (socket && roomId && currentUserId && !hasJoinedRef.current) {
       console.log('[Play] Joining game room:', roomId);
       socket.emit('game_join', { roomId, userId: currentUserId });
       hasJoinedRef.current = true;
     }
-    
-    // 중요: 여기서 return () => { socket.emit('game_leave') } 를 절대 하지 마세요!
-    // React Strict Mode 때문에 마운트/언마운트가 반복되면서 무한 루프가 생깁니다.
   }, [socket, roomId, currentUserId]);
 
   // -------------------------------------------------------------
@@ -534,31 +533,27 @@ export default function GamePlayPage() {
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        padding: "1.5rem",
-        position: "relative",
-      }}
-    >
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
       </div>
-
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+          );
+        })}
+      </div>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box' }}>
       {/* 나가기 확인 모달 */}
       {showExitModal && (
         <div
@@ -642,27 +637,29 @@ export default function GamePlayPage() {
           zIndex: 10,
         }}
       >
-        <div
+        <button
+          type="button"
           onClick={() => setShowExitModal(true)}
+          aria-label="홈으로"
           style={{
-            color: "#ffffff",
-            fontSize: "1.2rem",
-            fontWeight: 700,
-            textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            background: "none",
+            border: "none",
+            padding: 0,
             cursor: "pointer",
-            transition: "all 0.3s ease",
+            lineHeight: 0,
+            transition: "transform 0.2s ease, filter 0.2s ease",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#00ffff";
-            e.currentTarget.style.textShadow = "0 0 20px rgba(0, 255, 255, 1)";
+            e.currentTarget.style.transform = "scale(1.05)";
+            e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(0, 255, 255, 0.5))";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#ffffff";
-            e.currentTarget.style.textShadow = "0 0 10px rgba(0, 255, 255, 0.8)";
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.filter = "none";
           }}
         >
-          Localhost
-        </div>
+          <img src="/logo2.png" alt="LOCAL HOST" style={{ height: "96px", width: "auto" }} />
+        </button>
         <div
           style={{
             color: "#ffffff",
@@ -683,11 +680,13 @@ export default function GamePlayPage() {
           gap: "1rem",
         }}
       >
-        {/* 왼쪽 - 방장 캐릭터 (크게) */}
+        {/* 왼쪽 - 방장 캐릭터 (크게, 조금 왼쪽으로) */}
         {host && (
           <div
             style={{
-              width: "280px",
+              width: "320px",
+              marginLeft: "-20px",
+              flexShrink: 0,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -717,20 +716,21 @@ export default function GamePlayPage() {
 
             {/* 방장 캐릭터 + 말풍선 */}
             <div style={{ position: "relative" }}>
-              {/* 방장 말풍선 (오른쪽) */}
+              {/* 방장 말풍선 (캐릭터 오른쪽에 배치) */}
               {getPlayerBubble(host.id) && (
                 <div
                   style={{
                     position: "absolute",
-                    top: "60px",
-                    left: "calc(100% - 30px)",
+                    left: "calc(100% - 44px)",
+                    top: "50%",
+                    transform: "translateY(-50%)",
                     background: "rgba(255, 255, 255, 0.95)",
                     padding: "0.75rem 1rem",
                     borderRadius: "16px",
                     borderBottomLeftRadius: "4px",
                     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
                     zIndex: 20,
-                    animation: "fadeInRight 0.3s ease",
+                    animation: "bubbleAppear 0.3s ease",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -741,14 +741,15 @@ export default function GamePlayPage() {
               )}
               <div
                 style={{
-                  width: "220px",
-                  height: "220px",
+                  width: "280px",
+                  height: "280px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  overflow: "visible",
                 }}
               >
-                <CharacterViewer characterUrl={host.character || '/character1.glb'} size={220} />
+                <CharacterViewer characterUrl={host.character || '/character1.glb'} size={280} />
               </div>
             </div>
 
@@ -1003,21 +1004,21 @@ export default function GamePlayPage() {
                 position: "relative",
               }}
             >
-              {/* 말풍선 (오른쪽) */}
+              {/* 말풍선 (캐릭터 오른쪽에 배치) */}
               {getPlayerBubble(player.id) && (
                 <div
                   style={{
                     position: "absolute",
-                    top: "20px",
-                    left: "100%",
-                    marginLeft: "10px",
+                    left: "calc(100% - 34px)",
+                    top: "50%",
+                    transform: "translateY(-50%)",
                     background: "rgba(255, 255, 255, 0.95)",
                     padding: "0.5rem 0.75rem",
                     borderRadius: "12px",
                     borderBottomLeftRadius: "4px",
                     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
                     zIndex: 20,
-                    animation: "fadeInRight 0.3s ease",
+                    animation: "bubbleAppear 0.3s ease",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -1030,11 +1031,11 @@ export default function GamePlayPage() {
               {/* 캐릭터 */}
               <div
                 style={{
-                  width: "130px",
-                  height: "130px",
+                  width: "200px",
+                  height: "200px",
                 }}
               >
-                <CharacterViewer characterUrl={player.character || '/character1.glb'} size={130} />
+                <CharacterViewer characterUrl={player.character || '/character1.glb'} size={200} />
               </div>
 
               {/* 이름과 점수 */}
@@ -1069,19 +1070,21 @@ export default function GamePlayPage() {
           </div>
         </div>
 
-        {/* 오른쪽 - 채팅 패널 */}
-        <div
-          style={{
-            width: "280px",
-            background: "rgba(0, 0, 0, 0.7)",
-            backdropFilter: "blur(15px)",
-            border: "2px solid rgba(0, 255, 255, 0.5)",
-            borderRadius: "16px",
-            display: "flex",
-            flexDirection: "column",
-            maxHeight: "calc(100vh - 120px)",
-          }}
-        >
+        {/* 오른쪽 - 채팅 패널 (조금 왼쪽으로) */}
+        <div style={{ flexShrink: 0, marginLeft: "auto", marginRight: "20px", alignSelf: "stretch", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div
+            style={{
+              width: "280px",
+              flex: 1,
+              minHeight: 0,
+              background: "rgba(0, 0, 0, 0.7)",
+              backdropFilter: "blur(15px)",
+              border: "2px solid rgba(0, 255, 255, 0.5)",
+              borderRadius: "16px",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
           <div
             style={{
               padding: "1rem",
@@ -1097,8 +1100,10 @@ export default function GamePlayPage() {
             ref={chatContainerRef}
             style={{
               flex: 1,
+              minHeight: 0,
               padding: "1rem",
               overflowY: "auto",
+              overflowX: "hidden",
             }}
           >
             {chatMessages.map((msg) => (
@@ -1162,6 +1167,7 @@ export default function GamePlayPage() {
             </button>
           </div>
         </div>
+        </div>
       </div>
 
       <style jsx>{`
@@ -1173,6 +1179,16 @@ export default function GamePlayPage() {
           to {
             opacity: 1;
             transform: translateX(0);
+          }
+        }
+        @keyframes bubbleAppear {
+          from {
+            opacity: 0;
+            transform: translate(-10px, -50%);
+          }
+          to {
+            opacity: 1;
+            transform: translate(0, -50%);
           }
         }
         @keyframes soundPulse {
@@ -1200,6 +1216,7 @@ export default function GamePlayPage() {
           }
         }
       `}</style>
+      </div>
     </main>
   );
 }

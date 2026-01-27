@@ -71,70 +71,48 @@ function toGameSong(s: BackendSong): GameSong {
 // 선착순 점수 (1등부터)
 const RANKING_POINTS = [100, 80, 60, 40, 30];
 
-// 3D 모델 컴포넌트 - React.memo로 감싸서 불필요한 리렌더링 방지
-const Model = memo(({ url, scale = 2.5 }: { url: string; scale?: number }) => {
+// 표시용만 — (1) 붙은 저장값을 비(1) 경로로
+const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
+
+// 3D 모델 — (1) 없는 GLB, 박스 크기에 맞춤
+const Model = memo(({ url, scale = 2 }: { url: string; scale?: number }) => {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF(url);
+  const loadUrl = (url || '').replace(/ /g, '%20');
+  const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   useEffect(() => {
     Object.values(actions).forEach(action => action?.stop());
-    
-    // Cleanup: 애니메이션 정리
-    return () => {
-      Object.values(actions).forEach(action => {
-        if (action) {
-          action.stop();
-          action.reset();
-        }
-      });
-    };
+    return () => { Object.values(actions).forEach(a => { a?.stop(); a?.reset(); }); };
   }, [actions]);
   
-  // character1은 축이 달라서 다른 position 적용
   const isCharacter1 = url.includes('character1');
-  const positionY = isCharacter1 ? -2.0 : -0.8;
-  
-  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
-}, (prevProps, nextProps) => {
-  // Props 비교: url과 scale이 같으면 리렌더링 방지
-  return prevProps.url === nextProps.url && prevProps.scale === nextProps.scale;
-});
+  const positionY = isCharacter1 ? -1.2 : -0.6;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+}, (prev, next) => prev.url === next.url && prev.scale === next.scale);
 
 Model.displayName = 'Model';
 
-// 캐릭터 뷰어 컴포넌트 - React.memo로 감싸서 불필요한 리렌더링 방지
-const CharacterViewer = memo(({ characterUrl, size = 150 }: { characterUrl: string; size?: number }) => {
+// 캐릭터 뷰어 — 박스(size×size)에 맞게 (1) 없는 GLB 표시
+const CharacterViewer = memo(({ characterUrl, size = 200 }: { characterUrl: string; size?: number }) => {
+  const displayUrl = toDisplayModelUrl(characterUrl);
+  const isChar1 = displayUrl.includes('character1');
+  const scale = isChar1 ? (size > 250 ? 1.6 : 1.2) : (size > 250 ? 2.4 : 1.8);
+  const camZ = size > 250 ? 4 : 3.5;
   return (
-    <div style={{ width: size, height: size }}>
-      <Canvas 
-        camera={{ position: [0, 1, 4], fov: 50 }}
-        gl={{ 
-          antialias: true,
-          alpha: false,
-          preserveDrawingBuffer: false,
-          powerPreference: "high-performance"
-        }}
-        dpr={[1, 2]}
-        frameloop="always"
-      >
+    <div style={{ width: size, height: size, overflow: "hidden" }}>
+      <Canvas camera={{ position: [0, 0.2, camZ], fov: 50 }} gl={{ antialias: true, alpha: false }} dpr={[1, 2]} frameloop="always">
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <Model url={characterUrl} scale={size > 150 ? 3 : 2} />
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
-        />
+        <Model url={displayUrl} scale={scale} />
+        <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} />
       </Canvas>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Props 비교: characterUrl과 size가 같으면 리렌더링 방지
-  return prevProps.characterUrl === nextProps.characterUrl && prevProps.size === nextProps.size;
-});
+}, (prev, next) => prev.characterUrl === next.characterUrl && prev.size === next.size);
 
 CharacterViewer.displayName = 'CharacterViewer';
 
@@ -157,21 +135,21 @@ const PlayerCharacter = memo(({
         position: "relative",
       }}
     >
-      {/* 말풍선 (오른쪽) */}
+      {/* 말풍선 (캐릭터 오른쪽에 배치) */}
       {bubbleMessage && (
         <div
           style={{
             position: "absolute",
-            top: "20px",
-            left: "100%",
-            marginLeft: "10px",
+            left: "calc(100% - 34px)",
+            top: "50%",
+            transform: "translateY(-50%)",
             background: "rgba(255, 255, 255, 0.95)",
             padding: "0.5rem 0.75rem",
             borderRadius: "12px",
             borderBottomLeftRadius: "4px",
             boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
             zIndex: 20,
-            animation: "fadeInRight 0.3s ease",
+            animation: "bubbleAppear 0.3s ease",
             whiteSpace: "nowrap",
           }}
         >
@@ -184,11 +162,11 @@ const PlayerCharacter = memo(({
       {/* 캐릭터 */}
       <div
         style={{
-          width: "130px",
-          height: "130px",
+          width: "200px",
+          height: "200px",
         }}
       >
-        <CharacterViewer characterUrl={player.character || '/character1.glb'} size={130} />
+        <CharacterViewer characterUrl={player.character || '/character1.glb'} size={200} />
       </div>
 
       {/* 이름과 점수 */}
@@ -275,7 +253,7 @@ const HostCharacter = memo(({
   return (
     <div
       style={{
-        width: "280px",
+        width: "320px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -304,20 +282,21 @@ const HostCharacter = memo(({
 
       {/* 방장 캐릭터 + 말풍선 */}
       <div style={{ position: "relative" }}>
-        {/* 방장 말풍선 (오른쪽) */}
+        {/* 방장 말풍선 (캐릭터 오른쪽에 배치) */}
         {bubbleMessage && (
           <div
             style={{
               position: "absolute",
-              top: "60px",
-              left: "calc(100% - 30px)",
+              left: "calc(100% - 44px)",
+              top: "50%",
+              transform: "translateY(-50%)",
               background: "rgba(255, 255, 255, 0.95)",
               padding: "0.75rem 1rem",
               borderRadius: "16px",
               borderBottomLeftRadius: "4px",
               boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3)",
               zIndex: 20,
-              animation: "fadeInRight 0.3s ease",
+              animation: "bubbleAppear 0.3s ease",
               whiteSpace: "nowrap",
             }}
           >
@@ -328,14 +307,15 @@ const HostCharacter = memo(({
         )}
         <div
           style={{
-            width: "220px",
-            height: "220px",
+            width: "280px",
+            height: "280px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            overflow: "visible",
           }}
         >
-          <CharacterViewer characterUrl={host.character || '/character1.glb'} size={220} />
+          <CharacterViewer characterUrl={host.character || '/character1.glb'} size={280} />
         </div>
       </div>
 
@@ -488,13 +468,15 @@ const ChatPanel = memo(({
   input, 
   onInputChange, 
   onSend,
-  chatContainerRef 
+  chatContainerRef,
+  fillHeight,
 }: { 
   messages: ChatMessage[];
   input: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
   chatContainerRef: RefObject<HTMLDivElement>;
+  fillHeight?: boolean;
 }) => {
   return (
     <div
@@ -506,7 +488,7 @@ const ChatPanel = memo(({
         borderRadius: "16px",
         display: "flex",
         flexDirection: "column",
-        maxHeight: "calc(100vh - 120px)",
+        ...(fillHeight ? { flex: 1, minHeight: 0 } : { maxHeight: "calc(100vh - 120px)" }),
       }}
     >
       <div
@@ -524,8 +506,10 @@ const ChatPanel = memo(({
         ref={chatContainerRef}
         style={{
           flex: 1,
+          minHeight: 0,
           padding: "1rem",
           overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         {messages.map((msg) => (
@@ -719,11 +703,15 @@ export default function GamePlayPage() {
   // 노래 로드 완료 여부 추적 (중복 호출 방지)
   const songsLoadedRef = useRef(false);
 
-  // 백엔드(seed-songs)에서 노래 목록 로드 후 게임 초기화
+  // 백엔드(seed-songs)에서 노래 목록 로드 후 게임 초기화 (미리보기 모드에서는 스킵)
   useEffect(() => {
-    // 이미 로드했으면 스킵
     if (songsLoadedRef.current) return;
     if (totalRounds <= 0 || songsPerRound <= 0) return;
+    if (roomId === 'preview-room') {
+      setSongsLoading(false);
+      songsLoadedRef.current = true;
+      return;
+    }
 
     let cancelled = false;
     setSongsLoading(true);
@@ -731,16 +719,26 @@ export default function GamePlayPage() {
     (async () => {
       try {
         const res = await fetch('/api/songs');
-        const data = await res.json();
+        let data: any = [];
+        try {
+          data = await res.json();
+        } catch (_) {
+          if (!cancelled) setSongsLoading(false);
+          return;
+        }
         if (cancelled) return;
         if (!res.ok) {
           setSongsLoading(false);
           return;
         }
-        const list = Array.isArray(data) ? data : (data.songs ?? data.data ?? []);
-        const gameSongsList = (list as BackendSong[]).map(toGameSong);
+        const raw = Array.isArray(data) ? data : (data?.songs ?? data?.data ?? []);
+        const list = Array.isArray(raw) ? raw : [];
+        const gameSongsList = list
+          .filter((s): s is BackendSong => s != null && typeof s === 'object' && typeof (s as any).title === 'string')
+          .map(toGameSong)
+          .filter(Boolean);
         setSongsLoading(false);
-        if (gameSongsList.length > 0) {
+        if (!cancelled && gameSongsList.length > 0) {
           songsLoadedRef.current = true; // 로드 완료 표시
           initializeGame(gameSongsList);
         }
@@ -751,7 +749,7 @@ export default function GamePlayPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [totalRounds, songsPerRound, initializeGame]);
+  }, [totalRounds, songsPerRound, initializeGame, roomId]);
 
   // 시간 초과 처리 - useCallback으로 안정화
   const handleTimeUp = useCallback(() => {
@@ -814,9 +812,10 @@ export default function GamePlayPage() {
   // 정답 체크
   const checkAnswer = (message: string): boolean => {
     if (!currentSongData || !isPlaying) return false;
-    
+    const ans = currentSongData.answer;
+    if (!Array.isArray(ans) || ans.length === 0) return false;
     const normalizedMsg = message.toLowerCase().trim();
-    return currentSongData.answer.some(ans => normalizedMsg.includes(ans.toLowerCase()));
+    return ans.some(a => normalizedMsg.includes(String(a).toLowerCase()));
   };
 
   // 점수 부여 (rankOverride: 소켓 콜백 등에서 최신 correctPlayers.length를 넘길 때 사용)
@@ -922,9 +921,9 @@ export default function GamePlayPage() {
   // 🔥 [핵심] 소켓 연결 로직 — cleanup에서 game_leave 절대 호출 금지
   // =============================================================
 
-  // 1. 소켓 이벤트 리스너만 등록 (Join/Leave는 여기서 하지 않음)
+  // 1. 소켓 이벤트 리스너만 등록 (Join/Leave는 여기서 하지 않음, 미리보기 시 스킵)
   useEffect(() => {
-    if (!socket || !roomId) return;
+    if (roomId === 'preview-room' || !socket || !roomId) return;
 
     // 플레이어 목록 업데이트 리스너
     const handlePlayersUpdate = (data: { 
@@ -937,13 +936,14 @@ export default function GamePlayPage() {
           const equippedCharacter = typeof window !== 'undefined' 
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
+          const displayUrl = toDisplayModelUrl(equippedCharacter || '/character1.glb');
           return {
             id: player.id,
             name: player.name,
             isHost: player.isHost,
             score: 0,
-            character: equippedCharacter || '/character1.glb',
-            characterUrl: equippedCharacter || '/character1.glb',
+            character: displayUrl,
+            characterUrl: displayUrl,
             joinedAt: player.joinedAt,
           };
         });
@@ -1000,10 +1000,12 @@ export default function GamePlayPage() {
       // 정답 체크 로직 (gameStateRef 사용)
       const state = gameStateRef.current;
       if (!state.isPlaying || !state.currentSongData) return;
+      const ans = state.currentSongData.answer;
+      if (!Array.isArray(ans) || ans.length === 0) return;
 
       const normalizedMsg = data.message.toLowerCase().trim();
-      const isCorrectAnswer = state.currentSongData.answer.some((ans: string) =>
-        normalizedMsg.includes(ans.toLowerCase())
+      const isCorrectAnswer = ans.some((a: string) =>
+        normalizedMsg.includes(String(a).toLowerCase())
       );
       const alreadyCorrect = state.correctPlayers.includes(data.playerId);
 
@@ -1049,8 +1051,9 @@ export default function GamePlayPage() {
     };
   }, [socket, roomId]);
 
-  // 2. 방 입장 — 최초 1회만 실행 (락 사용), cleanup 없음
+  // 2. 방 입장 — 최초 1회만 실행 (락 사용), cleanup 없음, 미리보기 시 스킵
   useEffect(() => {
+    if (roomId === 'preview-room') return;
     if (!socket || !roomId || !currentUserId) return;
     if (hasJoinedRef.current) return;
     hasJoinedRef.current = true;
@@ -1069,12 +1072,10 @@ export default function GamePlayPage() {
       if (storedPlayers) {
         try {
           const parsedPlayers = JSON.parse(storedPlayers);
-          const playersWithScore = parsedPlayers.map((p: Player) => ({
-            ...p,
-            score: p.score || 0,
-            character: p.character || p.characterUrl || '/character1.glb',
-            characterUrl: p.characterUrl || p.character || '/character1.glb',
-          }));
+          const playersWithScore = parsedPlayers.map((p: Player) => {
+            const url = toDisplayModelUrl(p.character || p.characterUrl || '/character1.glb');
+            return { ...p, score: p.score || 0, character: url, characterUrl: url };
+          });
           // 재입장 시: 소켓에서 아직 안 왔어도 저장된 목록으로 먼저 그리기
           setPlayers((prev) => (prev.length > 0 ? prev : playersWithScore));
         } catch (e) {
@@ -1302,16 +1303,58 @@ export default function GamePlayPage() {
   // ✅ 모든 훅 아래에서만 조건부 return (훅 호출 순서 유지로 #310 방지)
   if (songsLoading) {
     return (
-      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)' }}>
-        <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
+      <main className="lobby-premium-root">
+        <div className="lobby-premium-bg">
+          <div className="lobby-bg-base" />
+          <div className="lobby-city-dense" aria-hidden />
+          <div className="lobby-city-bokeh" aria-hidden />
+          <div className="lobby-city-traffic" aria-hidden />
+          <div className="lobby-interior-overlay" aria-hidden />
+          <div className="lobby-fog" aria-hidden />
+          <div className="lobby-fog-volumetric" aria-hidden />
+          <div className="lobby-floor-reflection" aria-hidden />
+        </div>
+        <div className="lobby-neon-particles" aria-hidden>
+          {[...Array(40)].map((_, i) => {
+            const isPurple = i % 4 === 0;
+            const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+            return (
+              <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+            );
+          })}
+        </div>
+        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
+        </div>
       </main>
     );
   }
   if (!songsLoading && gameSongs.length === 0 && totalRounds > 0) {
     return (
-      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ color: '#ff6b6b', fontSize: '1.1rem' }}>노래를 불러올 수 없습니다. 시드 데이터를 먼저 넣어 주세요.</div>
-        <button onClick={() => router.push('/game/song-guess')} style={{ padding: '0.75rem 1.5rem', background: 'rgba(0,255,255,0.3)', border: '2px solid #00ffff', borderRadius: 8, color: '#00ffff', cursor: 'pointer' }}>방 목록으로</button>
+      <main className="lobby-premium-root">
+        <div className="lobby-premium-bg">
+          <div className="lobby-bg-base" />
+          <div className="lobby-city-dense" aria-hidden />
+          <div className="lobby-city-bokeh" aria-hidden />
+          <div className="lobby-city-traffic" aria-hidden />
+          <div className="lobby-interior-overlay" aria-hidden />
+          <div className="lobby-fog" aria-hidden />
+          <div className="lobby-fog-volumetric" aria-hidden />
+          <div className="lobby-floor-reflection" aria-hidden />
+        </div>
+        <div className="lobby-neon-particles" aria-hidden>
+          {[...Array(40)].map((_, i) => {
+            const isPurple = i % 4 === 0;
+            const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+            return (
+              <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+            );
+          })}
+        </div>
+        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ color: '#ff6b6b', fontSize: '1.1rem' }}>노래를 불러올 수 없습니다. 시드 데이터를 먼저 넣어 주세요.</div>
+          <button onClick={() => router.push('/game/song-guess')} style={{ padding: '0.75rem 1.5rem', background: 'rgba(0,255,255,0.3)', border: '2px solid #00ffff', borderRadius: 8, color: '#00ffff', cursor: 'pointer' }}>방 목록으로</button>
+        </div>
       </main>
     );
   }
@@ -1332,7 +1375,7 @@ export default function GamePlayPage() {
         if (videoId && typeof (player as any).loadVideoById === 'function') {
           (player as any).loadVideoById(videoId);
           (player as any).playVideo();
-          setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
+          setLyrics(currentSongData ? `${currentSongData.title ?? ''} - ${currentSongData.artist ?? ''}` : '');
           setIsAudioPlaying(true);
           startPlaying();
         } else {
@@ -1349,7 +1392,7 @@ export default function GamePlayPage() {
   };
 
   function fallbackSimulatePlay() {
-    const exampleLyrics = currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '노래를 재생합니다';
+    const exampleLyrics = currentSongData ? `${currentSongData.title ?? ''} - ${currentSongData.artist ?? ''}` : '노래를 재생합니다';
     setLyrics(exampleLyrics);
     setTotalDuration(5);
     setCurrentTime(0);
@@ -1396,38 +1439,44 @@ export default function GamePlayPage() {
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        padding: "1.5rem",
-        position: "relative",
-      }}
-    >
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
+      </div>
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div
+              key={i}
+              className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`}
+              style={{
+                left: `${8 + (i % 10) * 8}%`,
+                top: `${8 + (Math.floor(i / 10) % 4) * 22}%`,
+                animationDelay: `${(i * 0.4) % 8}s`,
+                animationDuration: `${10 + (i % 5)}s`,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box' }}>
       {/* YouTube iframe API용 플레이어 컨테이너 (화면 밖에 배치해 재생만 사용) */}
       <div
         id="youtube-player-host"
         ref={youtubeContainerRef}
         style={{ position: 'absolute', left: -9999, top: 0, width: 320, height: 180, overflow: 'hidden' }}
       />
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
-      </div>
 
-      {/* 정답 공개 모달 */}
+      {/* 정답 공개 모달 — 홀로그램 스타일 */}
       {showAnswerModal && (
         <div
           style={{
@@ -1436,7 +1485,9 @@ export default function GamePlayPage() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0, 0, 0, 0.85)",
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1445,48 +1496,58 @@ export default function GamePlayPage() {
         >
           <div
             style={{
-              background: "rgba(20, 20, 40, 0.95)",
-              border: "3px solid rgba(255, 215, 0, 0.8)",
-              borderRadius: "20px",
-              padding: "2.5rem",
-              maxWidth: "500px",
+              position: "relative",
+              maxWidth: "520px",
+              width: "90%",
+              padding: "2rem 2.5rem",
               textAlign: "center",
-              animation: "modalPop 0.3s ease",
+              animation: "holoModalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              background: "linear-gradient(160deg, rgba(0, 255, 255, 0.06) 0%, rgba(8, 12, 28, 0.92) 35%, rgba(4, 8, 20, 0.96) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(0, 255, 255, 0.45)",
+              borderRadius: "20px",
+              boxShadow: "0 0 0 1px rgba(100, 80, 255, 0.2), 0 0 48px rgba(0, 255, 255, 0.18), inset 0 0 60px rgba(0, 255, 255, 0.04)",
             }}
           >
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎵</div>
-            <h2
+            {/* 상단 라벨 */}
+            <div style={{ fontSize: "0.85rem", letterSpacing: "0.2em", color: "rgba(0, 255, 255, 0.9)", marginBottom: "1rem", textTransform: "uppercase" }}>
+              정답 공개
+            </div>
+
+            {/* 정답 강조 영역 — 제목·아티스트 잘 보이게 */}
+            <div
               style={{
-                color: "#ffd700",
-                fontSize: "1.8rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              정답은...
-            </h2>
-            <h1
-              style={{
-                color: "#ffffff",
-                fontSize: "2rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              {currentSongData?.title}
-            </h1>
-            <p
-              style={{
-                color: "rgba(255, 255, 255, 0.7)",
-                fontSize: "1.2rem",
                 marginBottom: "1.5rem",
+                padding: "1.5rem 1.25rem",
+                background: "rgba(0, 255, 255, 0.06)",
+                border: "1px solid rgba(0, 255, 255, 0.35)",
+                borderRadius: "14px",
+                boxShadow: "0 0 24px rgba(0, 255, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
               }}
             >
-              {currentSongData?.artist}
-            </p>
-            
+              <p style={{ color: "rgba(0, 255, 255, 0.75)", fontSize: "0.8rem", marginBottom: "0.5rem", letterSpacing: "0.15em" }}>ANSWER</p>
+              <h1
+                style={{
+                  color: "#ffffff",
+                  fontSize: "clamp(1.5rem, 4vw, 2.2rem)",
+                  fontWeight: 800,
+                  margin: "0 0 0.4rem 0",
+                  lineHeight: 1.25,
+                  textShadow: "0 0 20px rgba(0, 255, 255, 0.5), 0 2px 8px rgba(0,0,0,0.8)",
+                }}
+              >
+                {currentSongData?.title}
+              </h1>
+              <p style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: "1.15rem", margin: 0, fontWeight: 500 }}>
+                {currentSongData?.artist}
+              </p>
+            </div>
+
             {/* 이번 곡 정답자 */}
             {correctPlayers.length > 0 && (
               <div style={{ marginBottom: "1.5rem" }}>
-                <p style={{ color: "#00ffff", marginBottom: "0.5rem" }}>정답자:</p>
+                <p style={{ color: "rgba(0, 255, 255, 0.9)", fontSize: "0.85rem", marginBottom: "0.6rem", letterSpacing: "0.1em" }}>정답자</p>
                 <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
                   {correctPlayers.map((playerId, idx) => {
                     const player = players.find(p => p.id === playerId);
@@ -1494,12 +1555,14 @@ export default function GamePlayPage() {
                       <span
                         key={playerId}
                         style={{
-                          background: idx === 0 ? "rgba(255, 215, 0, 0.3)" : "rgba(0, 255, 255, 0.2)",
-                          border: `1px solid ${idx === 0 ? "rgba(255, 215, 0, 0.8)" : "rgba(0, 255, 255, 0.5)"}`,
-                          borderRadius: "20px",
-                          padding: "0.3rem 0.8rem",
+                          background: idx === 0 ? "rgba(255, 215, 0, 0.15)" : "rgba(0, 255, 255, 0.08)",
+                          border: `1px solid ${idx === 0 ? "rgba(255, 215, 0, 0.6)" : "rgba(0, 255, 255, 0.4)"}`,
+                          borderRadius: "999px",
+                          padding: "0.35rem 1rem",
                           color: idx === 0 ? "#ffd700" : "#00ffff",
                           fontSize: "0.9rem",
+                          fontWeight: 600,
+                          boxShadow: idx === 0 ? "0 0 12px rgba(255, 215, 0, 0.2)" : "0 0 8px rgba(0, 255, 255, 0.15)",
                         }}
                       >
                         {idx + 1}등 {player?.name}
@@ -1512,16 +1575,18 @@ export default function GamePlayPage() {
 
             <button
               onClick={goToNextSong}
+              className="holo-answer-btn"
               style={{
-                padding: "1rem 2.5rem",
-                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
-                border: "2px solid rgba(0, 255, 255, 0.8)",
+                padding: "0.9rem 2.2rem",
+                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 200, 220, 0.15))",
+                border: "1px solid rgba(0, 255, 255, 0.6)",
                 borderRadius: "12px",
                 color: "#00ffff",
-                fontSize: "1.1rem",
+                fontSize: "1rem",
                 fontWeight: 700,
                 cursor: "pointer",
-                transition: "all 0.3s ease",
+                transition: "all 0.25s ease",
+                boxShadow: "0 0 20px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
               }}
             >
               {currentSong >= songsPerRound 
@@ -1533,7 +1598,7 @@ export default function GamePlayPage() {
         </div>
       )}
 
-      {/* 라운드 종료 모달 */}
+      {/* 라운드 종료 모달 — 홀로그램 스타일 */}
       {showRoundEndModal && (
         <div
           style={{
@@ -1542,7 +1607,9 @@ export default function GamePlayPage() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0, 0, 0, 0.85)",
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1551,24 +1618,24 @@ export default function GamePlayPage() {
         >
           <div
             style={{
-              background: "rgba(20, 20, 40, 0.95)",
-              border: "3px solid rgba(0, 255, 255, 0.8)",
-              borderRadius: "20px",
-              padding: "2.5rem",
-              maxWidth: "500px",
+              position: "relative",
+              maxWidth: "480px",
+              width: "90%",
+              padding: "2rem 2.5rem",
               textAlign: "center",
-              animation: "modalPop 0.3s ease",
+              animation: "holoModalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              background: "linear-gradient(160deg, rgba(0, 255, 255, 0.06) 0%, rgba(8, 12, 28, 0.92) 35%, rgba(4, 8, 20, 0.96) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(0, 255, 255, 0.45)",
+              borderRadius: "20px",
+              boxShadow: "0 0 0 1px rgba(100, 80, 255, 0.2), 0 0 48px rgba(0, 255, 255, 0.18), inset 0 0 60px rgba(0, 255, 255, 0.04)",
             }}
           >
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🏆</div>
-            <h2
-              style={{
-                color: "#00ffff",
-                fontSize: "1.8rem",
-                marginBottom: "1rem",
-              }}
-            >
-              Round {currentRound} 종료!
+            <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>🏆</div>
+            <div style={{ fontSize: "0.85rem", letterSpacing: "0.2em", color: "rgba(0, 255, 255, 0.9)", marginBottom: "0.5rem" }}>ROUND {currentRound}</div>
+            <h2 style={{ color: "#00ffff", fontSize: "1.5rem", marginBottom: "1.25rem", fontWeight: 700 }}>
+              종료!
             </h2>
             
             {/* 현재 순위 */}
@@ -1583,13 +1650,15 @@ export default function GamePlayPage() {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      padding: "0.5rem 1rem",
+                      padding: "0.6rem 1rem",
                       marginBottom: "0.5rem",
-                      background: idx === 0 ? "rgba(255, 215, 0, 0.2)" : "rgba(255, 255, 255, 0.1)",
-                      borderRadius: "8px",
+                      background: idx === 0 ? "rgba(255, 215, 0, 0.12)" : "rgba(0, 255, 255, 0.06)",
+                      border: `1px solid ${idx === 0 ? "rgba(255, 215, 0, 0.5)" : "rgba(0, 255, 255, 0.3)"}`,
+                      borderRadius: "10px",
+                      boxShadow: idx === 0 ? "0 0 12px rgba(255, 215, 0, 0.15)" : "0 0 8px rgba(0, 255, 255, 0.08)",
                     }}
                   >
-                    <span style={{ color: idx === 0 ? "#ffd700" : "#ffffff" }}>
+                    <span style={{ color: idx === 0 ? "#ffd700" : "#ffffff", fontWeight: 600 }}>
                       {idx + 1}등 {player.name}
                     </span>
                     <span style={{ color: "#00ffff", fontWeight: 700 }}>
@@ -1602,15 +1671,16 @@ export default function GamePlayPage() {
             <button
               onClick={startNextRound}
               style={{
-                padding: "1rem 2.5rem",
-                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
-                border: "2px solid rgba(0, 255, 255, 0.8)",
+                padding: "0.9rem 2.2rem",
+                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 200, 220, 0.15))",
+                border: "1px solid rgba(0, 255, 255, 0.6)",
                 borderRadius: "12px",
                 color: "#00ffff",
-                fontSize: "1.1rem",
+                fontSize: "1rem",
                 fontWeight: 700,
                 cursor: "pointer",
-                transition: "all 0.3s ease",
+                transition: "all 0.25s ease",
+                boxShadow: "0 0 20px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
               }}
             >
               Round {currentRound + 1} 시작!
@@ -1707,27 +1777,29 @@ export default function GamePlayPage() {
           zIndex: 10,
         }}
       >
-        <div
+        <button
+          type="button"
           onClick={() => setShowExitModal(true)}
+          aria-label="홈으로"
           style={{
-            color: "#ffffff",
-            fontSize: "1.2rem",
-            fontWeight: 700,
-            textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            background: "none",
+            border: "none",
+            padding: 0,
             cursor: "pointer",
-            transition: "all 0.3s ease",
+            lineHeight: 0,
+            transition: "transform 0.2s ease, filter 0.2s ease",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#00ffff";
-            e.currentTarget.style.textShadow = "0 0 20px rgba(0, 255, 255, 1)";
+            e.currentTarget.style.transform = "scale(1.05)";
+            e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(0, 255, 255, 0.5))";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#ffffff";
-            e.currentTarget.style.textShadow = "0 0 10px rgba(0, 255, 255, 0.8)";
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.filter = "none";
           }}
         >
-          Localhost
-        </div>
+          <img src="/logo2.png" alt="LOCAL HOST" style={{ height: "96px", width: "auto" }} />
+        </button>
 
         {/* 타이머 + 라운드 정보 */}
         <div
@@ -1790,8 +1862,9 @@ export default function GamePlayPage() {
           gap: "1rem",
         }}
       >
-        {/* 왼쪽 - 방장 캐릭터 (크게) */}
+        {/* 왼쪽 - 방장 캐릭터 (크게, 조금 왼쪽으로) */}
         {host && (
+          <div style={{ marginLeft: "-20px", flexShrink: 0 }}>
           <HostCharacter
             host={host}
             bubbleMessage={getPlayerBubble(host.id)}
@@ -1817,6 +1890,7 @@ export default function GamePlayPage() {
             }}
             isCurrentUserHost={host?.id === currentUserId}
           />
+          </div>
         )}
 
         {/* 중앙 - 다른 플레이어들 캐릭터 + 가사 표시 */}
@@ -1962,14 +2036,17 @@ export default function GamePlayPage() {
           </div>
         </div>
 
-        {/* 오른쪽 - 채팅 패널 */}
-        <ChatPanel
-          messages={chatMessages}
-          input={chatInput}
-          onInputChange={setChatInput}
-          onSend={sendChat}
-          chatContainerRef={chatContainerRef as RefObject<HTMLDivElement>}
-        />
+        {/* 오른쪽 - 채팅 패널 (조금 왼쪽으로) */}
+        <div style={{ flexShrink: 0, marginLeft: "auto", marginRight: "20px", alignSelf: "stretch", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <ChatPanel
+            messages={chatMessages}
+            input={chatInput}
+            onInputChange={setChatInput}
+            onSend={sendChat}
+            chatContainerRef={chatContainerRef as RefObject<HTMLDivElement>}
+            fillHeight
+          />
+        </div>
       </div>
 
       <style jsx>{`
@@ -1983,6 +2060,16 @@ export default function GamePlayPage() {
             transform: translateX(0);
           }
         }
+        @keyframes bubbleAppear {
+          from {
+            opacity: 0;
+            transform: translate(-10px, -50%);
+          }
+          to {
+            opacity: 1;
+            transform: translate(0, -50%);
+          }
+        }
         @keyframes modalPop {
           from {
             opacity: 0;
@@ -1991,6 +2078,16 @@ export default function GamePlayPage() {
           to {
             opacity: 1;
             transform: scale(1);
+          }
+        }
+        @keyframes holoModalPop {
+          from {
+            opacity: 0;
+            transform: scale(0.88) translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
           }
         }
         @keyframes pulse {
@@ -2027,7 +2124,12 @@ export default function GamePlayPage() {
             filter: drop-shadow(0 0 40px rgba(100, 200, 255, 1)) drop-shadow(0 0 80px rgba(100, 200, 255, 0.6));
           }
         }
+        .holo-answer-btn:hover {
+          box-shadow: 0 0 28px rgba(0, 255, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+          transform: translateY(-1px);
+        }
       `}</style>
+      </div>
     </main>
   );
 }

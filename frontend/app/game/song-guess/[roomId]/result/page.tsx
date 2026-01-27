@@ -15,38 +15,35 @@ interface PlayerResult {
   rank: number;
 }
 
-// 3D 모델 컴포넌트
-function Model({ url, scale = 2.5 }: { url: string; scale?: number }) {
+const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
+
+// 3D 모델 — (1) 없는 GLB, 박스에 맞춤
+function Model({ url, scale = 1.8 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF(url);
+  const loadUrl = (url || '').replace(/ /g, '%20');
+  const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
-  
-  useEffect(() => {
-    Object.values(actions).forEach(action => action?.stop());
-  }, [actions]);
-  
-  // character1은 축이 달라서 다른 position 적용
+  useEffect(() => { Object.values(actions).forEach(a => a?.stop()); }, [actions]);
   const isCharacter1 = url.includes('character1');
-  const positionY = isCharacter1 ? -2.0 : -0.8;
-  
-  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const positionY = isCharacter1 ? -1.0 : -0.5;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
-// 캐릭터 뷰어 컴포넌트
 function CharacterViewer({ characterUrl, size = 150 }: { characterUrl: string; size?: number }) {
+  const displayUrl = toDisplayModelUrl(characterUrl);
+  const isChar1 = displayUrl.includes('character1');
+  const scale = isChar1 ? (size > 150 ? 1.4 : 1.0) : (size > 150 ? 2.2 : 1.6);
+  const camZ = size > 150 ? 3.5 : 3.2;
   return (
-    <div style={{ width: size, height: size }}>
-      <Canvas camera={{ position: [0, 1, 4], fov: 50 }}>
+    <div style={{ width: size, height: size, overflow: "hidden" }}>
+      <Canvas camera={{ position: [0, 0.2, camZ], fov: 50 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <Model url={characterUrl} scale={size > 150 ? 3 : 2} />
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
-        />
+        <Model url={displayUrl} scale={scale} />
+        <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} />
       </Canvas>
     </div>
   );
@@ -108,7 +105,7 @@ export default function GameResultPage() {
           setMyResult(myRes);
           
           // 코인 지급
-          const currentCoins = parseInt(localStorage.getItem(`userCoins-${userId}`) || '1000', 10);
+          const currentCoins = parseInt(localStorage.getItem(`userCoins-${userId}`) || '3000', 10);
           const newCoins = currentCoins + myRes.coinEarned;
           localStorage.setItem(`userCoins-${userId}`, newCoins.toString());
         }
@@ -134,32 +131,36 @@ export default function GameResultPage() {
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "2rem",
-        position: "relative",
-      }}
-    >
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
       </div>
-
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div
+              key={i}
+              className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`}
+              style={{
+                left: `${8 + (i % 10) * 8}%`,
+                top: `${8 + (Math.floor(i / 10) % 4) * 22}%`,
+                animationDelay: `${(i * 0.4) % 8}s`,
+                animationDuration: `${10 + (i % 5)}s`,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box' }}>
       {/* 헤더 */}
       <h1
         style={{
@@ -262,8 +263,8 @@ export default function GameResultPage() {
       <div
         style={{
           width: "100%",
-          maxWidth: "900px",
           flex: 1,
+          boxSizing: "border-box",
           overflowY: "auto",
           marginBottom: "1.5rem",
         }}
@@ -529,6 +530,7 @@ export default function GameResultPage() {
           }
         }
       `}</style>
+      </div>
     </main>
   );
 }

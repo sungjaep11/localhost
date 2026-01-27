@@ -17,29 +17,26 @@ interface Player {
 
 const STORAGE_KEY = 'song-guess-rooms';
 
-// 3D 모델 컴포넌트
+// 3D 모델 — character1은 프레임 안에 들어오도록 더 작게
 function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF(url);
+  const loadUrl = (url || '').replace(/ /g, '%20');
+  const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
-  
-  useEffect(() => {
-    Object.values(actions).forEach(action => action?.stop());
-  }, [actions]);
-  
-  // character1은 축이 달라서 다른 position 적용
+  useEffect(() => { Object.values(actions).forEach(a => a?.stop()); }, [actions]);
   const isCharacter1 = url.includes('character1');
-  const positionY = isCharacter1 ? -1.8 : -0.5;
-  
-  return <primitive ref={group} object={clonedScene} scale={2.5} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const positionY = isCharacter1 ? -0.8 : -0.5;
+  const scale = isCharacter1 ? 1.5 : 2.1;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
 // 캐릭터 뷰어 컴포넌트
 function CharacterViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
-      <Canvas camera={{ position: [0, 1.5, 4], fov: 50 }}>
+      <Canvas camera={{ position: [0, 1.5, 3.2], fov: 50 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
@@ -48,12 +45,14 @@ function CharacterViewer({ modelUrl }: { modelUrl: string }) {
           autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={false}
+          enableRotate={true}
         />
       </Canvas>
     </div>
   );
 }
+
+const PREVIEW_ROOM_ID = 'preview-room';
 
 export default function WaitingRoomPage() {
   const router = useRouter();
@@ -62,13 +61,32 @@ export default function WaitingRoomPage() {
   const { socket } = useSocket();
   const [players, setPlayers] = useState<Player[]>([]);
   const [isHost, setIsHost] = useState(false);
+  const isPreview = roomId === PREVIEW_ROOM_ID;
 
   // 현재 사용자 정보 - useState로 관리하여 무한 렌더 방지
   const [currentUserId, setCurrentUserId] = useState<string>('');
   
   // 중복 조인 방지용 ref
   const hasJoinedRef = useRef(false);
-  
+
+  // 미리보기 모드: 현재 로그인 사용자를 방장으로 넣어서 게임 시작 가능
+  useEffect(() => {
+    if (!isPreview || typeof window === 'undefined') return;
+    const userId = localStorage.getItem('userId') || 'preview';
+    const userName = localStorage.getItem('userName') || '미리보기';
+    const char = toDisplayModelUrl(localStorage.getItem(`equipped-character-${userId}`) || '/character1.glb');
+    const me: Player = { id: userId, name: userName, isHost: true, characterUrl: char };
+    setPlayers([me]);
+    setIsHost(true);
+    hasJoinedRef.current = true;
+    try {
+      localStorage.setItem(
+        `song-guess-room-${PREVIEW_ROOM_ID}-players`,
+        JSON.stringify([{ id: userId, name: userName, isHost: true, character: char, score: 0 }])
+      );
+    } catch (_) {}
+  }, [isPreview]);
+
   // 컴포넌트 마운트 시 한 번만 userId 로드
   useEffect(() => {
     const userId = localStorage.getItem('userId') || '';
@@ -79,9 +97,9 @@ export default function WaitingRoomPage() {
   // [수정된 부분] 소켓 연결 로직 (무한 루프 방지 버전)
   // -------------------------------------------------------------
 
-  // 1. 소켓 이벤트 리스너 등록
+  // 1. 소켓 이벤트 리스너 등록 (미리보기 시 스킵)
   useEffect(() => {
-    if (!socket || !roomId) return;
+    if (isPreview || !socket || !roomId) return;
 
     // 플레이어 목록 업데이트 리스너
     const handlePlayersUpdate = (data: { 
@@ -94,7 +112,7 @@ export default function WaitingRoomPage() {
           const equippedCharacter = typeof window !== 'undefined' 
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
-          const url = equippedCharacter || '/character1.glb';
+          const url = toDisplayModelUrl(equippedCharacter || '/character1.glb');
           return {
             id: player.id,
             name: player.name,
@@ -155,59 +173,59 @@ export default function WaitingRoomPage() {
     };
   }, [socket, roomId, currentUserId, router]);
 
-  // 2. 방 입장 처리 (퇴장 로직 완전 제거)
+  // 2. 방 입장 처리 (퇴장 로직 완전 제거, 미리보기 시 스킵)
   useEffect(() => {
+    if (isPreview) return;
     if (socket && roomId && currentUserId && !hasJoinedRef.current) {
       console.log('[WaitingRoom] Joining game room:', roomId);
       socket.emit('game_join', { roomId, userId: currentUserId });
       hasJoinedRef.current = true;
     }
-    
-    // 중요: 여기서 return () => { socket.emit('game_leave') } 를 절대 하지 마세요!
-    // React Strict Mode 때문에 마운트/언마운트가 반복되면서 무한 루프가 생깁니다.
-  }, [socket, roomId, currentUserId]);
+  }, [isPreview, socket, roomId, currentUserId]);
 
   // -------------------------------------------------------------
 
   const handleStart = () => {
+    if (isPreview) {
+      router.push(`/game/song-guess/${PREVIEW_ROOM_ID}/countdown`);
+      return;
+    }
     if (!socket || !roomId || !currentUserId) return;
-    
     console.log(`[WaitingRoom] Starting game: roomId=${roomId}, userId=${currentUserId}, isHost=${isHost}`);
-    
-    // 게임 시작 이벤트 전송
-    socket.emit('game_start', { 
-      roomId, 
-      userId: currentUserId,
-      options: {} // 필요시 게임 옵션 추가
-    });
+    socket.emit('game_start', { roomId, userId: currentUserId, options: {} });
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        padding: "2rem",
-        position: "relative",
-      }}
-    >
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
       </div>
-
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div
+              key={i}
+              className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`}
+              style={{
+                left: `${8 + (i % 10) * 8}%`,
+                top: `${8 + (Math.floor(i / 10) % 4) * 22}%`,
+                animationDelay: `${(i * 0.4) % 8}s`,
+                animationDuration: `${10 + (i % 5)}s`,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box' }}>
       {/* 헤더 - 뒤로가기 버튼과 현재 방 참가자 */}
       <div
         style={{
@@ -339,10 +357,12 @@ export default function WaitingRoomPage() {
           )}
         </div>
 
-        {/* 오른쪽 - 참가자들 (3D 캐릭터) */}
+        {/* 오른쪽 - 참가자들 (3D 캐릭터), 칸 조금 늘리고 왼쪽으로 */}
         <div
           style={{
             flex: 1,
+            marginRight: "96px",
+            maxWidth: "440px",
             display: "flex",
             flexWrap: "wrap",
             gap: "1.5rem",
@@ -425,20 +445,14 @@ export default function WaitingRoomPage() {
                 </div>
 
                 {/* 이름 */}
-                <div
-                  style={{
-                    color: "#ffffff",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    textShadow: "0 0 10px rgba(0, 0, 0, 0.8)",
-                  }}
-                >
+                <div style={{ color: "#ffffff", fontSize: "1rem", fontWeight: 600, textShadow: "0 0 10px rgba(0, 0, 0, 0.8)" }}>
                   {player.name}
                 </div>
               </div>
             ))
           )}
         </div>
+      </div>
       </div>
     </main>
   );

@@ -189,8 +189,8 @@ export function RoomDeleteModal({
                   e.currentTarget.style.color = "#e8f4fc";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = btnCancelStyle.background;
-                  e.currentTarget.style.color = btnCancelStyle.color;
+                  e.currentTarget.style.background = (btnCancelStyle.background as string) ?? "rgba(255,255,255,0.12)";
+                  e.currentTarget.style.color = (btnCancelStyle.color as string) ?? "#b0c4d4";
                 }}
               >
                 취소
