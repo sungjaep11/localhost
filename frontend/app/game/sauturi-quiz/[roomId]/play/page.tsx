@@ -1025,29 +1025,17 @@ export default function GamePlayPage() {
               {host.name}
             </div>
 
-            {/* 재생 버튼: 매번 눌러야 음성 나옴 (예전처럼) */}
+            {/* 재생 버튼 하나만: 방장은 가사 없을 때 누르면 다음 가사 로드, 가사 있으면 재생/일시정지 */}
             <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
-              {isCurrentUserHost && !lyrics && !showSauturiAnswerModal && (
+              {((isCurrentUserHost && !showSauturiAnswerModal) || lyrics) && (
                 <button
-                  onClick={handlePlayButton}
-                  style={{
-                    padding: "0.6rem 1.2rem",
-                    background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
-                    border: "2px solid rgba(0, 255, 255, 0.8)",
-                    borderRadius: "12px",
-                    color: "#00ffff",
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    boxShadow: "0 0 15px rgba(0, 255, 255, 0.4)",
+                  onClick={() => {
+                    if (isCurrentUserHost && !lyrics) {
+                      handlePlayButton();
+                    } else if (lyrics) {
+                      isPlaying ? toggleTTS() : playCurrentTTS();
+                    }
                   }}
-                >
-                  다음 가사 불러오기
-                </button>
-              )}
-              {lyrics && (
-                <button
-                  onClick={() => (isPlaying ? toggleTTS() : playCurrentTTS())}
                   style={{
                     width: "56px",
                     height: "56px",

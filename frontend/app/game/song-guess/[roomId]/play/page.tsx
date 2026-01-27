@@ -1127,6 +1127,20 @@ export default function GamePlayPage() {
     // ❌ return () => { socket.emit('game_leave', ...) } 금지 — 여기서 cleanup 두지 않음
   }, [socket, roomId, currentUserId]);
 
+  // 컴포넌트 언마운트 시 노래/오디오 종료 (뒤로가기 등 다른 경로로 나갈 때)
+  useEffect(() => {
+    return () => {
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   // =============================================================
 
   // 참가자 목록 불러오기 (localStorage 백업) — 재입장 시 캐릭터/재생버튼 복구
@@ -1360,7 +1374,7 @@ export default function GamePlayPage() {
       setCurrentSongData(gameSong);
       usedSongIdsRef.current.add(song.id);
 
-      setLyrics(`${gameSong.title} - ${gameSong.artist}`);
+      setLyrics(''); // 실제 가사 없음 - 제목/가수 노출하지 않음
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -1713,6 +1727,15 @@ export default function GamePlayPage() {
               </button>
               <button
                 onClick={() => {
+                  // 방 나가기 전 노래/오디오 즉시 종료
+                  if (simulationIntervalRef.current) {
+                    clearInterval(simulationIntervalRef.current);
+                    simulationIntervalRef.current = null;
+                  }
+                  if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.currentTime = 0;
+                  }
                   if (socket && roomId && currentUserId) {
                     socket.emit('game_leave', { roomId, userId: currentUserId });
                   }
