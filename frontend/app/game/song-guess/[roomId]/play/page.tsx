@@ -1410,22 +1410,26 @@ export default function GamePlayPage() {
         position: "relative",
       }}
     >
-      {/* YouTube iframe: 뷰포트 안에 두고 투명 처리해서 소리만 들리게 (화면 밖이면 브라우저가 음소거할 수 있음) */}
+      {/* YouTube iframe: 테스트용 — 재생 시 영상 가운데 표시 (보여야 소리 재생됨) */}
       <div
         id="youtube-player-host"
         ref={youtubeContainerRef}
         style={{
           position: 'fixed',
-          left: 0,
-          bottom: 0,
-          width: 320,
-          height: 180,
-          opacity: 0,
-          pointerEvents: 'none',
-          zIndex: -1,
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 560,
+          height: 315,
+          opacity: 1,
+          pointerEvents: 'auto',
+          zIndex: 50,
           overflow: 'hidden',
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          border: '2px solid rgba(0, 194, 255, 0.4)',
         }}
-        aria-hidden="true"
+        aria-label="노래 영상"
       />
       {/* 떠다니는 음표들 */}
       <div className="floating-notes">
