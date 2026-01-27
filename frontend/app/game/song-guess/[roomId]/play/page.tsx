@@ -721,29 +721,60 @@ export default function GamePlayPage() {
     setCorrectPlayers([]);
   }, []); // 의존성 제거하여 함수 재생성 방지
 
-  // 현재 사용자 정보 및 방 정보 불러오기
+  // 현재 사용자 정보 및 방 정보 불러오기 (localStorage 우선, 없으면 API)
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
     if (userId) setCurrentUserId(userId);
     if (userName) setCurrentUserName(userName);
 
+    const applyRoom = (r: { rounds: number; songsPerRound: number; genres?: string[] }) => {
+      setTotalRounds(r.rounds ?? 4);
+      setSongsPerRound(r.songsPerRound ?? 5);
+      setRoomGenres(Array.isArray(r.genres) ? r.genres : []);
+      setSongsLoading(false);
+    };
+
     const STORAGE_KEY = 'song-guess-rooms';
     const storedRooms = localStorage.getItem(STORAGE_KEY);
     if (storedRooms) {
       try {
         const rooms: Room[] = JSON.parse(storedRooms);
-        const currentRoom = rooms.find(r => r.id === roomId);
+        const currentRoom = rooms.find((r) => r.id === roomId);
         if (currentRoom) {
-          setTotalRounds(currentRoom.rounds);
-          setSongsPerRound(currentRoom.songsPerRound);
-          setRoomGenres(Array.isArray(currentRoom.genres) ? currentRoom.genres : []);
-          setSongsLoading(false);
+          applyRoom(currentRoom);
+          return;
         }
       } catch (e) {
-        console.error('Failed to load room info', e);
+        console.error('Failed to load room info from storage', e);
       }
     }
+
+    // API에서 방 목록 조회 후 해당 방 옵션 적용 (방이 API로만 생성된 경우 대비)
+    (async () => {
+      try {
+        const res = await fetch(`/api/games/rooms?page=1&pageSize=100`, {
+          headers: { 'x-user-id': userId || '' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const list = data.rooms ?? data.data ?? [];
+          const room = list.find((r: any) => r.id === roomId);
+          if (room?.options) {
+            applyRoom({
+              rounds: room.options.rounds ?? 4,
+              songsPerRound: room.options.songsPerRound ?? 5,
+              genres: room.options.genres ?? [],
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load room from API', e);
+      }
+      setSongsLoading(false);
+      setRoomGenres([]);
+    })();
   }, [roomId]);
 
   // 시간 초과 처리 - useCallback으로 안정화

@@ -673,15 +673,19 @@ export default function GamePlayPage() {
   };
   handlePlayButtonRef.current = handlePlayButton;
 
-  // 방장일 때 가사 없으면 자동 재생 (재생 버튼 없이 턴 시작 시 자동 진행)
+  // 방장일 때 가사 없으면 자동 재생 (게임 시작/턴 시작 시 가사 자동 로드)
   useEffect(() => {
-    if (!(host?.id === currentUserId) || lyrics || showSauturiAnswerModal) return;
-    if (totalRounds <= 0 || !socket) return;
+    if (!currentUserId || !socket || totalRounds <= 0) return;
+    if (lyrics || showSauturiAnswerModal) return;
+    // 방장만 자동 재생 — players 로드 후 host가 나올 때까지 대기
+    const isHost = host?.id === currentUserId;
+    if (!isHost) return;
+    if (players.length === 0) return; // 플레이어 목록이 준비된 뒤에만 트리거
     const t = setTimeout(() => {
       handlePlayButtonRef.current();
-    }, 400);
+    }, 600);
     return () => clearTimeout(t);
-  }, [host?.id, currentUserId, lyrics, showSauturiAnswerModal, currentRound, currentSong, roomGenres.length, totalRounds, socket]);
+  }, [host?.id, currentUserId, players.length, lyrics, showSauturiAnswerModal, currentRound, currentSong, roomGenres.length, totalRounds, socket]);
 
   // TTS 일시정지/재개
   const toggleTTS = () => {

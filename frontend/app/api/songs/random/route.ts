@@ -40,6 +40,11 @@ export async function GET(request: Request) {
     }
 
     const data = await res.json();
+    // 브라우저가 같은 출처에서 MP3 로드하도록 프록시 URL로 치환 (CORS/차단 방지)
+    if (data?.genre != null && data?.id != null) {
+      const file = String(data.id).includes("/") ? String(data.id).split("/")[1] : data.id;
+      data.mp3Url = `/api/songs/stream?genre=${encodeURIComponent(data.genre)}&file=${encodeURIComponent(file)}`;
+    }
     return NextResponse.json({ success: true, song: data }, { status: 200 });
   } catch (error: any) {
     console.error("Get random song error:", error);

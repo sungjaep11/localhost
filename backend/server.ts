@@ -21,7 +21,9 @@ app.use(cors());
 app.use(express.json());
 
 // MP3 정적 서빙 (backend/songs/ → GET /songs/장르/파일명.mp3)
-const songsDir = path.join(__dirname, "songs");
+const songsDir = fs.existsSync(path.join(__dirname, "songs"))
+  ? path.join(__dirname, "songs")
+  : path.join(process.cwd(), "songs");
 if (fs.existsSync(songsDir)) {
   app.use("/songs", express.static(songsDir));
 }
@@ -841,7 +843,10 @@ app.get("/api/songs/random", async (req: Request, res: Response) => {
     }
 
     const baseUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
-    const genreDir = path.join(__dirname, "songs", genre);
+    const baseSongs = fs.existsSync(path.join(__dirname, "songs"))
+      ? path.join(__dirname, "songs")
+      : path.join(process.cwd(), "songs");
+    const genreDir = path.join(baseSongs, genre);
 
     if (!fs.existsSync(genreDir)) {
       return res.status(404).json({ message: `No songs folder for genre: ${genre}` });
