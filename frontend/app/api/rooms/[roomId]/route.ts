@@ -10,6 +10,8 @@ export async function DELETE(
     const { roomId } = await params;
     const userId = request.headers.get("x-user-id") || "";
 
+    console.log(`[Frontend DELETE /api/rooms/:roomId] roomId=${roomId}, userId=${userId}, BACKEND_URL=${BACKEND_URL}`);
+
     if (!roomId) {
       return NextResponse.json(
         { success: false, error: "roomId is required" },
@@ -17,7 +19,10 @@ export async function DELETE(
       );
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/rooms/${roomId}`, {
+    const backendUrl = `${BACKEND_URL}/api/rooms/${roomId}`;
+    console.log(`[Frontend DELETE] Sending request to: ${backendUrl}`);
+
+    const res = await fetch(backendUrl, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -25,6 +30,8 @@ export async function DELETE(
       },
       signal: AbortSignal.timeout(10000),
     });
+
+    console.log(`[Frontend DELETE] Response status: ${res.status}, ok: ${res.ok}`);
 
     // 응답 본문 파싱 (한 번만 읽기)
     let responseData: any = null;

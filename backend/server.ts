@@ -27,16 +27,19 @@ const ensureUser = async (
 ) => {
   try {
     const headerUserId = req.header("x-user-id");
+    console.log(`[auth] ensureUser - Method: ${req.method}, Path: ${req.path}, x-user-id: ${headerUserId || 'none'}`);
 
     if (headerUserId) {
       const user = await prisma.user.findUnique({
         where: { id: headerUserId },
       });
       if (!user) {
+        console.error(`[auth] ensureUser - User not found: ${headerUserId}`);
         return res.status(401).json({ message: "Invalid user id" });
       }
 
       (req as any).userId = user.id;
+      console.log(`[auth] ensureUser - User authenticated: ${user.id}`);
       return next();
     }
 
@@ -56,10 +59,13 @@ const ensureUser = async (
     }
 
     (req as any).userId = user.id;
+    console.log(`[auth] ensureUser - Using demo user: ${user.id}`);
     next();
   } catch (err) {
     console.error("[auth] ensureUser error", err);
-    res.status(500).json({ message: "Failed to resolve user" });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to resolve user" });
+    }
   }
 };
 
@@ -670,17 +676,27 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     }
 
     // 관련 데이터 삭제 (트랜잭션으로 처리)
-    // 순서 중요: 자식 데이터를 먼저 삭제한 후 부모 데이터 삭제
+    // 스키마에 onDelete: Cascade가 설정되어 있지만, 명시적으로 삭제하여 더 안전하게 처리
     try {
       await prisma.$transaction(async (tx: any) => {
-        // 1. GameResult 삭제 (GameHistory의 자식)
-        await tx.gameResult.deleteMany({
-          where: {
-            history: {
-              roomId: roomId,
-            },
-          },
+        // 1. GameHistory를 먼저 조회하여 GameResult 삭제
+        const gameHistories = await tx.gameHistory.findMany({
+          where: { roomId },
+          select: { id: true },
         });
+        
+        const gameHistoryIds = gameHistories.map((h: any) => h.id);
+        
+        // GameResult 삭제 (GameHistory의 자식)
+        if (gameHistoryIds.length > 0) {
+          await tx.gameResult.deleteMany({
+            where: {
+              gameHistoryId: {
+                in: gameHistoryIds,
+              },
+            },
+          });
+        }
 
         // 2. GameHistory 삭제 (Room의 자식)
         await tx.gameHistory.deleteMany({
@@ -704,6 +720,7 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
         message: transactionErr.message,
         code: transactionErr.code,
         meta: transactionErr.meta,
+        stack: transactionErr.stack,
       });
       throw transactionErr; // Re-throw to be caught by outer catch
     }
