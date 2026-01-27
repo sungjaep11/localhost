@@ -60,22 +60,46 @@ curl -s http://YOUR_EC2_IP:3001
 
 ## 노래 맞추기에서 노래가 안 나올 때
 
-노래 맞추기는 **backend/songs/<장르>/*.mp3** 파일에서만 재생합니다.  
-`backend/songs/` 는 `.gitignore`에 있어 Git에 올라가지 않으므로, **clone/배포한 환경에서는 비어 있는 것이 정상**입니다.
+노래 맞추기는 **컨테이너 내부 `/app/songs/<장르>/*.mp3`** 에서 재생합니다.  
+Docker 이미지에는 mp3를 넣지 않고, **호스트 디렉터리를 `/app/songs`에 마운트**하는 구조입니다.
 
-노래를 쓰려면 **백엔드가 있는 머신에서** 한 번 MP3를 받아두어야 합니다:
+### Docker 배포(EC2) 시
 
-1. **yt-dlp, ffmpeg 설치**
+`docker-compose.yml`에서 ` /home/ubuntu/songs:/app/songs:ro` 로 마운트하므로, **호스트에 `/home/ubuntu/songs`를 만들고 그 안에 장르별 mp3를 두면** 됩니다.
+
+1. **yt-dlp, ffmpeg 설치** (호스트 또는 어디서든 mp3를 받을 수 있는 환경)
    - macOS: `brew install yt-dlp ffmpeg`
    - Ubuntu: `sudo apt install yt-dlp ffmpeg`
-2. **backend 디렉터리에서 실행**
+2. **MP3 다운로드** (호스트에서 프로젝트의 backend 사용)
    ```bash
-   cd backend
+   cd /path/to/project/backend
    npm run download:songs
    ```
-3. Docker로 돌리는 경우: 위 명령을 **호스트의 backend 폴더**에서 실행하면, `./backend:/app` 볼륨으로 컨테이너에 그대로 반영됩니다.
+3. **Docker가 읽을 경로로 복사**
+   ```bash
+   sudo mkdir -p /home/ubuntu/songs
+   sudo cp -r /path/to/project/backend/songs/* /home/ubuntu/songs/
+   # 소유권이 필요하면: sudo chown -R ubuntu:ubuntu /home/ubuntu/songs
+   ```
+4. 컨테이너 재시작: `docker-compose restart backend`
 
-이렇게 한 번 실행해 두면, 해당 장르(발라드, K-pop 등)에 맞는 노래가 노래 맞추기에서 재생됩니다.
+이렇게 하면 노래 맞추기에서 해당 장르(발라드, K-pop 등) mp3가 재생됩니다.
+
+### MP3 볼륨 연결 확인 (curl)
+
+배포 서버에서 백엔드가 뜬 뒤:
+
+```bash
+# 1) 백엔드 헬스
+curl -s http://localhost:3001
+# → {"message":"Backend API Server"} 이면 OK
+
+# 2) 장르 폴더·mp3가 있는지 (장르명은 실제 폴더명으로 교체)
+curl -s "http://localhost:3001/api/songs/random?genre=발라드"
+# mp3가 있으면 → {"id":"발라드/...","title":...,"mp3Url":...}
+# 폴더 없으면 → {"message":"No songs folder for genre: 발라드"}
+# 폴더는 있는데 mp3 없으면 → {"message":"No mp3 files found for genre: 발라드"}
+```
 
 ## 주의사항
 

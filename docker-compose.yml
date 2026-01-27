@@ -39,6 +39,10 @@ services:
       - postgres
     volumes:
       - /app/node_modules
+      # MP3는 이미지에 포함하지 않고 호스트 디렉터리를 마운트.
+      # 배포(EC2): /home/ubuntu/songs 에 장르별 폴더·mp3 두면 됨.
+      # 로컬 테스트: 호스트에 해당 경로가 없으면 아래처럼 프로젝트 내 경로로 변경.
+      #   - ${PWD}/backend/songs:/app/songs:ro
       - /home/ubuntu/songs:/app/songs:ro
 
   # 4. Frontend Next.js 앱

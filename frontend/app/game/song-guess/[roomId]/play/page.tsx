@@ -1181,9 +1181,7 @@ export default function GamePlayPage() {
   const otherPlayers = players.filter(p => !p.isHost);
 
   // 디버깅: 플레이어/호스트 상태 확인
-  useEffect(() => {
-    console.log('[Play] 플레이어 목록:', players.length, '명, host:', host ? host.name : '없음', ', gamePhase:', gamePhase);
-  }, [players, host, gamePhase]);
+  console.log('[Play] 플레이어 목록:', players.length, '명, host:', host ? host.name : '없음', ', gamePhase:', gamePhase);
 
   // 채팅 전송
   const sendChat = () => {
