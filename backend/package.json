@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "nodemon --watch server.ts --exec ts-node server.ts",
-    "start": "ts-node server.ts",
+    "dev": "./node_modules/.bin/nodemon --watch server.ts --exec \"./node_modules/.bin/ts-node server.ts\"",
+    "start": "npx ts-node server.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
