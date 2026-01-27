@@ -19,6 +19,8 @@ import { songs } from "./seed-songs-data";
 
 const SONGS_DIR = path.join(__dirname, "songs");
 const INVALID_CHARS = /[<>:"/\\|?*]/g;
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 5000;
 
 function safeFilename(s: string, maxLen = 80): string {
   return s.replace(INVALID_CHARS, "_").replace(/\s+/g, " ").trim().slice(0, maxLen);
@@ -26,9 +28,44 @@ function safeFilename(s: string, maxLen = 80): string {
 
 function getVideoId(url: string): string | null {
   const u = (url || "").trim();
-  // watch?v=... has "v=" right after "?", so match v= after watch? (don't require extra [?&])
   const m = u.match(/(?:youtube\.com\/watch\?.*?v=)([a-zA-Z0-9_-]{11})/) || u.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+function runYtDlp(url: string, outTemplate: string): void {
+  const isYoutube = /youtube\.com|youtu\.be/.test(url);
+  const baseArgs = [
+    "-x",
+    "--audio-format",
+    "mp3",
+    "--no-playlist",
+    "--no-warnings",
+    "--retries",
+    "5",
+    "--fragment-retries",
+    "5",
+    "--socket-timeout",
+    "60",
+    "--force-ipv4",
+    "-o",
+    outTemplate,
+    url,
+  ];
+  const args = isYoutube
+    ? [
+        ...baseArgs.slice(0, -2),
+        "--extractor-args",
+        "youtube:player_client=web,mweb,android",
+        "-o",
+        outTemplate,
+        url,
+      ]
+    : baseArgs;
+  execSync("yt-dlp " + args.map((a) => JSON.stringify(a)).join(" "), {
+    stdio: "inherit",
+    cwd: __dirname,
+    maxBuffer: 10 * 1024 * 1024,
+  });
 }
 
 function main() {
@@ -76,18 +113,52 @@ function main() {
       ok++;
       continue;
     }
-    const outRel = `songs/${base}.%(ext)s`;
-    try {
-      execSync(`yt-dlp -x --audio-format mp3 --no-playlist --no-warnings -o ${JSON.stringify(outRel)} ${JSON.stringify(s.youtubeUrl)}`, {
-        stdio: "inherit",
-        cwd: __dirname,
-      });
-      seen.add(vid);
-      ok++;
-      console.log(`[${i + 1}/${songs.length}] ok: ${base}.mp3`);
-    } catch (e) {
+    const outTemplate = path.join(SONGS_DIR, `${base}.%(ext)s`).replace(/\\/g, "/");
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        runYtDlp(s.youtubeUrl, outTemplate);
+        if (fs.existsSync(outFile)) {
+          seen.add(vid);
+          ok++;
+          console.log(`[${i + 1}/${songs.length}] ok: ${base}.mp3`);
+          break;
+        }
+        const anyMp3 = fs.readdirSync(SONGS_DIR).find((f) => f.startsWith(vid) && f.endsWith(".mp3"));
+        if (anyMp3) {
+          const fromPath = path.join(SONGS_DIR, anyMp3);
+          fs.renameSync(fromPath, outFile);
+          seen.add(vid);
+          ok++;
+          console.log(`[${i + 1}/${songs.length}] ok (renamed): ${base}.mp3`);
+          break;
+        }
+      } catch (e) {
+        lastError = e;
+        const last = attempt === MAX_ATTEMPTS;
+        console.error(`[${i + 1}/${songs.length}] attempt ${attempt}/${MAX_ATTEMPTS} failed: ${s.title} - ${s.artist}`, last ? String(e) : "");
+        if (!last) {
+          console.log(`  retrying in ${RETRY_DELAY_MS / 1000}s...`);
+          const sec = Math.ceil(RETRY_DELAY_MS / 1000);
+          if (process.platform !== "win32") {
+            try {
+              execSync(`sleep ${sec}`, { stdio: "ignore" });
+            } catch (_) {
+              for (const d = Date.now() + RETRY_DELAY_MS; Date.now() < d; ) {}
+            }
+          } else {
+            try {
+              execSync(`ping -n ${sec + 1} 127.0.0.1 > nul`, { stdio: "ignore" });
+            } catch (_) {
+              for (const d = Date.now() + RETRY_DELAY_MS; Date.now() < d; ) {}
+            }
+          }
+        }
+      }
+    }
+    if (!seen.has(vid)) {
       err++;
-      console.error(`[${i + 1}/${songs.length}] failed: ${s.title} - ${s.artist}`, e);
+      if (lastError) console.error(`[${i + 1}/${songs.length}] failed: ${s.title} - ${s.artist}`, lastError);
     }
   }
 
