@@ -679,15 +679,24 @@ export default function GamePlayPage() {
   const progressRef = useRef({ currentRound: 1, currentSong: 1, totalRounds: 1, songsPerRound: 5, gameSongs: [] as GameSong[] });
   progressRef.current = { currentRound, currentSong, totalRounds, songsPerRound, gameSongs };
 
+  // 정답 시 타이머 등록 시점의 진행 상태 (5/5에서 라운드 종료 분기 정확히 맞추기)
+  const nextSongSnapshotRef = useRef<typeof progressRef.current | null>(null);
+
   // 🔒 방 입장은 최초 1회만 실행 (무한 루프 방지 락)
   const hasJoinedRef = useRef(false);
 
-  // 게임 초기화 함수 (불러온 노래 풀에서 랜덤 선택) - ref로 최신 값 참조
+  // 게임 초기화 함수 (불러온 노래 풀에서 랜덤 선택, 같은 노래 중복 제거)
   const initializeGame = useCallback((songPool: GameSong[]) => {
     if (songPool.length === 0) return;
     const { totalRounds: rounds, songsPerRound: songs } = gameConfigRef.current;
-    const shuffled = [...songPool].sort(() => Math.random() - 0.5);
     const totalSongsNeeded = rounds * songs;
+    const seen = new Set<string>();
+    const uniquePool = songPool.filter((song) => {
+      if (seen.has(song.id)) return false;
+      seen.add(song.id);
+      return true;
+    });
+    const shuffled = [...uniquePool].sort(() => Math.random() - 0.5);
     const selectedSongs = shuffled.slice(0, Math.min(totalSongsNeeded, shuffled.length));
     setGameSongs(selectedSongs);
     setCurrentSongData(selectedSongs[0]);
@@ -852,11 +861,14 @@ export default function GamePlayPage() {
     return points;
   };
 
-  // 다음 곡으로 이동 (progressRef 사용 → 타이머에서 호출돼도 항상 최신 라운드/곡 기준 동작)
+  // 다음 곡으로 이동 (정답 타이머에서는 snapshot, 버튼 클릭에서는 progressRef 사용)
   const goToNextSong = () => {
     setShowAnswerModal(false);
-    const { currentRound: r, currentSong: s, totalRounds: tr, songsPerRound: spr, gameSongs: gs } = progressRef.current;
-    const songIndex = (r - 1) * spr + s;
+    const snap = nextSongSnapshotRef.current;
+    const data = snap ?? progressRef.current;
+    if (snap) nextSongSnapshotRef.current = null;
+    const { currentRound: r, currentSong: s, totalRounds: tr, songsPerRound: spr, gameSongs: gs } = data;
+    const nextSongIndex = (r - 1) * spr + s;
 
     if (s >= spr) {
       // 이번 라운드 마지막 곡까지 끝남 → 라운드 종료
@@ -869,8 +881,8 @@ export default function GamePlayPage() {
     } else {
       // 다음 곡
       setCurrentSong(prev => prev + 1);
-      if (gs[songIndex]) {
-        setCurrentSongData(gs[songIndex]);
+      if (gs[nextSongIndex]) {
+        setCurrentSongData(gs[nextSongIndex]);
       }
       setCorrectPlayers([]);
       setGamePhase('waiting');
@@ -1033,6 +1045,7 @@ export default function GamePlayPage() {
       setGamePhase('answer_revealed');
       setShowAnswerModal(true);
       if (answerModalTimeoutRef.current) clearTimeout(answerModalTimeoutRef.current);
+      nextSongSnapshotRef.current = { ...progressRef.current };
       answerModalTimeoutRef.current = setTimeout(() => {
         answerModalTimeoutRef.current = null;
         goToNextSongRef.current();
@@ -1397,17 +1410,20 @@ export default function GamePlayPage() {
             borderRadius: 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             border: '2px solid rgba(0, 194, 255, 0.4)',
+            background: '#111',
           }}
           aria-label="노래 영상"
         >
-          {typeof window !== 'undefined' && isAudioPlaying && (() => {
+          {typeof window !== 'undefined' && (() => {
             const vid = getYoutubeVideoId(currentSongData);
             if (!vid) return null;
             const origin = encodeURIComponent(window.location.origin);
+            const autoplay = isAudioPlaying ? 1 : 0;
             return (
               <iframe
+                key={vid}
                 title="노래 영상"
-                src={`https://www.youtube.com/embed/${vid}?autoplay=1&origin=${origin}`}
+                src={`https://www.youtube.com/embed/${vid}?autoplay=${autoplay}&origin=${origin}`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 style={{
