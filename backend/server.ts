@@ -253,7 +253,7 @@ app.get("/api/home", async (req: Request, res: Response) => {
       prisma.room.findMany({
         where: {
           type: { in: ["MUSIC_QUIZ", "DIALECT_QUIZ"] },
-          status: "WAITING",
+          // WAITING과 PLAYING 모두 표시 (PLAYING은 "게임중"으로 표시)
         },
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -465,6 +465,11 @@ app.post(
         return res.status(403).json({ message: "Invalid room password" });
       }
 
+      // 게임 중인 방은 입장 불가
+      if (room.status === "PLAYING") {
+        return res.status(403).json({ message: "게임이 이미 진행 중입니다" });
+      }
+
       res.json({
         room,
         socketRoomId: room.id,
@@ -667,8 +672,25 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     // 3. 세션 정리
     if (gameSessions.has(roomId)) gameSessions.delete(roomId);
 
-    // 4. DB 삭제
-    await prisma.room.delete({ where: { id: roomId } });
+    // 4. DB 삭제 (관련 레코드 포함 트랜잭션으로 처리)
+    await prisma.$transaction(async (tx) => {
+      // 먼저 GameResult 삭제 (GameHistory 참조)
+      await tx.gameResult.deleteMany({
+        where: {
+          history: { roomId: roomId }
+        }
+      });
+      // GameHistory 삭제
+      await tx.gameHistory.deleteMany({
+        where: { roomId: roomId }
+      });
+      // PlaylistTrack 삭제
+      await tx.playlistTrack.deleteMany({
+        where: { roomId: roomId }
+      });
+      // 마지막으로 Room 삭제
+      await tx.room.delete({ where: { id: roomId } });
+    });
 
     return res.status(200).json({ success: true });
   } catch (error: any) {
@@ -1083,8 +1105,12 @@ interface GameSession {
     questionId: string;
     correctAnswer: string;
     startedAt: Date;
+    youtubeUrl?: string; // YouTube URL for music quiz
+    artist?: string; // 아티스트 정보
   };
   answers: Map<string, { answer: string; submittedAt: Date; isCorrect: boolean }>; // userId -> answer
+  genres?: string[]; // 음악 퀴즈용 장르 목록
+  usedSongIds?: string[]; // 이미 사용한 노래 ID 목록 (중복 방지)
 }
 
 const gameSessions = new Map<string, GameSession>(); // roomId -> GameSession
@@ -1318,6 +1344,21 @@ io.on("connection", (socket) => {
         if (options.roundTimeLimit) session.roundTimeLimit = options.roundTimeLimit;
       }
 
+      // MUSIC_QUIZ인 경우 Room의 options에서 genres 가져오기
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        select: { options: true },
+      });
+      
+      if (room && room.options && session.gameType === "MUSIC_QUIZ") {
+        const roomOptions = room.options as { genres?: string[] };
+        if (roomOptions.genres && roomOptions.genres.length > 0) {
+          session.genres = roomOptions.genres;
+          session.usedSongIds = []; // 사용한 노래 ID 초기화
+          console.log(`[game_start] MUSIC_QUIZ genres set: ${session.genres.join(', ')}`);
+        }
+      }
+
       // 방 상태 업데이트
       await prisma.room.update({
         where: { id: roomId },
@@ -1531,39 +1572,101 @@ async function startNextRound(roomId: string) {
 
   session.status = "PLAYING";
 
-  // TODO: 실제 게임에서는 여기서 문제를 가져와야 함
-  // 현재는 더미 데이터 사용
-  const dummyQuestions = {
-    MUSIC_QUIZ: [
-      { questionId: "q1", correctAnswer: "아틀란티스 소녀" },
-      { questionId: "q2", correctAnswer: "Gee" },
-      { questionId: "q3", correctAnswer: "벚꽃 엔딩" },
-    ],
-    DIALECT_QUIZ: [
-      { questionId: "q1", correctAnswer: "고맙습니다" },
-      { questionId: "q2", correctAnswer: "안녕하세요" },
-      { questionId: "q3", correctAnswer: "사랑해" },
-    ],
-  };
+  let question: { questionId: string; correctAnswer: string; youtubeUrl?: string; artist?: string } | null = null;
 
-  const questions = dummyQuestions[session.gameType];
-  const questionIndex = (session.currentRound - 1) % questions.length;
-  const question = questions[questionIndex];
+  // MUSIC_QUIZ인 경우 DB에서 장르에 맞는 랜덤 노래 조회
+  if (session.gameType === "MUSIC_QUIZ" && session.genres && session.genres.length > 0) {
+    try {
+      // @ts-ignore - Prisma Client 타입 문제
+      const availableSongs = await prisma.song.findMany({
+        where: {
+          genre: { in: session.genres },
+          id: { notIn: session.usedSongIds || [] }, // 이미 사용한 노래 제외
+        },
+      });
+
+      if (availableSongs.length > 0) {
+        // 랜덤하게 한 곡 선택
+        const randomIndex = Math.floor(Math.random() * availableSongs.length);
+        const selectedSong = availableSongs[randomIndex];
+
+        // 사용한 노래 ID 기록
+        if (!session.usedSongIds) session.usedSongIds = [];
+        session.usedSongIds.push(selectedSong.id);
+
+        question = {
+          questionId: selectedSong.id,
+          correctAnswer: selectedSong.title,
+          youtubeUrl: selectedSong.youtubeUrl,
+          artist: selectedSong.artist,
+        };
+
+        console.log(`[startNextRound] MUSIC_QUIZ - Selected song: "${selectedSong.title}" by ${selectedSong.artist} (${selectedSong.genre})`);
+      } else {
+        // 사용 가능한 노래가 없으면 usedSongIds 초기화하고 다시 시도
+        console.log(`[startNextRound] No more songs available, resetting usedSongIds`);
+        session.usedSongIds = [];
+        
+        // @ts-ignore
+        const allSongs = await prisma.song.findMany({
+          where: { genre: { in: session.genres } },
+        });
+        
+        if (allSongs.length > 0) {
+          const randomIndex = Math.floor(Math.random() * allSongs.length);
+          const selectedSong = allSongs[randomIndex];
+          session.usedSongIds.push(selectedSong.id);
+
+          question = {
+            questionId: selectedSong.id,
+            correctAnswer: selectedSong.title,
+            youtubeUrl: selectedSong.youtubeUrl,
+            artist: selectedSong.artist,
+          };
+        }
+      }
+    } catch (error) {
+      console.error(`[startNextRound] Failed to fetch song from DB:`, error);
+    }
+  }
+
+  // DB에서 노래를 가져오지 못했거나 DIALECT_QUIZ인 경우 기존 더미 데이터 사용
+  if (!question) {
+    const dummyQuestions = {
+      MUSIC_QUIZ: [
+        { questionId: "q1", correctAnswer: "아틀란티스 소녀" },
+        { questionId: "q2", correctAnswer: "Gee" },
+        { questionId: "q3", correctAnswer: "벚꽃 엔딩" },
+      ],
+      DIALECT_QUIZ: [
+        { questionId: "q1", correctAnswer: "고맙습니다" },
+        { questionId: "q2", correctAnswer: "안녕하세요" },
+        { questionId: "q3", correctAnswer: "사랑해" },
+      ],
+    };
+
+    const questions = dummyQuestions[session.gameType];
+    const questionIndex = (session.currentRound - 1) % questions.length;
+    question = questions[questionIndex];
+  }
 
   session.currentQuestion = {
     questionId: question.questionId,
     correctAnswer: question.correctAnswer,
     startedAt: new Date(),
+    youtubeUrl: question.youtubeUrl,
+    artist: question.artist,
   };
 
-  // 라운드 시작 알림
+  // 라운드 시작 알림 - MUSIC_QUIZ인 경우 YouTube URL과 아티스트 정보 포함
   io.to(roomId).emit("game_round_start", {
     roomId,
     round: session.currentRound,
     totalRounds: session.totalRounds,
     question: {
       questionId: question.questionId,
-      // 실제 구현에서는 음악 URL이나 문제 텍스트를 포함
+      youtubeUrl: question.youtubeUrl, // YouTube URL
+      artist: question.artist, // 아티스트 정보 (힌트로 사용 가능)
     },
     timeLimit: session.roundTimeLimit || 30,
   });
@@ -1627,11 +1730,13 @@ async function endRound(roomId: string) {
   // 점수 순으로 정렬
   results.sort((a, b) => b.score - a.score);
 
-  // 라운드 결과 전송
+  // 라운드 결과 전송 (MUSIC_QUIZ인 경우 아티스트 정보도 함께)
   io.to(roomId).emit("game_round_result", {
     roomId,
     round: session.currentRound,
     correctAnswer: session.currentQuestion?.correctAnswer,
+    artist: session.currentQuestion?.artist, // 아티스트 정보
+    youtubeUrl: session.currentQuestion?.youtubeUrl, // YouTube URL
     results,
     leaderboard: results.map((r, idx) => ({
       rank: idx + 1,
@@ -1716,16 +1821,39 @@ async function endGame(roomId: string) {
     results: finalResults,
   });
 
-  // 방 상태 업데이트
-  await prisma.room.update({
-    where: { id: roomId },
-    data: { status: "WAITING" },
-  });
+  // 게임 종료 후 방 삭제 (결과 확인 후)
+  setTimeout(async () => {
+    try {
+      // 소켓 알림
+      io.to(roomId).emit("roomDeleted", { roomId });
+      io.emit("room_deleted", { roomId });
 
-  // 세션 정리 (선택사항: 결과 확인을 위해 잠시 유지할 수도 있음)
-  setTimeout(() => {
-    gameSessions.delete(roomId);
-  }, 60000); // 1분 후 세션 삭제
+      // 소켓에서 나가기
+      const sockets = await io.in(roomId).fetchSockets();
+      sockets.forEach((s) => s.leave(roomId));
+
+      // 세션 정리
+      gameSessions.delete(roomId);
+
+      // DB에서 방 삭제 (관련 레코드 포함 트랜잭션으로 처리)
+      await prisma.$transaction(async (tx) => {
+        await tx.gameResult.deleteMany({
+          where: { history: { roomId: roomId } }
+        });
+        await tx.gameHistory.deleteMany({
+          where: { roomId: roomId }
+        });
+        await tx.playlistTrack.deleteMany({
+          where: { roomId: roomId }
+        });
+        await tx.room.delete({ where: { id: roomId } });
+      });
+
+      console.log(`[Game] Room ${roomId} deleted after game finished`);
+    } catch (error) {
+      console.error("[endGame] Failed to delete room:", error);
+    }
+  }, 10000); // 10초 후 방 삭제 (결과 확인 시간)
 
   console.log(`[Game] Game finished in room ${roomId}`);
 }
