@@ -105,13 +105,40 @@ export default function GamePlayPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // 가사 및 TTS 관련 state
-  const [lyrics, setLyrics] = useState<string>(''); // 현재 가사
+  const [lyrics, setLyrics] = useState<string>(''); // 현재 가사 (사투리 문장)
   const [ttsAudio, setTtsAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 사투리 퀴즈 정답/턴 state (가사는 모두에게 동기화, 정답 맞추면 모달 후 다음 턴)
+  const [currentRoundAnswer, setCurrentRoundAnswer] = useState<string>(''); // 원문 가사(정답)
+  const [currentRoundTitle, setCurrentRoundTitle] = useState<string>('');
+  const [currentRoundArtist, setCurrentRoundArtist] = useState<string>('');
+  const [sauturiCorrectPlayers, setSauturiCorrectPlayers] = useState<string[]>([]);
+  const [showSauturiAnswerModal, setShowSauturiAnswerModal] = useState(false);
+  const [sauturiNobodyGotIt, setSauturiNobodyGotIt] = useState(false);
+  const sauturiGotCorrectRef = useRef(false);
+  const sauturiStateRef = useRef({ currentRoundAnswer: '', sauturiCorrectPlayers: [] as string[] });
+  sauturiStateRef.current = { currentRoundAnswer, sauturiCorrectPlayers };
+  const goToNextSauturiTurnRef = useRef<() => void>(() => {});
+  const sauturiAnswerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const goToNextSauturiTurn = () => {
+    setShowSauturiAnswerModal(false);
+    setLyrics('');
+    setSauturiCorrectPlayers([]);
+    setCurrentRoundAnswer('');
+    if (currentSong < songsPerRound) {
+      setCurrentSong((prev) => prev + 1);
+    } else if (currentRound < totalRounds) {
+      setCurrentRound((prev) => prev + 1);
+      setCurrentSong(1);
+    }
+  };
+  goToNextSauturiTurnRef.current = goToNextSauturiTurn;
 
   // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
@@ -273,16 +300,66 @@ export default function GamePlayPage() {
           if (prev.some(msg => msg.id === newBubble.id)) return prev;
           return [...prev, newBubble];
         });
+
+        // 사투리 정답 체크: 원문 가사(표준어)와 비교
+        const state = sauturiStateRef.current;
+        const answer = (state.currentRoundAnswer || '').trim().replace(/\s+/g, ' ');
+        const msgNorm = (data.message || '').trim().replace(/\s+/g, ' ');
+        if (answer && msgNorm && answer === msgNorm && !state.sauturiCorrectPlayers.includes(data.playerId)) {
+          setSauturiCorrectPlayers(prev => [...prev, data.playerId]);
+          setShowSauturiAnswerModal(true);
+          setSauturiNobodyGotIt(false);
+          sauturiGotCorrectRef.current = true;
+          if (sauturiAnswerModalTimeoutRef.current) clearTimeout(sauturiAnswerModalTimeoutRef.current);
+          sauturiAnswerModalTimeoutRef.current = setTimeout(() => {
+            sauturiAnswerModalTimeoutRef.current = null;
+            goToNextSauturiTurnRef.current();
+          }, 2000);
+        }
       }
+    };
+
+    // 가사/정답 동기화: 방장이 재생 시 전체에 가사·정답 전파 → 모두에게 가사 표시
+    const handleSauturiLyricSync = (payload: { roomId: string; dialect: string; original?: string; title?: string; artist?: string }) => {
+      if (payload.roomId !== roomId) return;
+      setLyrics(payload.dialect || '');
+      setCurrentRoundAnswer(payload.original ?? '');
+      setCurrentRoundTitle(payload.title ?? '');
+      setCurrentRoundArtist(payload.artist ?? '');
+      setSauturiCorrectPlayers([]);
+      sauturiGotCorrectRef.current = false;
+    };
+
+    // 턴 종료(아무도 못 맞춤): 방 전체에 알림 → 모두 "아무도 못 맞췄다" 모달 후 다음 턴
+    const handleSauturiTurnEnd = (payload: { roomId: string; nobodyGotIt: boolean; answer?: string; title?: string; artist?: string }) => {
+      if (payload.roomId !== roomId || !payload.nobodyGotIt) return;
+      setCurrentRoundAnswer(payload.answer ?? '');
+      setCurrentRoundTitle(payload.title ?? '');
+      setCurrentRoundArtist(payload.artist ?? '');
+      setShowSauturiAnswerModal(true);
+      setSauturiNobodyGotIt(true);
+      if (sauturiAnswerModalTimeoutRef.current) clearTimeout(sauturiAnswerModalTimeoutRef.current);
+      sauturiAnswerModalTimeoutRef.current = setTimeout(() => {
+        sauturiAnswerModalTimeoutRef.current = null;
+        goToNextSauturiTurnRef.current();
+      }, 2500);
     };
 
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
+    socket.on('sauturi_lyric_sync', handleSauturiLyricSync);
+    socket.on('sauturi_turn_end', handleSauturiTurnEnd);
 
     // Cleanup: 리스너만 제거 (game_leave 절대 하지 않음!)
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
+      socket.off('sauturi_lyric_sync', handleSauturiLyricSync);
+      socket.off('sauturi_turn_end', handleSauturiTurnEnd);
+      if (sauturiAnswerModalTimeoutRef.current) {
+        clearTimeout(sauturiAnswerModalTimeoutRef.current);
+        sauturiAnswerModalTimeoutRef.current = null;
+      }
     };
   }, [socket, roomId]);
 
@@ -517,7 +594,18 @@ export default function GamePlayPage() {
         artist?: string;
       };
       const text = data.dialect || "";
+      const orig = (data.original ?? "").trim();
+      const title = data.title ?? "";
+      const artist = data.artist ?? "";
       setLyrics(text);
+      setCurrentRoundAnswer(orig);
+      setCurrentRoundTitle(title);
+      setCurrentRoundArtist(artist);
+      setSauturiCorrectPlayers([]);
+      sauturiGotCorrectRef.current = false;
+      if (socket && roomId) {
+        socket.emit("sauturi_lyric_sync", { roomId, dialect: text, original: orig, title, artist });
+      }
       const duration = Math.max(5, Math.ceil((text.length || 10) * 0.15));
       setTotalDuration(duration);
       setCurrentTime(0);
@@ -531,6 +619,9 @@ export default function GamePlayPage() {
           simulationIntervalRef.current = null;
           setIsPlaying(false);
           setCurrentTime(0);
+          if (!sauturiGotCorrectRef.current && orig && socket && roomId) {
+            socket.emit("sauturi_turn_end", { roomId, nobodyGotIt: true, answer: orig, title, artist });
+          }
         }
       }, 100);
       simulationIntervalRef.current = interval;
@@ -678,6 +769,86 @@ export default function GamePlayPage() {
                 나가기
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 사투리 정답 모달: 맞췄다 / 아무도 못 맞췄다 → 자동 다음 턴 */}
+      {showSauturiAnswerModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(20, 20, 40, 0.95)",
+              border: "3px solid rgba(255, 215, 0, 0.8)",
+              borderRadius: "20px",
+              padding: "2.5rem",
+              maxWidth: "500px",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎵</div>
+            <h2
+              style={{
+                color: sauturiNobodyGotIt ? "#ffd700" : "#00ff00",
+                fontSize: "1.8rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              {sauturiNobodyGotIt ? "아무도 못 맞췄다" : "맞췄다!"}
+            </h2>
+            {sauturiNobodyGotIt ? (
+              <>
+                <p style={{ color: "#ffffff", fontSize: "1.2rem", marginBottom: "0.5rem" }}>정답 (원문)</p>
+                <p style={{ color: "#00ffff", fontSize: "1.1rem", marginBottom: "0.5rem", wordBreak: "keep-all" }}>{currentRoundAnswer}</p>
+                {(currentRoundTitle || currentRoundArtist) && (
+                  <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.95rem" }}>
+                    {[currentRoundTitle, currentRoundArtist].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p style={{ color: "#ffffff", fontSize: "1.1rem", marginBottom: "0.5rem" }}>정답 (원문)</p>
+                <p style={{ color: "#00ffff", fontSize: "1rem", marginBottom: "1rem", wordBreak: "keep-all" }}>{currentRoundAnswer}</p>
+                <p style={{ color: "#00ffff", marginBottom: "0.5rem" }}>정답자</p>
+                <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+                  {sauturiCorrectPlayers.map((playerId, idx) => {
+                    const player = players.find(p => p.id === playerId);
+                    return (
+                      <span
+                        key={playerId}
+                        style={{
+                          background: idx === 0 ? "rgba(255, 215, 0, 0.3)" : "rgba(0, 255, 255, 0.2)",
+                          border: `1px solid ${idx === 0 ? "rgba(255, 215, 0, 0.8)" : "rgba(0, 255, 255, 0.5)"}`,
+                          borderRadius: "20px",
+                          padding: "0.3rem 0.8rem",
+                          color: idx === 0 ? "#ffd700" : "#00ffff",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        {player?.name ?? playerId}
+                      </span>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem", marginTop: "1rem" }}>
+              잠시 후 다음으로 넘어갑니다…
+            </p>
           </div>
         </div>
       )}

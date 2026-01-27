@@ -663,7 +663,9 @@ export default function GamePlayPage() {
   const [showAnswerModal, setShowAnswerModal] = useState(false);
   const [showRoundEndModal, setShowRoundEndModal] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const youtubePlayerRef = useRef<{ loadPlaylist: (opts: { listType: string; list: string }) => void; playVideo: () => void; stopVideo: () => void } | null>(null);
+  const answerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const goToNextSongRef = useRef<() => void>(() => {});
+  const youtubePlayerRef = useRef<{ loadVideoById: (id: string) => void; playVideo: () => void; stopVideo?: () => void } | null>(null);
   const youtubeContainerRef = useRef<HTMLDivElement>(null);
   const [ytReady, setYtReady] = useState(false);
 
@@ -875,6 +877,7 @@ export default function GamePlayPage() {
       setTimeLeft(30);
     }
   };
+  goToNextSongRef.current = goToNextSong;
 
   // 다음 라운드 시작
   const startNextRound = () => {
@@ -1025,17 +1028,15 @@ export default function GamePlayPage() {
       };
       setChatMessages(prev => [...prev, correctMsg]);
 
-      const currentPlayers =
-        state.players.length > 0
-          ? state.players
-          : JSON.parse(localStorage.getItem(`song-guess-room-${roomId}-players`) || '[]');
-      if (state.correctPlayers.length + 1 >= currentPlayers.length) {
-        setTimeout(() => {
-          setIsPlaying(false);
-          setGamePhase('answer_revealed');
-          setShowAnswerModal(true);
-        }, 1000);
-      }
+      // 정답 맞춘 즉시 맞췄다 모달 띄우고, 2.5초 후 자동으로 다음 곡/라운드
+      setIsPlaying(false);
+      setGamePhase('answer_revealed');
+      setShowAnswerModal(true);
+      if (answerModalTimeoutRef.current) clearTimeout(answerModalTimeoutRef.current);
+      answerModalTimeoutRef.current = setTimeout(() => {
+        answerModalTimeoutRef.current = null;
+        goToNextSongRef.current();
+      }, 2500);
     };
 
     socket.on('game_players_update', handlePlayersUpdate);
@@ -1045,6 +1046,10 @@ export default function GamePlayPage() {
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
+      if (answerModalTimeoutRef.current) {
+        clearTimeout(answerModalTimeoutRef.current);
+        answerModalTimeoutRef.current = null;
+      }
       // socket.emit('game_leave', ...) 절대 호출하지 않음
     };
   }, [socket, roomId]);
@@ -1104,20 +1109,31 @@ export default function GamePlayPage() {
     }
   }, [chatMessages]);
 
-  // YouTube iframe API 로드 및 플레이어 생성 (youtubeContainerRef 마운트 후)
+  // YouTube iframe API 로드 및 플레이어 생성 (onReady 후에만 재생 호출 가능)
   useEffect(() => {
     const id = 'youtube-player-host';
     (window as any).onYouTubeIframeAPIReady = () => {
       if (!document.getElementById(id) || !(window as any).YT?.Player) return;
       try {
-        const p = new (window as any).YT.Player(id, {
-          width: 320,
-          height: 180,
-          playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0 },
-          events: {},
+        new (window as any).YT.Player(id, {
+          width: 560,
+          height: 315,
+          playerVars: {
+            enablejsapi: 1,
+            origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+            controls: 1,
+            rel: 0,
+            modestbranding: 1,
+            fs: 1,
+            autoplay: 0,
+          },
+          events: {
+            onReady: (e: { target: unknown }) => {
+              youtubePlayerRef.current = e.target as { loadVideoById: (id: string) => void; playVideo: () => void; stopVideo: () => void };
+              setYtReady(true);
+            },
+          },
         });
-        youtubePlayerRef.current = p;
-        setYtReady(true);
       } catch (e) {
         console.error('YouTube player init failed', e);
       }
@@ -1331,10 +1347,13 @@ export default function GamePlayPage() {
       try {
         if (videoId && typeof (player as any).loadVideoById === 'function') {
           (player as any).loadVideoById(videoId);
-          (player as any).playVideo();
           setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
           setIsAudioPlaying(true);
           startPlaying();
+          // 로드 완료 후 재생 (너무 빨리 playVideo 하면 "An error occurred" 낼 수 있음)
+          setTimeout(() => {
+            try { (player as any).playVideo?.(); } catch (_) {}
+          }, 800);
         } else {
           // videoId 없음(=검색 링크만 있음) → 실제 재생 불가, 가사만 시뮬레이션
           fallbackSimulatePlay();
@@ -1412,25 +1431,48 @@ export default function GamePlayPage() {
     >
       {/* YouTube iframe: 테스트용 — 재생 시 영상 가운데 표시 (보여야 소리 재생됨) */}
       <div
-        id="youtube-player-host"
-        ref={youtubeContainerRef}
         style={{
           position: 'fixed',
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 560,
-          height: 315,
-          opacity: 1,
-          pointerEvents: 'auto',
           zIndex: 50,
-          overflow: 'hidden',
-          borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          border: '2px solid rgba(0, 194, 255, 0.4)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
         }}
-        aria-label="노래 영상"
-      />
+      >
+        <div
+          id="youtube-player-host"
+          ref={youtubeContainerRef}
+          style={{
+            width: 560,
+            height: 315,
+            opacity: 1,
+            pointerEvents: 'auto',
+            overflow: 'hidden',
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            border: '2px solid rgba(0, 194, 255, 0.4)',
+          }}
+          aria-label="노래 영상"
+        />
+        {isAudioPlaying && currentSongData?.youtubeUrl && (
+          <a
+            href={currentSongData.youtubeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: '0.9rem',
+              color: 'rgba(0, 194, 255, 0.9)',
+              textDecoration: 'underline',
+            }}
+          >
+            재생이 안 되면 유튜브에서 보기 ↗
+          </a>
+        )}
+      </div>
       {/* 떠다니는 음표들 */}
       <div className="floating-notes">
         {[...Array(6)].map((_, i) => (
@@ -1472,12 +1514,12 @@ export default function GamePlayPage() {
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎵</div>
             <h2
               style={{
-                color: "#ffd700",
+                color: correctPlayers.length > 0 ? "#00ff00" : "#ffd700",
                 fontSize: "1.8rem",
                 marginBottom: "0.5rem",
               }}
             >
-              정답은...
+              {correctPlayers.length > 0 ? "맞췄다!" : "정답은..."}
             </h2>
             <h1
               style={{

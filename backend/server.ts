@@ -1582,6 +1582,18 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("game_chat", payload);
   });
 
+  // 사투리 가사 맞추기: 가사/정답 동기화 (방장이 로드 시 전체에게 전파)
+  socket.on("sauturi_lyric_sync", ({ roomId, dialect, original, title, artist }: { roomId: string; dialect: string; original?: string; title?: string; artist?: string }) => {
+    if (!roomId || !dialect) return;
+    io.to(roomId).emit("sauturi_lyric_sync", { roomId, dialect, original: original ?? "", title: title ?? "", artist: artist ?? "" });
+  });
+
+  // 사투리 가사 맞추기: 턴 종료(아무도 못 맞춤) 시 방 전체에 알림 → 모두 "아무도 못 맞췄다" 모달 후 다음 턴
+  socket.on("sauturi_turn_end", ({ roomId, nobodyGotIt, answer, title, artist }: { roomId: string; nobodyGotIt: boolean; answer?: string; title?: string; artist?: string }) => {
+    if (!roomId) return;
+    io.to(roomId).emit("sauturi_turn_end", { roomId, nobodyGotIt: !!nobodyGotIt, answer: answer ?? "", title: title ?? "", artist: artist ?? "" });
+  });
+
   // 연결 해제 처리
   socket.on("disconnect", async () => {
     console.log(`[Socket] 유저 접속 해제: ${socket.id}`);
