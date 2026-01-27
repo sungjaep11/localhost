@@ -675,6 +675,9 @@ export default function GamePlayPage() {
   const gameConfigRef = useRef({ totalRounds, songsPerRound });
   gameConfigRef.current = { totalRounds, songsPerRound };
 
+  // 🔒 방 입장은 최초 1회만 실행 (무한 루프 방지 락)
+  const hasJoinedRef = useRef(false);
+
   // 게임 초기화 함수 (불러온 노래 풀에서 랜덤 선택) - ref로 최신 값 참조
   const initializeGame = useCallback((songPool: GameSong[]) => {
     if (songPool.length === 0) return;
@@ -915,14 +918,11 @@ export default function GamePlayPage() {
     }, 1500);
   };
 
-  // -------------------------------------------------------------
-  // [수정된 부분] 소켓 연결 로직 (무한 루프 방지 버전)
-  // -------------------------------------------------------------
+  // =============================================================
+  // 🔥 [핵심] 소켓 연결 로직 — cleanup에서 game_leave 절대 호출 금지
+  // =============================================================
 
-  // 중복 조인 방지용 ref
-  const hasJoinedRef = useRef(false);
-
-  // 1. 소켓 이벤트 리스너 등록
+  // 1. 소켓 이벤트 리스너만 등록 (Join/Leave는 여기서 하지 않음)
   useEffect(() => {
     if (!socket || !roomId) return;
 
@@ -1034,27 +1034,25 @@ export default function GamePlayPage() {
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
 
-    // Cleanup: 리스너만 제거하고 Leave는 하지 않음 (중요!)
+    // ❌ cleanup에서 game_leave를 보내면 Strict Mode 시 무한 루프 발생
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
+      // socket.emit('game_leave', ...) 절대 호출하지 않음
     };
-  }, [socket, roomId]); // 의존성: socket과 roomId만
+  }, [socket, roomId]);
 
-  // 2. 방 입장 처리 (퇴장 로직 완전 제거)
+  // 2. 방 입장 — 최초 1회만 실행 (락 사용), cleanup 없음
   useEffect(() => {
-    if (socket && roomId && currentUserId && !hasJoinedRef.current) {
-      console.log('[Play] Joining game room:', roomId);
-      socket.emit('game_join', { roomId, userId: currentUserId });
-      hasJoinedRef.current = true;
-    }
-    
-    // 중요: 여기서 return () => { socket.emit('game_leave') } 를 절대 하지 마세요!
-    // React Strict Mode 때문에 마운트/언마운트가 반복되면서 무한 루프가 생깁니다.
-    // 방 퇴장은 유저가 '나가기' 버튼을 눌렀을 때만 명시적으로 실행합니다.
+    if (!socket || !roomId || !currentUserId) return;
+    if (hasJoinedRef.current) return;
+    hasJoinedRef.current = true;
+    console.log('[Play] Joining game room:', roomId);
+    socket.emit('game_join', { roomId, userId: currentUserId });
+    // ❌ return () => { socket.emit('game_leave', ...) } 금지 — 여기서 cleanup 두지 않음
   }, [socket, roomId, currentUserId]);
 
-  // -------------------------------------------------------------
+  // =============================================================
 
   // 참가자 목록 불러오기 (localStorage 백업) — players.length를 의존성에 넣지 않음 (무한 렌더 방지)
   useEffect(() => {
@@ -1137,22 +1135,6 @@ export default function GamePlayPage() {
 
   const host = players.find(p => p.isHost);
   const otherPlayers = players.filter(p => !p.isHost);
-
-  if (songsLoading) {
-    return (
-      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)' }}>
-        <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
-      </main>
-    );
-  }
-  if (!songsLoading && gameSongs.length === 0 && totalRounds > 0) {
-    return (
-      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ color: '#ff6b6b', fontSize: '1.1rem' }}>노래를 불러올 수 없습니다. 시드 데이터를 먼저 넣어 주세요.</div>
-        <button onClick={() => router.push('/game/song-guess')} style={{ padding: '0.75rem 1.5rem', background: 'rgba(0,255,255,0.3)', border: '2px solid #00ffff', borderRadius: 8, color: '#00ffff', cursor: 'pointer' }}>방 목록으로</button>
-      </main>
-    );
-  }
 
   // 채팅 전송
   const sendChat = () => {
@@ -1293,6 +1275,23 @@ export default function GamePlayPage() {
     }
     return `${song.title} ${song.artist}`;
   }, []);
+
+  // ✅ 모든 훅 아래에서만 조건부 return (훅 호출 순서 유지로 #310 방지)
+  if (songsLoading) {
+    return (
+      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)' }}>
+        <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
+      </main>
+    );
+  }
+  if (!songsLoading && gameSongs.length === 0 && totalRounds > 0) {
+    return (
+      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ color: '#ff6b6b', fontSize: '1.1rem' }}>노래를 불러올 수 없습니다. 시드 데이터를 먼저 넣어 주세요.</div>
+        <button onClick={() => router.push('/game/song-guess')} style={{ padding: '0.75rem 1.5rem', background: 'rgba(0,255,255,0.3)', border: '2px solid #00ffff', borderRadius: 8, color: '#00ffff', cursor: 'pointer' }}>방 목록으로</button>
+      </main>
+    );
+  }
 
   // 재생 버튼 클릭 핸들러 (방장만) — YouTube iframe API로 실제 노래 재생
   const handlePlayButton = () => {
