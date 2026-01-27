@@ -6,3 +6,6 @@ postgres_data
 
 /generated/prisma
 postgres_data/
+
+# Downloaded MP3s (run npm run download:songs to fetch)
+songs/

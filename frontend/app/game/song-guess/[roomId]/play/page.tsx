@@ -665,7 +665,6 @@ export default function GamePlayPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const answerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const goToNextSongRef = useRef<() => void>(() => {});
-  const youtubeContainerRef = useRef<HTMLDivElement>(null);
 
   // 소켓 핸들러에서 최신 상태를 읽기 위한 ref (의존성 배열 확대·무한 리렌더 방지)
   const gameStateRef = useRef({ isPlaying, currentSongData, correctPlayers, players });
@@ -824,12 +823,20 @@ export default function GamePlayPage() {
     }
   };
 
+  // 정답 비교용 노멀라이저: 영어 대소문자 무시, 쉼표·하이픈 제거
+  const normalizeAnswer = (s: string) =>
+    (s || "")
+      .toLowerCase()
+      .replace(/,/g, "")
+      .replace(/-/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
   // 정답 체크
   const checkAnswer = (message: string): boolean => {
     if (!currentSongData || !isPlaying) return false;
-    
-    const normalizedMsg = message.toLowerCase().trim();
-    return currentSongData.answer.some(ans => normalizedMsg.includes(ans.toLowerCase()));
+    const normalizedMsg = normalizeAnswer(message);
+    return currentSongData.answer.some((ans) => normalizedMsg.includes(normalizeAnswer(ans)));
   };
 
   // 점수 부여 (rankOverride: 소켓 콜백 등에서 최신 correctPlayers.length를 넘길 때 사용)
@@ -1012,13 +1019,14 @@ export default function GamePlayPage() {
         return [...prev, newBubble];
       });
 
-      // 정답 체크 로직 (gameStateRef 사용)
+      // 정답 체크 로직 (gameStateRef 사용) — 대소문자·쉼표·하이픈 무시
       const state = gameStateRef.current;
       if (!state.isPlaying || !state.currentSongData) return;
-
-      const normalizedMsg = data.message.toLowerCase().trim();
+      const norm = (s: string) =>
+        (s || "").toLowerCase().replace(/,/g, "").replace(/-/g, "").replace(/\s+/g, " ").trim();
+      const normalizedMsg = norm(data.message);
       const isCorrectAnswer = state.currentSongData.answer.some((ans: string) =>
-        normalizedMsg.includes(ans.toLowerCase())
+        normalizedMsg.includes(norm(ans))
       );
       const alreadyCorrect = state.correctPlayers.includes(data.playerId);
 
@@ -1122,7 +1130,6 @@ export default function GamePlayPage() {
     }
   }, [chatMessages]);
 
-  // YouTube는 embed iframe으로만 재생 (iframe API 미사용 → postMessage origin 오류 방지)
   // 특정 플레이어의 말풍선 가져오기
   const getPlayerBubble = (playerId: string) => {
     return bubbleMessages.find(msg => msg.playerId === playerId);
@@ -1259,34 +1266,6 @@ export default function GamePlayPage() {
     }
   };
 
-  // YouTube 영상 ID 추출 (watch?v=xxx, youtu.be/xxx, embed/xxx 형식만 재생 가능. search_query= 은 소리 안 남)
-  const getYoutubeVideoId = useCallback((song: GameSong | null): string | null => {
-    if (!song?.youtubeUrl) return null;
-    const u = song.youtubeUrl.trim();
-    // watch?v=VIDEO_ID
-    const watch = u.match(/(?:youtube\.com\/watch\?.*?[?&]v=)([a-zA-Z0-9_-]{11})/);
-    if (watch) return watch[1];
-    // youtu.be/VIDEO_ID
-    const short = u.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-    if (short) return short[1];
-    // embed/VIDEO_ID
-    const embed = u.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
-    if (embed) return embed[1];
-    return null;
-  }, []);
-
-  // YouTube 검색어 추출 (seed의 youtubeUrl이 search_query인 경우 — 재생 불가, 힌트용)
-  const getYoutubeSearchQuery = useCallback((song: GameSong | null): string => {
-    if (!song) return '';
-    if (song.youtubeUrl && song.youtubeUrl.includes('search_query=')) {
-      try {
-        const m = song.youtubeUrl.match(/search_query=([^&]+)/);
-        if (m) return decodeURIComponent(m[1].replace(/\+/g, ' '));
-      } catch (_) {}
-    }
-    return `${song.title} ${song.artist}`;
-  }, []);
-
   // ✅ 모든 훅 아래에서만 조건부 return (훅 호출 순서 유지로 #310 방지)
   if (songsLoading) {
     return (
@@ -1304,21 +1283,13 @@ export default function GamePlayPage() {
     );
   }
 
-  // 재생 버튼 클릭 핸들러 (방장만) — embed iframe으로 재생 (API 미사용 → postMessage origin 오류 없음)
-  // 노래가 들리려면 youtubeUrl에 "영상 링크(watch?v=영상ID)"를 넣어야 함.
+  // 재생 버튼 클릭 핸들러 (방장만) — 음원은 로컬/다운로드로 넣을 예정, 당분간 시뮬레이션만
   const handlePlayButton = () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
-
-    const videoId = getYoutubeVideoId(currentSongData);
-
-    if ((gamePhase === 'waiting' || gamePhase === 'answer_revealed') && videoId) {
-      setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
-      setIsAudioPlaying(true);
-      startPlaying();
-    } else {
+    if ((gamePhase === 'waiting' || gamePhase === 'answer_revealed')) {
       fallbackSimulatePlay();
     }
   };
@@ -1385,72 +1356,6 @@ export default function GamePlayPage() {
         position: "relative",
       }}
     >
-      {/* YouTube embed iframe (API 미사용 → postMessage origin 오류 없음) */}
-      <div
-        style={{
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 50,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
-        <div
-          ref={youtubeContainerRef}
-          style={{
-            width: 560,
-            height: 315,
-            opacity: 1,
-            pointerEvents: 'auto',
-            overflow: 'hidden',
-            borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            border: '2px solid rgba(0, 194, 255, 0.4)',
-            background: '#111',
-          }}
-          aria-label="노래 영상"
-        >
-          {typeof window !== 'undefined' && (() => {
-            const vid = getYoutubeVideoId(currentSongData);
-            if (!vid) return null;
-            const origin = encodeURIComponent(window.location.origin);
-            const autoplay = isAudioPlaying ? 1 : 0;
-            return (
-              <iframe
-                key={vid}
-                title="노래 영상"
-                src={`https://www.youtube.com/embed/${vid}?autoplay=${autoplay}&origin=${origin}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 0,
-                  borderRadius: 12,
-                }}
-              />
-            );
-          })()}
-        </div>
-        {isAudioPlaying && currentSongData?.youtubeUrl && (
-          <a
-            href={currentSongData.youtubeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontSize: '0.9rem',
-              color: 'rgba(0, 194, 255, 0.9)',
-              textDecoration: 'underline',
-            }}
-          >
-            재생이 안 되면 유튜브에서 보기 ↗
-          </a>
-        )}
-      </div>
       {/* 떠다니는 음표들 */}
       <div className="floating-notes">
         {[...Array(6)].map((_, i) => (
