@@ -1300,7 +1300,14 @@ io.on("connection", (socket) => {
         return;
       }
 
-      if (room.status === "PLAYING") {
+      const gameType = room.type as "MUSIC_QUIZ" | "DIALECT_QUIZ";
+      const session = getOrCreateGameSession(roomId, gameType);
+
+      // 이미 참가한 플레이어인지 확인 (재접속 허용)
+      const isReconnecting = session.players.has(userId);
+
+      // 새 플레이어가 게임 중인 방에 입장하려는 경우 차단
+      if (room.status === "PLAYING" && !isReconnecting) {
         socket.emit("game_error", { message: "Game is already in progress" });
         return;
       }
@@ -1309,16 +1316,12 @@ io.on("connection", (socket) => {
       socketRoomId = roomId;
       socket.join(roomId);
 
-      const gameType = room.type as "MUSIC_QUIZ" | "DIALECT_QUIZ";
-      const session = getOrCreateGameSession(roomId, gameType);
-
-      // 이미 참가한 플레이어인지 확인
-      if (session.players.has(userId)) {
+      if (isReconnecting) {
         // 재접속: 소켓 ID와 isHost 상태 업데이트 (방장이 변경되었을 수 있음)
         const player = session.players.get(userId)!;
         player.socketId = socket.id;
         const isHost = room.hostId === userId;
-        console.log(`[game_join] Reconnecting player ${user.nickname} (${userId}), room.hostId: ${room.hostId}, isHost: ${isHost}`);
+        console.log(`[game_join] Reconnecting player ${user.nickname} (${userId}), room.hostId: ${room.hostId}, isHost: ${isHost}, roomStatus: ${room.status}`);
         player.isHost = isHost; // 방장 상태 최신화
       } else {
         // 새 플레이어 추가
@@ -1333,13 +1336,15 @@ io.on("connection", (socket) => {
           isHost,
         };
         session.players.set(userId, player);
-      }
 
-      // 방 상태 업데이트
-      await prisma.room.update({
-        where: { id: roomId },
-        data: { status: "WAITING" },
-      });
+        // 새 플레이어가 입장할 때만 방 상태를 WAITING으로 설정 (재접속 시에는 변경 안 함)
+        if (room.status !== "PLAYING") {
+          await prisma.room.update({
+            where: { id: roomId },
+            data: { status: "WAITING" },
+          });
+        }
+      }
 
       // 모든 플레이어에게 업데이트된 플레이어 목록 전송
       const playersArray = getPlayersArray(session);
