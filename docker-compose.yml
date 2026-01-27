@@ -65,6 +65,8 @@ services:
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-}
       NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:3001}
       BACKEND_URL: http://backend:3001
+      # ElevenLabs TTS (사투리 가사 맞추기). 프로젝트 루트 또는 frontend/.env.local 에 ELEVENLABS_API_KEY 설정 후 적용
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
     depends_on:
       - backend
 

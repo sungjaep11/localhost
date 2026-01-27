@@ -17,6 +17,9 @@ interface Player {
 
 const STORAGE_KEY = 'song-guess-rooms';
 
+// 표시용만 사용 — (1) 붙은 저장값을 비(1) 경로로
+const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
+
 // 3D 모델 — character1은 프레임 안에 들어오도록 더 작게
 function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);

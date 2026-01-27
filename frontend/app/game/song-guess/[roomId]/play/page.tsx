@@ -646,6 +646,7 @@ export default function GamePlayPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const answerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const goToNextSongRef = useRef<() => void>(() => {});
+  const startPlayingRef = useRef<() => void>(() => {});
 
   // 소켓 핸들러에서 최신 상태를 읽기 위한 ref (의존성 배열 확대·무한 리렌더 방지)
   const gameStateRef = useRef({ isPlaying, currentSongData, correctPlayers, players });
@@ -819,6 +820,7 @@ export default function GamePlayPage() {
       setChatMessages(prev => [...prev, systemMsg]);
     }
   };
+  startPlayingRef.current = startPlaying;
 
   // 정답 비교용 노멀라이저: 영어 대소문자 무시, 쉼표·하이픈 제거
   const normalizeAnswer = (s: string) =>
@@ -1072,13 +1074,54 @@ export default function GamePlayPage() {
       }, 2500);
     };
 
+    // 방장이 재생 시 방 전체에 같은 곡 동기화 — 모든 클라이언트(방장 포함)가 이 이벤트로 같은 곡 재생
+    const handleSongGuessSync = (data: { roomId: string; song: { id: string; title: string; artist: string; mp3Url: string } }) => {
+      if (data.roomId !== roomId || !data.song?.id || !data.song?.mp3Url) return;
+      const gameSong = randomSongToGameSong({ ...data.song, genre: '' } as RandomSongFromApi);
+      setCurrentSongData(gameSong);
+      usedSongIdsRef.current.add(data.song.id);
+      setLyrics('');
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      const audio = new Audio(data.song.mp3Url);
+      audioRef.current = audio;
+      setTtsAudio(audio);
+      audio.addEventListener('loadedmetadata', () => setTotalDuration(audio.duration));
+      audio.addEventListener('timeupdate', () => setCurrentTime(audio.currentTime));
+      audio.addEventListener('ended', () => {
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+      });
+      audio.onerror = () => {
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+      };
+      audio.play().then(() => {
+        setIsAudioPlaying(true);
+        setCurrentTime(0);
+        startPlayingRef.current();
+      }).catch(() => {
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+        startPlayingRef.current();
+      });
+    };
+
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
+    socket.on('song_guess_sync', handleSongGuessSync);
 
     // ❌ cleanup에서 game_leave를 보내면 Strict Mode 시 무한 루프 발생
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
+      socket.off('song_guess_sync', handleSongGuessSync);
       if (answerModalTimeoutRef.current) {
         clearTimeout(answerModalTimeoutRef.current);
         answerModalTimeoutRef.current = null;
@@ -1322,39 +1365,7 @@ export default function GamePlayPage() {
     return `${song.title} ${song.artist}`;
   }, []);
 
-  // ✅ 모든 훅 아래에서만 조건부 return (훅 호출 순서 유지로 #310 방지)
-  if (songsLoading) {
-    return (
-      <main className="lobby-premium-root">
-        <div className="lobby-premium-bg">
-          <div className="lobby-bg-base" />
-          <div className="lobby-city-dense" aria-hidden />
-          <div className="lobby-city-bokeh" aria-hidden />
-          <div className="lobby-city-traffic" aria-hidden />
-          <div className="lobby-interior-overlay" aria-hidden />
-          <div className="lobby-fog" aria-hidden />
-          <div className="lobby-fog-volumetric" aria-hidden />
-          <div className="lobby-floor-reflection" aria-hidden />
-        </div>
-        <div className="lobby-neon-particles" aria-hidden>
-          {[...Array(40)].map((_, i) => {
-            const isPurple = i % 4 === 0;
-            const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
-            return (
-              <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
-            );
-          })}
-        </div>
-        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
-        </div>
-      </main>
-    );
-  }
-  // 친구 API 흐름: 곡은 /api/songs/random으로 방장 재생 시 로드하므로 gameSongs 빈 화면은 사용하지 않음
-
-  // 재생 버튼 클릭 핸들러 (방장만) — backend/songs/ 장르별 랜덤 노래 1곡 재생, 이미 나온 곡 제외
-  // 반드시 모든 조건부 return 앞에 두어 훅 호출 순서를 매 렌더마다 동일하게 유지 (#310 방지)
+  // 재생 버튼 클릭 핸들러 (방장만) — 반드시 모든 조건부 return 위에 두어 훅 호출 순서 동일 유지 (React #310 방지)
   const handlePlayButton = useCallback(async () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
@@ -1398,6 +1409,16 @@ export default function GamePlayPage() {
         return;
       }
 
+      // 실방: 방장이 재생 시 서버로 곡만 보내고, song_guess_sync로 모든 클라이언트(방장 포함)가 같은 곡 재생
+      if (roomId !== 'preview-room' && socket) {
+        socket.emit('song_guess_play', {
+          roomId,
+          song: { id: song.id, title: song.title, artist: song.artist, mp3Url: song.mp3Url },
+        });
+        return;
+      }
+
+      // 미리보기 또는 소켓 없음: 로컬에서만 재생
       const gameSong = randomSongToGameSong(song as RandomSongFromApi);
       setCurrentSongData(gameSong);
       usedSongIdsRef.current.add(song.id);
@@ -1445,7 +1466,37 @@ export default function GamePlayPage() {
       simulationIntervalRef.current = iv;
       startPlaying();
     }
-  }, [gamePhase, currentRound, roomGenres]);
+  }, [gamePhase, currentRound, roomGenres, socket, roomId]);
+
+  // ✅ 조건부 return은 모든 훅 아래에서만 (훅 호출 순서 동일 유지로 React #310 방지)
+  if (songsLoading) {
+    return (
+      <main className="lobby-premium-root">
+        <div className="lobby-premium-bg">
+          <div className="lobby-bg-base" />
+          <div className="lobby-city-dense" aria-hidden />
+          <div className="lobby-city-bokeh" aria-hidden />
+          <div className="lobby-city-traffic" aria-hidden />
+          <div className="lobby-interior-overlay" aria-hidden />
+          <div className="lobby-fog" aria-hidden />
+          <div className="lobby-fog-volumetric" aria-hidden />
+          <div className="lobby-floor-reflection" aria-hidden />
+        </div>
+        <div className="lobby-neon-particles" aria-hidden>
+          {[...Array(40)].map((_, i) => {
+            const isPurple = i % 4 === 0;
+            const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+            return (
+              <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+            );
+          })}
+        </div>
+        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
+        </div>
+      </main>
+    );
+  }
 
   // 가사 색상 계산 (노래방 스타일)
   const getLyricsWithColors = () => {
