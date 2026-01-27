@@ -674,25 +674,31 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
       const session = gameSessions.get(roomId);
       if (session) {
         // 모든 플레이어에게 방 삭제 알림
-        io.to(roomId).emit("room_deleted", {
-          roomId,
-          message: "Room has been deleted by the host",
-        });
+        try {
+          if (io) {
+            io.to(roomId).emit("room_deleted", {
+              roomId,
+              message: "Room has been deleted by the host",
+            });
+            // 소켓 룸에서 모든 사용자 제거
+            const socketsInRoom = await io.in(roomId).fetchSockets();
+            socketsInRoom.forEach(socket => {
+              socket.leave(roomId);
+            });
+          }
+        } catch (socketErr: any) {
+          console.warn("[DELETE /api/rooms/:roomId] Failed to emit socket event:", socketErr.message);
+          // Socket 에러는 무시하고 계속 진행
+        }
       }
       gameSessions.delete(roomId);
     }
 
     // 관련 데이터 삭제 (트랜잭션으로 처리)
+    // 순서 중요: 자식 데이터를 먼저 삭제한 후 부모 데이터 삭제
     try {
       await prisma.$transaction(async (tx: any) => {
-        // 플레이리스트 트랙 삭제 (플레이리스트 방인 경우에만 존재)
-        // deleteMany는 레코드가 없어도 에러를 발생시키지 않음
-        await tx.playlistTrack.deleteMany({
-          where: { roomId },
-        });
-
-        // GameHistory와 관련된 GameResult 삭제 (기록을 유지하려면 이 부분을 주석 처리)
-        // 기록을 유지하려면 스키마에서 roomId를 nullable로 만들고 onDelete: SetNull 설정 필요
+        // 1. GameResult 삭제 (GameHistory의 자식)
         await tx.gameResult.deleteMany({
           where: {
             history: {
@@ -701,24 +707,37 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
           },
         });
 
-        // GameHistory 삭제
+        // 2. GameHistory 삭제 (Room의 자식)
         await tx.gameHistory.deleteMany({
           where: { roomId },
         });
 
-        // 방 삭제
+        // 3. PlaylistTrack 삭제 (Room의 자식)
+        // deleteMany는 레코드가 없어도 에러를 발생시키지 않음
+        await tx.playlistTrack.deleteMany({
+          where: { roomId },
+        });
+
+        // 4. 마지막으로 Room 삭제 (모든 자식 데이터 삭제 후)
         await tx.room.delete({
           where: { id: roomId },
         });
       });
     } catch (transactionErr: any) {
       console.error("[DELETE /api/rooms/:roomId] Transaction error:", transactionErr);
+      console.error("[DELETE /api/rooms/:roomId] Transaction error details:", {
+        message: transactionErr.message,
+        code: transactionErr.code,
+        meta: transactionErr.meta,
+      });
       throw transactionErr; // Re-throw to be caught by outer catch
     }
 
     // 모든 클라이언트에게 방 삭제 알림
     try {
-      io.emit("room_deleted", { roomId });
+      if (io) {
+        io.emit("room_deleted", { roomId });
+      }
     } catch (socketErr: any) {
       console.warn("[DELETE /api/rooms/:roomId] Failed to emit socket event:", socketErr.message);
       // Socket 에러는 무시하고 계속 진행
