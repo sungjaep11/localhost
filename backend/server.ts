@@ -1684,6 +1684,8 @@ io.on("connection", (socket) => {
 // ============================================
 
 // 다음 라운드 시작
+// NOTE: MUSIC_QUIZ는 프론트엔드에서 자체적으로 노래를 로드하고 정답 체크를 합니다.
+// 이 함수는 라운드 카운터와 상태 관리만 담당합니다.
 async function startNextRound(roomId: string) {
   const session = gameSessions.get(roomId);
   if (!session) return;
@@ -1699,119 +1701,51 @@ async function startNextRound(roomId: string) {
 
   session.status = "PLAYING";
 
-  let question: { questionId: string; correctAnswer: string; youtubeUrl?: string; artist?: string } | null = null;
-
-  // MUSIC_QUIZ인 경우 DB에서 장르에 맞는 랜덤 노래 조회
-  if (session.gameType === "MUSIC_QUIZ" && session.genres && session.genres.length > 0) {
-    try {
-      // @ts-ignore - Prisma Client 타입 문제
-      const availableSongs = await prisma.song.findMany({
-        where: {
-          genre: { in: session.genres },
-          id: { notIn: session.usedSongIds || [] }, // 이미 사용한 노래 제외
-        },
-      });
-
-      if (availableSongs.length > 0) {
-        // 랜덤하게 한 곡 선택
-        const randomIndex = Math.floor(Math.random() * availableSongs.length);
-        const selectedSong = availableSongs[randomIndex];
-
-        // 사용한 노래 ID 기록
-        if (!session.usedSongIds) session.usedSongIds = [];
-        session.usedSongIds.push(selectedSong.id);
-
-        question = {
-          questionId: selectedSong.id,
-          correctAnswer: selectedSong.title,
-          youtubeUrl: selectedSong.youtubeUrl,
-          artist: selectedSong.artist,
-        };
-
-        console.log(`[startNextRound] MUSIC_QUIZ - Selected song: "${selectedSong.title}" by ${selectedSong.artist} (${selectedSong.genre})`);
-      } else {
-        // 사용 가능한 노래가 없으면 usedSongIds 초기화하고 다시 시도
-        console.log(`[startNextRound] No more songs available, resetting usedSongIds`);
-        session.usedSongIds = [];
-        
-        // @ts-ignore
-        const allSongs = await prisma.song.findMany({
-          where: { genre: { in: session.genres } },
-        });
-        
-        if (allSongs.length > 0) {
-          const randomIndex = Math.floor(Math.random() * allSongs.length);
-          const selectedSong = allSongs[randomIndex];
-          session.usedSongIds.push(selectedSong.id);
-
-          question = {
-            questionId: selectedSong.id,
-            correctAnswer: selectedSong.title,
-            youtubeUrl: selectedSong.youtubeUrl,
-            artist: selectedSong.artist,
-          };
-        }
-      }
-    } catch (error) {
-      console.error(`[startNextRound] Failed to fetch song from DB:`, error);
-    }
+  // MUSIC_QUIZ: 프론트엔드가 /api/songs/random으로 직접 노래를 로드하므로
+  // 백엔드에서는 라운드 시작 알림만 보냄 (노래 선택은 프론트엔드에서 함)
+  if (session.gameType === "MUSIC_QUIZ") {
+    console.log(`[Game] MUSIC_QUIZ Round ${session.currentRound} started - Frontend will load song via /api/songs/random`);
+    
+    // 라운드 시작 알림 (노래 정보 없이)
+    io.to(roomId).emit("game_round_start", {
+      roomId,
+      round: session.currentRound,
+      totalRounds: session.totalRounds,
+      timeLimit: session.roundTimeLimit || 30,
+    });
+    
+    return;
   }
 
-  // DB에서 노래를 가져오지 못했거나 DIALECT_QUIZ인 경우 기존 더미 데이터 사용
-  if (!question) {
-    const dummyQuestions = {
-      MUSIC_QUIZ: [
-        { questionId: "q1", correctAnswer: "아틀란티스 소녀" },
-        { questionId: "q2", correctAnswer: "Gee" },
-        { questionId: "q3", correctAnswer: "벚꽃 엔딩" },
-      ],
-      DIALECT_QUIZ: [
-        { questionId: "q1", correctAnswer: "고맙습니다" },
-        { questionId: "q2", correctAnswer: "안녕하세요" },
-        { questionId: "q3", correctAnswer: "사랑해" },
-      ],
-    };
+  // DIALECT_QUIZ: 더미 데이터 사용 (프론트엔드가 /api/dialect-lyrics/random 사용)
+  const dummyQuestions = {
+    DIALECT_QUIZ: [
+      { questionId: "q1", correctAnswer: "고맙습니다" },
+      { questionId: "q2", correctAnswer: "안녕하세요" },
+      { questionId: "q3", correctAnswer: "사랑해" },
+    ],
+  };
 
-    const questions = dummyQuestions[session.gameType];
-    const questionIndex = (session.currentRound - 1) % questions.length;
-    question = questions[questionIndex];
-  }
+  const questions = dummyQuestions.DIALECT_QUIZ;
+  const questionIndex = (session.currentRound - 1) % questions.length;
+  const question = questions[questionIndex];
 
   session.currentQuestion = {
     questionId: question.questionId,
     correctAnswer: question.correctAnswer,
     startedAt: new Date(),
-    youtubeUrl: question.youtubeUrl,
-    artist: question.artist,
   };
 
-  // 라운드 시작 알림 - MUSIC_QUIZ인 경우 YouTube URL과 아티스트 정보 포함
+  // 라운드 시작 알림
   io.to(roomId).emit("game_round_start", {
     roomId,
     round: session.currentRound,
     totalRounds: session.totalRounds,
     question: {
       questionId: question.questionId,
-      youtubeUrl: question.youtubeUrl, // YouTube URL
-      artist: question.artist, // 아티스트 정보 (힌트로 사용 가능)
     },
     timeLimit: session.roundTimeLimit || 30,
   });
-
-  // 시간 제한이 있으면 타이머 시작
-  if (session.roundTimeLimit) {
-    setTimeout(() => {
-      if (gameSessions.has(roomId)) {
-        const currentSession = gameSessions.get(roomId)!;
-        if (
-          currentSession.currentRound === session.currentRound &&
-          currentSession.status === "PLAYING"
-        ) {
-          endRound(roomId);
-        }
-      }
-    }, session.roundTimeLimit * 1000);
-  }
 
   console.log(`[Game] Round ${session.currentRound} started in room ${roomId}`);
 }
