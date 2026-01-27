@@ -14,28 +14,28 @@ const songs = [
   { genre: '발라드', title: 'All For You', artist: '서인국, 정은지', youtubeUrl: 'https://www.youtube.com/results?search_query=All+For+You+%EC%84%9C%EC%9D%B8%EA%B5%AD+%EC%A0%95%EC%9D%80%EC%A7%80' },
 
   // K-pop
-  { genre: 'K-pop', title: 'Dynamite', artist: 'BTS', youtubeUrl: 'https://www.youtube.com/results?search_query=Dynamite+BTS' },
-  { genre: 'K-pop', title: 'Butter', artist: 'BTS', youtubeUrl: 'https://www.youtube.com/results?search_query=Butter+BTS' },
-  { genre: 'K-pop', title: 'Gangnam Style', artist: 'PSY', youtubeUrl: 'https://www.youtube.com/results?search_query=Gangnam+Style+PSY' },
-  { genre: 'K-pop', title: 'Gee', artist: '소녀시대 (Girls\' Generation)', youtubeUrl: 'https://www.youtube.com/results?search_query=Gee+Girls+Generation' },
-  { genre: 'K-pop', title: 'CHEER UP', artist: 'TWICE', youtubeUrl: 'https://www.youtube.com/results?search_query=CHEER+UP+TWICE' },
-  { genre: 'K-pop', title: 'TT', artist: 'TWICE', youtubeUrl: 'https://www.youtube.com/results?search_query=TT+TWICE' },
-  { genre: 'K-pop', title: 'Love Scenario', artist: 'iKON', youtubeUrl: 'https://www.youtube.com/results?search_query=Love+Scenario+iKON' },
-  { genre: 'K-pop', title: 'Hype Boy', artist: 'NewJeans', youtubeUrl: 'https://www.youtube.com/results?search_query=Hype+Boy+NewJeans' },
-  { genre: 'K-pop', title: 'Love Dive', artist: 'IVE', youtubeUrl: 'https://www.youtube.com/results?search_query=LOVE+DIVE+IVE' },
-  { genre: 'K-pop', title: 'Next Level', artist: 'aespa', youtubeUrl: 'https://www.youtube.com/results?search_query=Next+Level+aespa' },
+  { genre: 'K-pop', title: '다이너마이트', artist: 'BTS', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%8B%A4%EC%9D%B4%EB%84%88%EB%A7%88%EC%9D%B4%ED%8A%B8+BTS' },
+  { genre: 'K-pop', title: '버터', artist: 'BTS', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%B2%84%ED%84%B0+BTS' },
+  { genre: 'K-pop', title: '강남스타일', artist: 'PSY', youtubeUrl: 'https://www.youtube.com/results?search_query=%EA%B0%95%EB%82%A8%EC%8A%A4%ED%83%80%EC%9D%BC+PSY' },
+  { genre: 'K-pop', title: '지', artist: '소녀시대', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%A7%80+%EC%86%8C%EB%85%80%EC%8B%9C%EB%8C%80' },
+  { genre: 'K-pop', title: '치어 업', artist: 'TWICE', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%B9%98%EC%96%B4%EC%97%85+TWICE' },
+  { genre: 'K-pop', title: '티티', artist: 'TWICE', youtubeUrl: 'https://www.youtube.com/results?search_query=%ED%8B%B0%ED%8B%B0+TWICE' },
+  { genre: 'K-pop', title: '사랑을 했다', artist: 'iKON', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%82%AC%EB%9E%91%EC%9D%84+%ED%96%88%EB%8B%A4+iKON' },
+  { genre: 'K-pop', title: '하입보이', artist: 'NewJeans', youtubeUrl: 'https://www.youtube.com/results?search_query=%ED%95%98%EC%9E%85%EB%B3%B4%EC%9D%B4+NewJeans' },
+  { genre: 'K-pop', title: '러브 다이브', artist: 'IVE', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%9F%AC%EB%B8%8C%EB%8B%A4%EC%9D%B4%EB%B8%8C+IVE' },
+  { genre: 'K-pop', title: '넥스트 레벨', artist: 'aespa', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%84%A5%EC%8A%A4%ED%8A%B8+%EB%A0%88%EB%B2%A8+aespa' },
 
-  // J-pop
-  { genre: 'J-pop', title: 'Lemon', artist: '米津玄師 (Kenshi Yonezu)', youtubeUrl: 'https://www.youtube.com/results?search_query=Lemon+Kenshi+Yonezu' },
-  { genre: 'J-pop', title: 'Pretender', artist: 'Official髭男dism', youtubeUrl: 'https://www.youtube.com/results?search_query=Pretender+Official+HIGE+DANDism' },
-  { genre: 'J-pop', title: 'Marunouchi Sadistic', artist: '椎名林檎 (Ringo Sheena)', youtubeUrl: 'https://www.youtube.com/results?search_query=Marunouchi+Sadistic+Ringo+Sheena' },
-  { genre: 'J-pop', title: '夜に駆ける (Yoru ni Kakeru)', artist: 'YOASOBI', youtubeUrl: 'https://www.youtube.com/results?search_query=YOASOBI+%E5%A4%9C%E3%81%AB%E9%A7%86%E3%81%91%E3%82%8B' },
-  { genre: 'J-pop', title: '紅蓮華 (Gurenge)', artist: 'LiSA', youtubeUrl: 'https://www.youtube.com/results?search_query=LiSA+Gurenge' },
-  { genre: 'J-pop', title: '残酷な天使のテーゼ', artist: '高橋洋子', youtubeUrl: 'https://www.youtube.com/results?search_query=%E6%AE%8B%E9%85%B7%E3%81%AA%E5%A4%A9%E4%BD%BF%E3%81%AE%E3%83%86%E3%83%BC%E3%82%BC+%E9%AB%98%E6%A9%8B%E6%B4%8B%E5%AD%90' },
-  { genre: 'J-pop', title: '小さな恋のうた', artist: 'MONGOL800', youtubeUrl: 'https://www.youtube.com/results?search_query=%E5%B0%8F%E3%81%95%E3%81%AA%E6%81%8B%E3%81%AE%E3%81%86%E3%81%9F+MONGOL800' },
-  { genre: 'J-pop', title: '風吹けば恋 (Kaze ga Fuiteiru)', artist: 'いきものがかり', youtubeUrl: 'https://www.youtube.com/results?search_query=%E9%A2%A8%E3%81%8C%E5%90%B9%E3%81%84%E3%81%A6%E3%81%84%E3%82%8B+%E3%81%84%E3%81%8D%E3%82%82%E3%81%AE%E3%81%8C%E3%81%8B%E3%82%8A' },
-  { genre: 'J-pop', title: '打上花火', artist: 'DAOKO × 米津玄師', youtubeUrl: 'https://www.youtube.com/results?search_query=%E6%89%93%E4%B8%8A%E8%8A%B1%E7%81%AB+DAOKO+%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB' },
-  { genre: 'J-pop', title: '世界に一つだけの花', artist: 'SMAP', youtubeUrl: 'https://www.youtube.com/results?search_query=%E4%B8%96%E7%95%8C%E3%81%AB%E4%B8%80%E3%81%A4%E3%81%A0%E3%81%91%E3%81%AE%E8%8A%B1+SMAP' },
+  // J-pop (영어 제외 → 한글 제목)
+  { genre: 'J-pop', title: '레몬', artist: '요네즈 켄시', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%A0%88%EB%AA%AC+%EC%9A%94%EB%84%A4%EC%A6%88+%EC%BC%84%EC%8B%9C' },
+  { genre: 'J-pop', title: '프리텐더', artist: 'Official髭男dism', youtubeUrl: 'https://www.youtube.com/results?search_query=%ED%94%84%EB%A6%AC%ED%85%90%EB%8D%94+Official+HIGE+DANDism' },
+  { genre: 'J-pop', title: '마루노우치 새디스틱', artist: '시이나 링고', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%A7%88%EB%A3%A8%EB%85%B8%EC%9A%B0%EC%B9%98+%EC%83%88%EB%94%94%EC%8A%A4%ED%8B%B1+%EC%8B%9C%EC%9D%B4%EB%82%98+%EB%A7%81%EA%B3%A0' },
+  { genre: 'J-pop', title: '밤을 달리다', artist: 'YOASOBI', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%B0%A4%EC%9D%84+%EB%8B%AC%EB%A6%AC%EB%8B%A4+YOASOBI' },
+  { genre: 'J-pop', title: '홍련화', artist: 'LiSA', youtubeUrl: 'https://www.youtube.com/results?search_query=%ED%99%8D%EB%A0%A8%ED%99%94+LiSA' },
+  { genre: 'J-pop', title: '잔혹한 천사의 테제', artist: '다카하시 요코', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%9E%94%ED%98%B9%ED%95%9C+%EC%B2%9C%EC%82%AC%EC%9D%98+%ED%85%8C%EC%A0%9C' },
+  { genre: 'J-pop', title: '작은 사랑의 노래', artist: 'MONGOL800', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%9E%91%EC%9D%80+%EC%82%AC%EB%9E%91%EC%9D%98+%EB%85%B8%EB%9E%98+MONGOL800' },
+  { genre: 'J-pop', title: '바람이 불고 있다', artist: '이키모노가카리', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%B0%94%EB%9E%8C%EC%9D%B4+%EB%B6%88%EA%B3%A0+%EC%9E%88%EB%8B%A4+%EC%9D%B4%ED%82%A4%EB%AA%A8%EB%85%B8%EA%B0%80%EC%B9%B4%EB%A6%AC' },
+  { genre: 'J-pop', title: '타상화화', artist: 'DAOKO × 요네즈 켄시', youtubeUrl: 'https://www.youtube.com/results?search_query=%ED%83%80%EC%83%81%ED%99%94%ED%99%94+DAOKO+%EC%9A%94%EB%84%A4%EC%A6%88+%EC%BC%84%EC%8B%9C' },
+  { genre: 'J-pop', title: '세상에 하나뿐인 꽃', artist: 'SMAP', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%84%B8%EC%83%81%EC%97%90+%ED%95%98%EB%82%98%EB%BF%90%EC%9D%B8+%EA%BD%83+SMAP' },
 
   // 팝송
   { genre: '팝송', title: 'Shape of You', artist: 'Ed Sheeran', youtubeUrl: 'https://www.youtube.com/results?search_query=Shape+of+You+Ed+Sheeran' },
@@ -49,17 +49,12 @@ const songs = [
   { genre: '팝송', title: 'Thinking Out Loud', artist: 'Ed Sheeran', youtubeUrl: 'https://www.youtube.com/results?search_query=Thinking+Out+Loud+Ed+Sheeran' },
   { genre: '팝송', title: 'Viva La Vida', artist: 'Coldplay', youtubeUrl: 'https://www.youtube.com/results?search_query=Viva+La+Vida+Coldplay' },
 
-  // 댄스
-  { genre: '댄스', title: 'Billie Jean', artist: 'Michael Jackson', youtubeUrl: 'https://www.youtube.com/results?search_query=Billie+Jean+Michael+Jackson' },
-  { genre: '댄스', title: 'September', artist: 'Earth, Wind & Fire', youtubeUrl: 'https://www.youtube.com/results?search_query=September+Earth+Wind+%26+Fire' },
-  { genre: '댄스', title: 'I Gotta Feeling', artist: 'The Black Eyed Peas', youtubeUrl: 'https://www.youtube.com/results?search_query=I+Gotta+Feeling+Black+Eyed+Peas' },
-  { genre: '댄스', title: 'Wake Me Up', artist: 'Avicii', youtubeUrl: 'https://www.youtube.com/results?search_query=Wake+Me+Up+Avicii' },
-  { genre: '댄스', title: 'One More Time', artist: 'Daft Punk', youtubeUrl: 'https://www.youtube.com/results?search_query=One+More+Time+Daft+Punk' },
-  { genre: '댄스', title: 'Party Rock Anthem', artist: 'LMFAO', youtubeUrl: 'https://www.youtube.com/results?search_query=Party+Rock+Anthem+LMFAO' },
-  { genre: '댄스', title: 'Can\'t Stop the Feeling!', artist: 'Justin Timberlake', youtubeUrl: 'https://www.youtube.com/results?search_query=Can%27t+Stop+the+Feeling+Justin+Timberlake' },
-  { genre: '댄스', title: 'Titanium', artist: 'David Guetta ft. Sia', youtubeUrl: 'https://www.youtube.com/results?search_query=Titanium+David+Guetta+Sia' },
-  { genre: '댄스', title: 'Get Lucky', artist: 'Daft Punk ft. Pharrell Williams', youtubeUrl: 'https://www.youtube.com/results?search_query=Get+Lucky+Daft+Punk+Pharrell' },
-  { genre: '댄스', title: 'Levitating', artist: 'Dua Lipa', youtubeUrl: 'https://www.youtube.com/results?search_query=Levitating+Dua+Lipa' },
+  // 댄스 (한국)
+  { genre: '댄스', title: '아주 나이스', artist: '세븐틴', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%95%84%EC%A3%BC+%EB%82%98%EC%9D%B4%EC%8A%A4+%EC%84%B8%EB%B8%90%ED%8B%B4' },
+  { genre: '댄스', title: '삐딱하게', artist: '지드래곤', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%82%90%EB%94%B1%ED%95%98%EA%B2%8C+%EC%A7%80%EB%93%9C%EB%9E%98%EA%B3%A4' },
+  { genre: '댄스', title: '붐바야', artist: 'BLACKPINK', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%B6%90%EB%B0%94%EC%95%BC+BLACKPINK' },
+  { genre: '댄스', title: '롤린', artist: '브레이브걸스', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%A1%A4%EB%A6%B0+%EB%B8%8C%EB%A0%88%EC%9D%B4%EB%B8%8C%EA%B1%B8%EC%8A%A4' },
+  { genre: '댄스', title: '강남스타일', artist: 'PSY', youtubeUrl: 'https://www.youtube.com/results?search_query=%EA%B0%95%EB%82%A8%EC%8A%A4%ED%83%80%EC%9D%BC+PSY' },
 
   // 인디
   { genre: '인디', title: '봄날', artist: '아이유', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%B4%84%EB%82%A0+%EC%95%84%EC%9D%B4%EC%9C%A0' },
@@ -73,29 +68,19 @@ const songs = [
   { genre: '인디', title: '여수 밤바다', artist: '버스커 버스커', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%97%AC%EC%88%98+%EB%B0%A4%EB%B0%94%EB%8B%A4+%EB%B2%84%EC%8A%A4%EC%BB%A4+%EB%B2%84%EC%8A%A4%EC%BB%A4' },
   { genre: '인디', title: '200%', artist: '악동뮤지션 (AKMU)', youtubeUrl: 'https://www.youtube.com/results?search_query=200%25+AKMU' },
 
-  // R&B
-  { genre: 'R&B', title: 'Instagram', artist: 'DEAN', youtubeUrl: 'https://www.youtube.com/results?search_query=Instagram+DEAN' },
-  { genre: 'R&B', title: 'Love', artist: 'Keyshia Cole', youtubeUrl: 'https://www.youtube.com/results?search_query=Love+Keyshia+Cole' },
-  { genre: 'R&B', title: 'No Scrubs', artist: 'TLC', youtubeUrl: 'https://www.youtube.com/results?search_query=No+Scrubs+TLC' },
-  { genre: 'R&B', title: 'Say My Name', artist: 'Destiny\'s Child', youtubeUrl: 'https://www.youtube.com/results?search_query=Say+My+Name+Destiny%27s+Child' },
-  { genre: 'R&B', title: 'We Belong Together', artist: 'Mariah Carey', youtubeUrl: 'https://www.youtube.com/results?search_query=We+Belong+Together+Mariah+Carey' },
-  { genre: 'R&B', title: 'U Remind Me', artist: 'Usher', youtubeUrl: 'https://www.youtube.com/results?search_query=U+Remind+Me+Usher' },
-  { genre: 'R&B', title: 'Adorn', artist: 'Miguel', youtubeUrl: 'https://www.youtube.com/results?search_query=Adorn+Miguel' },
-  { genre: 'R&B', title: 'Earned It', artist: 'The Weeknd', youtubeUrl: 'https://www.youtube.com/results?search_query=Earned+It+The+Weeknd' },
-  { genre: 'R&B', title: 'Best Part', artist: 'Daniel Caesar ft. H.E.R.', youtubeUrl: 'https://www.youtube.com/results?search_query=Best+Part+Daniel+Caesar+H.E.R.' },
-  { genre: 'R&B', title: 'Kiss It Better', artist: 'Rihanna', youtubeUrl: 'https://www.youtube.com/results?search_query=Kiss+It+Better+Rihanna' },
+  // R&B (한국)
+  { genre: 'R&B', title: 'D (Half Moon)', artist: 'DEAN', youtubeUrl: 'https://www.youtube.com/results?search_query=D+Half+Moon+DEAN' },
+  { genre: 'R&B', title: '헤픈 우연', artist: '헤이즈', youtubeUrl: 'https://www.youtube.com/results?search_query=%ED%97%A4%ED%94%88+%EC%9A%B0%EC%97%B0+%ED%97%A4%EC%9D%B4%EC%A6%88' },
+  { genre: 'R&B', title: '비도 오고 그래서', artist: '헤이즈', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%B9%84%EB%8F%84+%EC%98%A4%EA%B3%A0+%EA%B7%B8%EB%9E%98%EC%84%9C+%ED%97%A4%EC%9D%B4%EC%A6%88' },
+  { genre: 'R&B', title: 'And July', artist: '헤이즈', youtubeUrl: 'https://www.youtube.com/results?search_query=And+July+%ED%97%A4%EC%9D%B4%EC%A6%88' },
+  { genre: 'R&B', title: '너나 해', artist: '권진아', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%84%88%EB%82%98+%ED%95%B4+%EA%B6%8C%EC%A7%84%EC%95%84' },
 
-  // 힙합
-  { genre: '힙합', title: 'Lose Yourself', artist: 'Eminem', youtubeUrl: 'https://www.youtube.com/results?search_query=Lose+Yourself+Eminem' },
-  { genre: '힙합', title: 'HUMBLE.', artist: 'Kendrick Lamar', youtubeUrl: 'https://www.youtube.com/results?search_query=HUMBLE+Kendrick+Lamar' },
-  { genre: '힙합', title: 'SICKO MODE', artist: 'Travis Scott', youtubeUrl: 'https://www.youtube.com/results?search_query=SICKO+MODE+Travis+Scott' },
-  { genre: '힙합', title: 'God\'s Plan', artist: 'Drake', youtubeUrl: 'https://www.youtube.com/results?search_query=God%27s+Plan+Drake' },
-  { genre: '힙합', title: 'Old Town Road', artist: 'Lil Nas X', youtubeUrl: 'https://www.youtube.com/results?search_query=Old+Town+Road+Lil+Nas+X' },
-  { genre: '힙합', title: 'N.Y. State of Mind', artist: 'Nas', youtubeUrl: 'https://www.youtube.com/results?search_query=N.Y.+State+of+Mind+Nas' },
-  { genre: '힙합', title: 'Juicy', artist: 'The Notorious B.I.G.', youtubeUrl: 'https://www.youtube.com/results?search_query=Juicy+Notorious+B.I.G.' },
-  { genre: '힙합', title: 'Still D.R.E.', artist: 'Dr. Dre ft. Snoop Dogg', youtubeUrl: 'https://www.youtube.com/results?search_query=Still+D.R.E.+Dr.+Dre+Snoop+Dogg' },
-  { genre: '힙합', title: 'Ddaeng', artist: 'BTS', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%95%85+BTS' },
-  { genre: '힙합', title: 'BAND', artist: '창모 (CHANGMO)', youtubeUrl: 'https://www.youtube.com/results?search_query=BAND+%EC%B0%BD%EB%AA%A8' },
+  // 힙합 (한국)
+  { genre: '힙합', title: '아무노래', artist: '지코', youtubeUrl: 'https://www.youtube.com/results?search_query=%EC%95%84%EB%AC%B4%EB%85%B8%EB%9E%98+%EC%A7%80%EC%BD%94' },
+  { genre: '힙합', title: '쇼 미 더 머니', artist: '다이나믹 듀오', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%8B%A4%EC%9D%B4%EB%82%98%EB%AF%B9%EB%93%80%EC%98%A4' },
+  { genre: '힙합', title: '붕붕', artist: '창모', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%B6%95%EB%B6%95+%EC%B0%BD%EB%AA%A8' },
+  { genre: '힙합', title: '가리온', artist: '가리온', youtubeUrl: 'https://www.youtube.com/results?search_query=%EA%B0%80%EB%A6%AC%EC%98%A8' },
+  { genre: '힙합', title: '땡', artist: 'BTS', youtubeUrl: 'https://www.youtube.com/results?search_query=%EB%95%85+BTS' },
 ];
 
 async function main() {

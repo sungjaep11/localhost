@@ -10,7 +10,9 @@ export async function DELETE(
     const { roomId } = await params;
     const userId = request.headers.get("x-user-id") || "";
 
-    console.log(`[Frontend DELETE /api/rooms/:roomId] roomId=${roomId}, userId=${userId}, BACKEND_URL=${BACKEND_URL}`);
+    console.log(`[Frontend DELETE /api/rooms/:roomId] START`);
+    console.log(`[Frontend DELETE /api/rooms/:roomId] roomId=${roomId}, userId=${userId}`);
+    console.log(`[Frontend DELETE /api/rooms/:roomId] BACKEND_URL=${BACKEND_URL}`);
 
     if (!roomId) {
       return NextResponse.json(
@@ -22,16 +24,23 @@ export async function DELETE(
     const backendUrl = `${BACKEND_URL}/api/rooms/${roomId}`;
     console.log(`[Frontend DELETE] Sending request to: ${backendUrl}`);
 
-    const res = await fetch(backendUrl, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        ...(userId && { "x-user-id": userId }),
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    console.log(`[Frontend DELETE] Response status: ${res.status}, ok: ${res.ok}`);
+    let res: Response;
+    try {
+      res = await fetch(backendUrl, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(userId && { "x-user-id": userId }),
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+      console.log(`[Frontend DELETE] Response received: status=${res.status}, ok=${res.ok}`);
+    } catch (fetchError: any) {
+      console.error(`[Frontend DELETE] Fetch failed:`, fetchError?.message || fetchError);
+      console.error(`[Frontend DELETE] Fetch error name:`, fetchError?.name);
+      console.error(`[Frontend DELETE] Fetch error cause:`, fetchError?.cause);
+      throw fetchError;
+    }
 
     // 응답 본문 파싱 (한 번만 읽기)
     let responseData: any = null;
@@ -62,7 +71,10 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error: any) {
-    console.error("[DELETE /api/rooms/:roomId] error", error);
+    console.error("[DELETE /api/rooms/:roomId] error:", error?.message || error);
+    console.error("[DELETE /api/rooms/:roomId] error name:", error?.name);
+    console.error("[DELETE /api/rooms/:roomId] error stack:", error?.stack);
+    console.error("[DELETE /api/rooms/:roomId] error cause:", error?.cause);
 
     if (error.name === "AbortError") {
       return NextResponse.json(

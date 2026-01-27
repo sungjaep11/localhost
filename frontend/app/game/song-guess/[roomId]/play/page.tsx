@@ -8,6 +8,7 @@ import { useSocket } from '@/context/SocketContext';
 import * as THREE from 'three';
 import type { RefObject } from 'react';
 
+
 interface Player {
   id: string;
   name: string;
@@ -50,19 +51,22 @@ interface Room {
   createdAt: number;
 }
 
-// 더미 노래 데이터 (나중에 API로 교체)
-const DUMMY_SONGS = [
-  { id: '1', title: '사건의 지평선', artist: '윤하', answer: ['사건의 지평선', '사건의지평선'] },
-  { id: '2', title: 'Hype Boy', artist: 'NewJeans', answer: ['hype boy', 'hypeboy', '하이프보이', '하입보이'] },
-  { id: '3', title: 'Super Shy', artist: 'NewJeans', answer: ['super shy', 'supershy', '슈퍼샤이'] },
-  { id: '4', title: '에스파', artist: 'aespa', answer: ['에스파', 'aespa', 'supernova', '슈퍼노바'] },
-  { id: '5', title: 'Ditto', artist: 'NewJeans', answer: ['ditto', '디토', '디또'] },
-  { id: '6', title: 'OMG', artist: 'NewJeans', answer: ['omg', '오엠지'] },
-  { id: '7', title: 'Dynamite', artist: 'BTS', answer: ['dynamite', '다이너마이트'] },
-  { id: '8', title: 'Butter', artist: 'BTS', answer: ['butter', '버터'] },
-  { id: '9', title: 'I AM', artist: 'IVE', answer: ['i am', 'iam', '아이엠'] },
-  { id: '10', title: 'LOVE DIVE', artist: 'IVE', answer: ['love dive', 'lovedive', '러브다이브'] },
-];
+// 백엔드 노래 형식 (seed-songs.ts)
+interface BackendSong {
+  id: string;
+  genre: string;
+  title: string;
+  artist: string;
+  youtubeUrl: string;
+}
+
+// 게임용 노래 (answer는 정답 체크용 변형 목록)
+type GameSong = { id: string; title: string; artist: string; answer: string[]; youtubeUrl?: string };
+
+function toGameSong(s: BackendSong): GameSong {
+  const norms = [s.title, s.title.replace(/\s/g, '')];
+  return { id: s.id, title: s.title, artist: s.artist, answer: [...new Set(norms)], youtubeUrl: s.youtubeUrl };
+}
 
 // 선착순 점수 (1등부터)
 const RANKING_POINTS = [100, 80, 60, 40, 30];
@@ -652,26 +656,25 @@ export default function GamePlayPage() {
   const [gamePhase, setGamePhase] = useState<'waiting' | 'playing' | 'answer_revealed' | 'round_end' | 'game_end'>('waiting');
   const [timeLeft, setTimeLeft] = useState(30);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSongData, setCurrentSongData] = useState<typeof DUMMY_SONGS[0] | null>(null);
-  const [correctPlayers, setCorrectPlayers] = useState<string[]>([]); // 이번 곡 정답 맞춘 플레이어 ID
-  const [gameSongs, setGameSongs] = useState<typeof DUMMY_SONGS>([]); // 전체 게임에서 사용할 노래들
+  const [currentSongData, setCurrentSongData] = useState<GameSong | null>(null);
+  const [correctPlayers, setCorrectPlayers] = useState<string[]>([]);
+  const [gameSongs, setGameSongs] = useState<GameSong[]>([]);
+  const [songsLoading, setSongsLoading] = useState(true);
   const [showAnswerModal, setShowAnswerModal] = useState(false);
   const [showRoundEndModal, setShowRoundEndModal] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const youtubePlayerRef = useRef<{ loadPlaylist: (opts: { listType: string; list: string }) => void; playVideo: () => void; stopVideo: () => void } | null>(null);
+  const youtubeContainerRef = useRef<HTMLDivElement>(null);
+  const [ytReady, setYtReady] = useState(false);
 
-  // 게임 초기화 함수
-  const initializeGame = useCallback(() => {
-    // 랜덤하게 노래 선택
-    const shuffled = [...DUMMY_SONGS].sort(() => Math.random() - 0.5);
+  // 게임 초기화 함수 (불러온 노래 풀에서 랜덤 선택)
+  const initializeGame = useCallback((songPool: GameSong[]) => {
+    if (songPool.length === 0) return;
+    const shuffled = [...songPool].sort(() => Math.random() - 0.5);
     const totalSongsNeeded = totalRounds * songsPerRound;
     const selectedSongs = shuffled.slice(0, Math.min(totalSongsNeeded, shuffled.length));
     setGameSongs(selectedSongs);
-    
-    // 첫 번째 노래 설정
-    if (selectedSongs.length > 0) {
-      setCurrentSongData(selectedSongs[0]);
-    }
-    
+    setCurrentSongData(selectedSongs[0]);
     setGamePhase('waiting');
     setCurrentRound(1);
     setCurrentSong(1);
@@ -685,7 +688,6 @@ export default function GamePlayPage() {
     if (userId) setCurrentUserId(userId);
     if (userName) setCurrentUserName(userName);
 
-    // 방 정보 불러오기
     const STORAGE_KEY = 'song-guess-rooms';
     const storedRooms = localStorage.getItem(STORAGE_KEY);
     if (storedRooms) {
@@ -702,11 +704,35 @@ export default function GamePlayPage() {
     }
   }, [roomId]);
 
-  // 게임 시작 시 초기화
+  // 백엔드(seed-songs)에서 노래 목록 로드 후 게임 초기화
   useEffect(() => {
-    if (totalRounds > 0 && songsPerRound > 0) {
-      initializeGame();
-    }
+    if (totalRounds <= 0 || songsPerRound <= 0) return;
+
+    let cancelled = false;
+    setSongsLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch('/api/songs');
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) {
+          setSongsLoading(false);
+          return;
+        }
+        const list = Array.isArray(data) ? data : (data.songs ?? data.data ?? []);
+        const gameSongsList = (list as BackendSong[]).map(toGameSong);
+        setSongsLoading(false);
+        if (gameSongsList.length > 0) {
+          initializeGame(gameSongsList);
+        }
+      } catch (e) {
+        if (!cancelled) setSongsLoading(false);
+        console.error('Failed to fetch songs', e);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [totalRounds, songsPerRound, initializeGame]);
 
   // 타이머 로직
@@ -1044,6 +1070,37 @@ export default function GamePlayPage() {
     }
   }, [chatMessages]);
 
+  // YouTube iframe API 로드 및 플레이어 생성 (youtubeContainerRef 마운트 후)
+  useEffect(() => {
+    const id = 'youtube-player-host';
+    (window as any).onYouTubeIframeAPIReady = () => {
+      if (!document.getElementById(id) || !(window as any).YT?.Player) return;
+      try {
+        const p = new (window as any).YT.Player(id, {
+          width: 320,
+          height: 180,
+          playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0 },
+          events: {},
+        });
+        youtubePlayerRef.current = p;
+        setYtReady(true);
+      } catch (e) {
+        console.error('YouTube player init failed', e);
+      }
+    };
+    if ((window as any).YT?.Player) (window as any).onYouTubeIframeAPIReady();
+    if (document.querySelector('script[src*="youtube.com/iframe_api"]')) return;
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.async = true;
+    document.head.appendChild(s);
+    return () => {
+      delete (window as any).onYouTubeIframeAPIReady;
+      youtubePlayerRef.current = null;
+      setYtReady(false);
+    };
+  }, []);
+
   // 특정 플레이어의 말풍선 가져오기
   const getPlayerBubble = (playerId: string) => {
     return bubbleMessages.find(msg => msg.playerId === playerId);
@@ -1051,6 +1108,22 @@ export default function GamePlayPage() {
 
   const host = players.find(p => p.isHost);
   const otherPlayers = players.filter(p => !p.isHost);
+
+  if (songsLoading) {
+    return (
+      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)' }}>
+        <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
+      </main>
+    );
+  }
+  if (!songsLoading && gameSongs.length === 0 && totalRounds > 0) {
+    return (
+      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ color: '#ff6b6b', fontSize: '1.1rem' }}>노래를 불러올 수 없습니다. 시드 데이터를 먼저 넣어 주세요.</div>
+        <button onClick={() => router.push('/game/song-guess')} style={{ padding: '0.75rem 1.5rem', background: 'rgba(0,255,255,0.3)', border: '2px solid #00ffff', borderRadius: 8, color: '#00ffff', cursor: 'pointer' }}>방 목록으로</button>
+      </main>
+    );
+  }
 
   // 채팅 전송
   const sendChat = () => {
@@ -1180,44 +1253,64 @@ export default function GamePlayPage() {
     }
   };
 
-  // 재생 버튼 클릭 핸들러 (방장만)
+  // YouTube 검색어 추출 (seed의 youtubeUrl이 search_query인 경우)
+  const getYoutubeSearchQuery = useCallback((song: GameSong | null): string => {
+    if (!song) return '';
+    if (song.youtubeUrl && song.youtubeUrl.includes('search_query=')) {
+      try {
+        const m = song.youtubeUrl.match(/search_query=([^&]+)/);
+        if (m) return decodeURIComponent(m[1].replace(/\+/g, ' '));
+      } catch (_) {}
+    }
+    return `${song.title} ${song.artist}`;
+  }, []);
+
+  // 재생 버튼 클릭 핸들러 (방장만) — YouTube iframe API로 실제 노래 재생
   const handlePlayButton = () => {
-    // 기존 시뮬레이션 interval 정리
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
-    
-    // 예시 가사와 TTS (실제로는 API에서 가져올 것)
-    const exampleLyrics = currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '노래를 재생합니다';
-    const exampleTTS = ''; // TTS URL이 있으면 여기에 입력
-    
-    if (exampleTTS) {
-      startTTS(exampleLyrics, exampleTTS);
+
+    const player = youtubePlayerRef.current;
+    const searchQuery = getYoutubeSearchQuery(currentSongData);
+
+    if (ytReady && player && searchQuery && (gamePhase === 'waiting' || gamePhase === 'answer_revealed')) {
+      try {
+        player.loadPlaylist({ listType: 'search', list: searchQuery });
+        player.playVideo();
+        setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
+        setIsAudioPlaying(true);
+        startPlaying();
+      } catch (e) {
+        console.error('YouTube play failed', e);
+        fallbackSimulatePlay();
+      }
     } else {
-      // TTS가 없을 때는 가사만 표시하고 시뮬레이션으로 색상 변화 (테스트용)
-      setLyrics(exampleLyrics);
-      setTotalDuration(5); // 5초로 설정
-      setCurrentTime(0);
-      setIsAudioPlaying(true);
-      
-      // 시뮬레이션: 5초 동안 시간이 흐르도록
-      let simTime = 0;
-      const interval = setInterval(() => {
-        simTime += 0.1;
-        setCurrentTime(simTime);
-        
-        if (simTime >= 5) {
-          clearInterval(interval);
-          simulationIntervalRef.current = null;
-          setIsAudioPlaying(false);
-          setCurrentTime(0);
-        }
-      }, 100);
-      
-      simulationIntervalRef.current = interval;
+      fallbackSimulatePlay();
     }
   };
+
+  function fallbackSimulatePlay() {
+    const exampleLyrics = currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '노래를 재생합니다';
+    setLyrics(exampleLyrics);
+    setTotalDuration(5);
+    setCurrentTime(0);
+    setIsAudioPlaying(true);
+    let simTime = 0;
+    const interval = setInterval(() => {
+      simTime += 0.1;
+      setCurrentTime(simTime);
+      if (simTime >= 5) {
+        clearInterval(interval);
+        simulationIntervalRef.current = null;
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+      }
+    }, 100);
+    simulationIntervalRef.current = interval;
+    startPlaying();
+  }
 
   // 가사 색상 계산 (노래방 스타일)
   const getLyricsWithColors = () => {
@@ -1260,6 +1353,12 @@ export default function GamePlayPage() {
         position: "relative",
       }}
     >
+      {/* YouTube iframe API용 플레이어 컨테이너 (화면 밖에 배치해 재생만 사용) */}
+      <div
+        id="youtube-player-host"
+        ref={youtubeContainerRef}
+        style={{ position: 'absolute', left: -9999, top: 0, width: 320, height: 180, overflow: 'hidden' }}
+      />
       {/* 떠다니는 음표들 */}
       <div className="floating-notes">
         {[...Array(6)].map((_, i) => (
