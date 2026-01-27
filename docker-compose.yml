@@ -38,10 +38,8 @@ services:
     depends_on:
       - postgres
     volumes:
-      - ./backend:/app
       - /app/node_modules
-      - ./backend/songs:/app/songs:ro
-      - /home/ubuntu/songs:ro
+      - /home/ubuntu/songs:/app/songs:ro
 
   # 4. Frontend Next.js 앱
   frontend:

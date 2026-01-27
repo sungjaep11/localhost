@@ -1180,6 +1180,11 @@ export default function GamePlayPage() {
   const host = players.find(p => p.isHost);
   const otherPlayers = players.filter(p => !p.isHost);
 
+  // 디버깅: 플레이어/호스트 상태 확인
+  useEffect(() => {
+    console.log('[Play] 플레이어 목록:', players.length, '명, host:', host ? host.name : '없음', ', gamePhase:', gamePhase);
+  }, [players, host, gamePhase]);
+
   // 채팅 전송
   const sendChat = () => {
     if (!chatInput.trim() || !socket || !roomId || !currentUserId) return;
@@ -1836,10 +1841,15 @@ export default function GamePlayPage() {
             totalDuration={totalDuration}
             currentTime={currentTime}
             onPlayClick={() => {
+              console.log('[Play] 재생 버튼 클릭! gamePhase=', gamePhase, 'lyrics=', lyrics ? '있음' : '없음', 'isPlaying=', isPlaying);
               if (lyrics) {
+                console.log('[Play] lyrics 있음 → toggleTTS 호출');
                 toggleTTS();
               } else if (gamePhase === 'waiting') {
+                console.log('[Play] gamePhase=waiting → handlePlayButton 호출');
                 handlePlayButton();
+              } else {
+                console.log('[Play] 조건 불충족 - gamePhase가 waiting이 아님');
               }
             }}
             onSkipClick={() => {
