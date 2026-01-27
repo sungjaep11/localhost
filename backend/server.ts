@@ -5,6 +5,8 @@ import { Server } from "socket.io";
 import cors from "cors";
 import { prisma } from "./lib/prisma";
 
+type RoomFromDb = Awaited<ReturnType<typeof prisma.room.findMany>>[number];
+
 interface AuthedRequest extends Request {
   userId: string;
 }
@@ -424,7 +426,7 @@ app.get("/api/games/rooms", async (req: Request, res: Response) => {
     ]);
 
     // 각 방의 현재 플레이어 수 추가
-    const roomsWithPlayerCount = rooms.map((room) => {
+    const roomsWithPlayerCount = rooms.map((room: RoomFromDb) => {
       const session = gameSessions.get(room.id);
       const currentPlayers = session ? session.players.size : 0;
       return {
@@ -674,7 +676,7 @@ app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
     if (gameSessions.has(roomId)) gameSessions.delete(roomId);
 
     // 4. DB 삭제 (관련 레코드 포함 트랜잭션으로 처리)
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => {
       // 먼저 GameResult 삭제 (GameHistory 참조)
       await tx.gameResult.deleteMany({
         where: {
