@@ -667,6 +667,10 @@ export default function GamePlayPage() {
   const youtubeContainerRef = useRef<HTMLDivElement>(null);
   const [ytReady, setYtReady] = useState(false);
 
+  // 소켓 핸들러에서 최신 상태를 읽기 위한 ref (의존성 배열 확대·무한 리렌더 방지)
+  const gameStateRef = useRef({ isPlaying, currentSongData, correctPlayers, players });
+  gameStateRef.current = { isPlaying, currentSongData, correctPlayers, players };
+
   // 게임 초기화 함수 (불러온 노래 풀에서 랜덤 선택)
   const initializeGame = useCallback((songPool: GameSong[]) => {
     if (songPool.length === 0) return;
@@ -800,9 +804,9 @@ export default function GamePlayPage() {
     return currentSongData.answer.some(ans => normalizedMsg.includes(ans.toLowerCase()));
   };
 
-  // 점수 부여
-  const awardPoints = (playerId: string) => {
-    const rank = correctPlayers.length; // 0-based (이미 정답 맞춘 사람 수)
+  // 점수 부여 (rankOverride: 소켓 콜백 등에서 최신 correctPlayers.length를 넘길 때 사용)
+  const awardPoints = (playerId: string, rankOverride?: number) => {
+    const rank = rankOverride !== undefined ? rankOverride : correctPlayers.length; // 0-based (이미 정답 맞춘 사람 수)
     const points = RANKING_POINTS[rank] || 20; // 기본 20점
     
     setPlayers(prev => prev.map(p => {
@@ -934,7 +938,7 @@ export default function GamePlayPage() {
       }
     };
 
-    // 채팅 메시지 수신 리스너
+    // 채팅 메시지 수신 리스너 (ref로 최신 상태 참조 → 의존성에 gameState 넣지 않아 무한 리렌더 방지)
     const handleChatMessage = (data: {
       roomId: string;
       playerId: string;
@@ -942,73 +946,69 @@ export default function GamePlayPage() {
       message: string;
       timestamp: number;
     }) => {
-      if (data.roomId === roomId) {
-        const newMessage: ChatMessage = {
-          id: `${data.playerId}-${data.timestamp}`,
-          playerId: data.playerId,
-          playerName: data.playerName,
-          message: data.message,
-          timestamp: data.timestamp,
-        };
+      if (data.roomId !== roomId) return;
 
-        // 채팅 메시지 추가
-        setChatMessages(prev => {
-          // 중복 방지
-          if (prev.some(msg => msg.id === newMessage.id)) {
-            return prev;
-          }
-          return [...prev, newMessage];
-        });
+      const newMessage: ChatMessage = {
+        id: `${data.playerId}-${data.timestamp}`,
+        playerId: data.playerId,
+        playerName: data.playerName,
+        message: data.message,
+        timestamp: data.timestamp,
+      };
 
-        // 말풍선 추가 (3초 후 만료)
-        const newBubble: BubbleMessage = {
-          id: `${data.playerId}-${data.timestamp}`,
-          playerId: data.playerId,
-          message: data.message,
-          expiresAt: Date.now() + 3000,
-        };
-        setBubbleMessages(prev => {
-          // 중복 방지
-          if (prev.some(msg => msg.id === newBubble.id)) {
-            return prev;
-          }
-          return [...prev, newBubble];
-        });
+      setChatMessages(prev => {
+        if (prev.some(msg => msg.id === newMessage.id)) return prev;
+        return [...prev, newMessage];
+      });
 
-        // 정답 체크 (게임 중일 때만)
-        if (isPlaying && currentSongData) {
-          const isCorrectAnswer = checkAnswer(data.message);
-          const alreadyCorrect = correctPlayers.includes(data.playerId);
-          
-          if (isCorrectAnswer && !alreadyCorrect) {
-            const rank = correctPlayers.length + 1;
-            const points = awardPoints(data.playerId);
-            
-            // 정답 맞춘 플레이어 추가
-            setCorrectPlayers(prev => [...prev, data.playerId]);
+      const newBubble: BubbleMessage = {
+        id: `${data.playerId}-${data.timestamp}`,
+        playerId: data.playerId,
+        message: data.message,
+        expiresAt: Date.now() + 3000,
+      };
+      setBubbleMessages(prev => {
+        if (prev.some(msg => msg.id === newBubble.id)) return prev;
+        return [...prev, newBubble];
+      });
 
-            // 정답 시스템 메시지
-            const correctMsg: ChatMessage = {
-              id: `${Date.now()}-correct`,
-              playerId: 'system',
-              playerName: '시스템',
-              message: `🎉 ${data.playerName}님이 ${rank}등으로 정답! (+${points}점)`,
-              timestamp: Date.now(),
-              isSystem: true,
-            };
-            setChatMessages(prev => [...prev, correctMsg]);
+      const state = gameStateRef.current;
+      if (!state.isPlaying || !state.currentSongData) return;
 
-            // 모든 플레이어가 맞추면 자동으로 다음 곡
-            const currentPlayers = players.length > 0 ? players : JSON.parse(localStorage.getItem(`song-guess-room-${roomId}-players`) || '[]');
-            if (correctPlayers.length + 1 >= currentPlayers.length) {
-              setTimeout(() => {
-                setIsPlaying(false);
-                setGamePhase('answer_revealed');
-                setShowAnswerModal(true);
-              }, 1000);
-            }
-          }
-        }
+      const normalizedMsg = data.message.toLowerCase().trim();
+      const isCorrectAnswer = state.currentSongData.answer.some((ans: string) =>
+        normalizedMsg.includes(ans.toLowerCase())
+      );
+      const alreadyCorrect = state.correctPlayers.includes(data.playerId);
+
+      if (!isCorrectAnswer || alreadyCorrect) return;
+
+      const rank0 = state.correctPlayers.length;
+      const rank = rank0 + 1;
+      const points = awardPoints(data.playerId, rank0);
+
+      setCorrectPlayers(prev => [...prev, data.playerId]);
+
+      const correctMsg: ChatMessage = {
+        id: `${Date.now()}-correct`,
+        playerId: 'system',
+        playerName: '시스템',
+        message: `🎉 ${data.playerName}님이 ${rank}등으로 정답! (+${points}점)`,
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      setChatMessages(prev => [...prev, correctMsg]);
+
+      const currentPlayers =
+        state.players.length > 0
+          ? state.players
+          : JSON.parse(localStorage.getItem(`song-guess-room-${roomId}-players`) || '[]');
+      if (state.correctPlayers.length + 1 >= currentPlayers.length) {
+        setTimeout(() => {
+          setIsPlaying(false);
+          setGamePhase('answer_revealed');
+          setShowAnswerModal(true);
+        }, 1000);
       }
     };
 
@@ -1025,7 +1025,7 @@ export default function GamePlayPage() {
     };
   }, [socket, roomId, currentUserId]);
 
-  // 참가자 목록 불러오기 (localStorage 백업)
+  // 참가자 목록 불러오기 (localStorage 백업) — players.length를 의존성에 넣지 않음 (무한 렌더 방지)
   useEffect(() => {
     const loadPlayers = () => {
       const playersKey = `song-guess-room-${roomId}-players`;
@@ -1039,10 +1039,8 @@ export default function GamePlayPage() {
             character: p.character || p.characterUrl || '/character1.glb',
             characterUrl: p.characterUrl || p.character || '/character1.glb',
           }));
-          // 소켓에서 받은 플레이어가 없을 때만 localStorage 사용
-          if (players.length === 0) {
-            setPlayers(playersWithScore);
-          }
+          // 함수형 업데이트: 소켓에서 이미 받은 플레이어가 있으면 덮어쓰지 않음
+          setPlayers((prev) => (prev.length > 0 ? prev : playersWithScore));
         } catch (e) {
           console.error('Failed to parse players', e);
         }
@@ -1052,7 +1050,7 @@ export default function GamePlayPage() {
     loadPlayers();
     const interval = setInterval(loadPlayers, 1000);
     return () => clearInterval(interval);
-  }, [roomId, players.length]);
+  }, [roomId]);
 
   // 말풍선 자동 삭제 (3초 후)
   useEffect(() => {
