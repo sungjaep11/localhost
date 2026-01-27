@@ -41,3 +41,4 @@ backend/.env
 *.tsbuildinfo
 next-env.d.ts
 backend/postgres_data/
+backend/songs/

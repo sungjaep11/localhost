@@ -13,3 +13,5 @@ postgres_data
 .git
 .gitignore
 .DS_Store
+songs/
+*.mp3

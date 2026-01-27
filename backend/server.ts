@@ -3,6 +3,8 @@ import express, { NextFunction, Request, Response } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 import { prisma } from "./lib/prisma";
 
 type RoomFromDb = Awaited<ReturnType<typeof prisma.room.findMany>>[number];
@@ -17,6 +19,14 @@ const port = process.env.PORT || 3001;
 // CORS 설정
 app.use(cors());
 app.use(express.json());
+
+// MP3 정적 서빙 (backend/songs/ → GET /songs/장르/파일명.mp3)
+const songsDir = fs.existsSync(path.join(__dirname, "songs"))
+  ? path.join(__dirname, "songs")
+  : path.join(process.cwd(), "songs");
+if (fs.existsSync(songsDir)) {
+  app.use("/songs", express.static(songsDir));
+}
 
 // 간단 인증 미들웨어
 // - 실제 서비스에서는 OAuth / JWT 등으로 대체해야 함
@@ -443,6 +453,29 @@ app.get("/api/games/rooms", async (req: Request, res: Response) => {
 });
 
 /**
+ * 게임 방 단일 조회 (진행 중인 방 옵션/장르 조회용, status 무관)
+ * GET /api/games/rooms/:roomId
+ */
+app.get("/api/games/rooms/:roomId", async (req: Request, res: Response) => {
+  try {
+    const { roomId } = req.params;
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      select: { id: true, options: true, type: true, status: true, hostId: true },
+    });
+    if (!room || !["MUSIC_QUIZ", "DIALECT_QUIZ"].includes(room.type)) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+    const session = gameSessions.get(roomId);
+    const currentPlayers = session ? session.players.size : 0;
+    res.json({ ...room, currentPlayers });
+  } catch (err) {
+    console.error("[GET /api/games/rooms/:roomId] error", err);
+    res.status(500).json({ message: "Failed to load room" });
+  }
+});
+
+/**
  * 게임 방 입장 (비밀번호 검증)
  * POST /api/games/rooms/join
  * body: { roomId, password? }
@@ -816,41 +849,67 @@ app.get("/api/shop/items", async (req: Request, res: Response) => {
 });
 
 /**
- * 장르별 랜덤 노래 조회
- * GET /api/songs/random?genre=발라드&count=1
+ * 장르별 랜덤 노래 조회 (backend/songs/<장르>/*.mp3 기준, 이미 나온 곡 제외)
+ * GET /api/songs/random?genre=발라드&count=1&exclude=id1,id2
  */
 app.get("/api/songs/random", async (req: Request, res: Response) => {
   try {
-    const genre = req.query.genre as string | undefined;
+    const genre = (req.query.genre as string)?.trim();
     const count = parseInt((req.query.count as string) || "1", 10);
+    const excludeRaw = (req.query.exclude as string) || "";
+    const excludeIds = new Set(
+      excludeRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    );
+    console.log("[GET /api/songs/random] genre=%s excludeCount=%d", genre, excludeIds.size);
 
     if (!genre) {
       return res.status(400).json({ message: "genre parameter is required" });
     }
 
-    // 해당 장르의 모든 노래 가져오기
-    // @ts-ignore - Prisma Client 타입이 아직 업데이트되지 않았을 수 있음 (TypeScript 캐시 문제)
-    const allSongs = await prisma.song.findMany({
-      where: { genre },
-    });
+    const baseUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
+    const baseSongs = fs.existsSync(path.join(__dirname, "songs"))
+      ? path.join(__dirname, "songs")
+      : path.join(process.cwd(), "songs");
+    const genreDir = path.join(baseSongs, genre);
 
-    if (allSongs.length === 0) {
-      return res.status(404).json({ message: `No songs found for genre: ${genre}` });
+    if (!fs.existsSync(genreDir)) {
+      return res.status(404).json({ message: `No songs folder for genre: ${genre}` });
     }
 
-    // 랜덤하게 선택
-    const selectedSongs: typeof allSongs = [];
-    const shuffled = [...allSongs].sort(() => Math.random() - 0.5);
-    
-    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-      selectedSongs.push(shuffled[i]);
+    const files = fs.readdirSync(genreDir).filter((f) => f.endsWith(".mp3"));
+    const candidates: { id: string; title: string; artist: string; genre: string; mp3Url: string }[] = [];
+
+    for (const f of files) {
+      const base = f.replace(/\.mp3$/i, "");
+      const lastUnderscore = base.lastIndexOf("_");
+      const title = lastUnderscore >= 0 ? base.slice(0, lastUnderscore).replace(/_/g, " ") : base;
+      const artist = lastUnderscore >= 0 ? base.slice(lastUnderscore + 1) : "";
+      const id = `${genre}/${f}`;
+      if (excludeIds.has(id)) continue;
+      candidates.push({
+        id,
+        title: title || base,
+        artist,
+        genre,
+        mp3Url: `${baseUrl}/songs/${encodeURIComponent(genre)}/${encodeURIComponent(f)}`,
+      });
     }
 
-    // 단일 노래인 경우 객체로, 여러 개인 경우 배열로 반환
+    if (candidates.length === 0) {
+      return res.status(404).json({
+        message: excludeIds.size > 0
+          ? `No more songs for genre: ${genre} (all played or none available)`
+          : `No mp3 files found for genre: ${genre}`,
+      });
+    }
+
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+
     if (count === 1) {
-      res.json(selectedSongs[0]);
+      res.json(selected[0]);
     } else {
-      res.json(selectedSongs);
+      res.json(selected);
     }
   } catch (err) {
     console.error("[GET /api/songs/random] error", err);
@@ -898,6 +957,29 @@ app.get("/api/songs", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("[GET /api/songs] error", err);
     res.status(500).json({ message: "Failed to load songs" });
+  }
+});
+
+/**
+ * 사투리 가사 맞추기: 장르별 랜덤 가사 1개
+ * GET /api/dialect-lyrics/random?genre=발라드
+ */
+app.get("/api/dialect-lyrics/random", async (req: Request, res: Response) => {
+  try {
+    const genre = (req.query.genre as string)?.trim();
+    if (!genre) {
+      return res.status(400).json({ message: "genre parameter is required" });
+    }
+    const { dialectLyrics } = await import("./lyrics-data");
+    const byGenre = dialectLyrics.filter((l) => l.genre === genre);
+    if (byGenre.length === 0) {
+      return res.status(404).json({ message: `No dialect lyrics for genre: ${genre}` });
+    }
+    const one = byGenre[Math.floor(Math.random() * byGenre.length)];
+    res.json(one);
+  } catch (err) {
+    console.error("[GET /api/dialect-lyrics/random] error", err);
+    res.status(500).json({ message: "Failed to load random dialect lyric" });
   }
 });
 
@@ -1218,7 +1300,14 @@ io.on("connection", (socket) => {
         return;
       }
 
-      if (room.status === "PLAYING") {
+      const gameType = room.type as "MUSIC_QUIZ" | "DIALECT_QUIZ";
+      const session = getOrCreateGameSession(roomId, gameType);
+
+      // 이미 참가한 플레이어인지 확인 (재접속 허용)
+      const isReconnecting = session.players.has(userId);
+
+      // 새 플레이어가 게임 중인 방에 입장하려는 경우 차단
+      if (room.status === "PLAYING" && !isReconnecting) {
         socket.emit("game_error", { message: "Game is already in progress" });
         return;
       }
@@ -1227,16 +1316,12 @@ io.on("connection", (socket) => {
       socketRoomId = roomId;
       socket.join(roomId);
 
-      const gameType = room.type as "MUSIC_QUIZ" | "DIALECT_QUIZ";
-      const session = getOrCreateGameSession(roomId, gameType);
-
-      // 이미 참가한 플레이어인지 확인
-      if (session.players.has(userId)) {
+      if (isReconnecting) {
         // 재접속: 소켓 ID와 isHost 상태 업데이트 (방장이 변경되었을 수 있음)
         const player = session.players.get(userId)!;
         player.socketId = socket.id;
         const isHost = room.hostId === userId;
-        console.log(`[game_join] Reconnecting player ${user.nickname} (${userId}), room.hostId: ${room.hostId}, isHost: ${isHost}`);
+        console.log(`[game_join] Reconnecting player ${user.nickname} (${userId}), room.hostId: ${room.hostId}, isHost: ${isHost}, roomStatus: ${room.status}`);
         player.isHost = isHost; // 방장 상태 최신화
       } else {
         // 새 플레이어 추가
@@ -1251,13 +1336,15 @@ io.on("connection", (socket) => {
           isHost,
         };
         session.players.set(userId, player);
-      }
 
-      // 방 상태 업데이트
-      await prisma.room.update({
-        where: { id: roomId },
-        data: { status: "WAITING" },
-      });
+        // 새 플레이어가 입장할 때만 방 상태를 WAITING으로 설정 (재접속 시에는 변경 안 함)
+        if (room.status !== "PLAYING") {
+          await prisma.room.update({
+            where: { id: roomId },
+            data: { status: "WAITING" },
+          });
+        }
+      }
 
       // 모든 플레이어에게 업데이트된 플레이어 목록 전송
       const playersArray = getPlayersArray(session);
@@ -1559,6 +1646,18 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("game_chat", payload);
   });
 
+  // 사투리 가사 맞추기: 가사/정답 동기화 (방장이 로드 시 전체에게 전파)
+  socket.on("sauturi_lyric_sync", ({ roomId, dialect, original, title, artist }: { roomId: string; dialect: string; original?: string; title?: string; artist?: string }) => {
+    if (!roomId || !dialect) return;
+    io.to(roomId).emit("sauturi_lyric_sync", { roomId, dialect, original: original ?? "", title: title ?? "", artist: artist ?? "" });
+  });
+
+  // 사투리 가사 맞추기: 턴 종료(아무도 못 맞춤) 시 방 전체에 알림 → 모두 "아무도 못 맞췄다" 모달 후 다음 턴
+  socket.on("sauturi_turn_end", ({ roomId, nobodyGotIt, answer, title, artist }: { roomId: string; nobodyGotIt: boolean; answer?: string; title?: string; artist?: string }) => {
+    if (!roomId) return;
+    io.to(roomId).emit("sauturi_turn_end", { roomId, nobodyGotIt: !!nobodyGotIt, answer: answer ?? "", title: title ?? "", artist: artist ?? "" });
+  });
+
   // 연결 해제 처리
   socket.on("disconnect", async () => {
     console.log(`[Socket] 유저 접속 해제: ${socket.id}`);
@@ -1590,6 +1689,8 @@ io.on("connection", (socket) => {
 // ============================================
 
 // 다음 라운드 시작
+// NOTE: MUSIC_QUIZ는 프론트엔드에서 자체적으로 노래를 로드하고 정답 체크를 합니다.
+// 이 함수는 라운드 카운터와 상태 관리만 담당합니다.
 async function startNextRound(roomId: string) {
   const session = gameSessions.get(roomId);
   if (!session) return;
@@ -1605,119 +1706,51 @@ async function startNextRound(roomId: string) {
 
   session.status = "PLAYING";
 
-  let question: { questionId: string; correctAnswer: string; youtubeUrl?: string; artist?: string } | null = null;
-
-  // MUSIC_QUIZ인 경우 DB에서 장르에 맞는 랜덤 노래 조회
-  if (session.gameType === "MUSIC_QUIZ" && session.genres && session.genres.length > 0) {
-    try {
-      // @ts-ignore - Prisma Client 타입 문제
-      const availableSongs = await prisma.song.findMany({
-        where: {
-          genre: { in: session.genres },
-          id: { notIn: session.usedSongIds || [] }, // 이미 사용한 노래 제외
-        },
-      });
-
-      if (availableSongs.length > 0) {
-        // 랜덤하게 한 곡 선택
-        const randomIndex = Math.floor(Math.random() * availableSongs.length);
-        const selectedSong = availableSongs[randomIndex];
-
-        // 사용한 노래 ID 기록
-        if (!session.usedSongIds) session.usedSongIds = [];
-        session.usedSongIds.push(selectedSong.id);
-
-        question = {
-          questionId: selectedSong.id,
-          correctAnswer: selectedSong.title,
-          youtubeUrl: selectedSong.youtubeUrl,
-          artist: selectedSong.artist,
-        };
-
-        console.log(`[startNextRound] MUSIC_QUIZ - Selected song: "${selectedSong.title}" by ${selectedSong.artist} (${selectedSong.genre})`);
-      } else {
-        // 사용 가능한 노래가 없으면 usedSongIds 초기화하고 다시 시도
-        console.log(`[startNextRound] No more songs available, resetting usedSongIds`);
-        session.usedSongIds = [];
-        
-        // @ts-ignore
-        const allSongs = await prisma.song.findMany({
-          where: { genre: { in: session.genres } },
-        });
-        
-        if (allSongs.length > 0) {
-          const randomIndex = Math.floor(Math.random() * allSongs.length);
-          const selectedSong = allSongs[randomIndex];
-          session.usedSongIds.push(selectedSong.id);
-
-          question = {
-            questionId: selectedSong.id,
-            correctAnswer: selectedSong.title,
-            youtubeUrl: selectedSong.youtubeUrl,
-            artist: selectedSong.artist,
-          };
-        }
-      }
-    } catch (error) {
-      console.error(`[startNextRound] Failed to fetch song from DB:`, error);
-    }
+  // MUSIC_QUIZ: 프론트엔드가 /api/songs/random으로 직접 노래를 로드하므로
+  // 백엔드에서는 라운드 시작 알림만 보냄 (노래 선택은 프론트엔드에서 함)
+  if (session.gameType === "MUSIC_QUIZ") {
+    console.log(`[Game] MUSIC_QUIZ Round ${session.currentRound} started - Frontend will load song via /api/songs/random`);
+    
+    // 라운드 시작 알림 (노래 정보 없이)
+    io.to(roomId).emit("game_round_start", {
+      roomId,
+      round: session.currentRound,
+      totalRounds: session.totalRounds,
+      timeLimit: session.roundTimeLimit || 30,
+    });
+    
+    return;
   }
 
-  // DB에서 노래를 가져오지 못했거나 DIALECT_QUIZ인 경우 기존 더미 데이터 사용
-  if (!question) {
-    const dummyQuestions = {
-      MUSIC_QUIZ: [
-        { questionId: "q1", correctAnswer: "아틀란티스 소녀" },
-        { questionId: "q2", correctAnswer: "Gee" },
-        { questionId: "q3", correctAnswer: "벚꽃 엔딩" },
-      ],
-      DIALECT_QUIZ: [
-        { questionId: "q1", correctAnswer: "고맙습니다" },
-        { questionId: "q2", correctAnswer: "안녕하세요" },
-        { questionId: "q3", correctAnswer: "사랑해" },
-      ],
-    };
+  // DIALECT_QUIZ: 더미 데이터 사용 (프론트엔드가 /api/dialect-lyrics/random 사용)
+  const dummyQuestions = {
+    DIALECT_QUIZ: [
+      { questionId: "q1", correctAnswer: "고맙습니다" },
+      { questionId: "q2", correctAnswer: "안녕하세요" },
+      { questionId: "q3", correctAnswer: "사랑해" },
+    ],
+  };
 
-    const questions = dummyQuestions[session.gameType];
-    const questionIndex = (session.currentRound - 1) % questions.length;
-    question = questions[questionIndex];
-  }
+  const questions = dummyQuestions.DIALECT_QUIZ;
+  const questionIndex = (session.currentRound - 1) % questions.length;
+  const question = questions[questionIndex];
 
   session.currentQuestion = {
     questionId: question.questionId,
     correctAnswer: question.correctAnswer,
     startedAt: new Date(),
-    youtubeUrl: question.youtubeUrl,
-    artist: question.artist,
   };
 
-  // 라운드 시작 알림 - MUSIC_QUIZ인 경우 YouTube URL과 아티스트 정보 포함
+  // 라운드 시작 알림
   io.to(roomId).emit("game_round_start", {
     roomId,
     round: session.currentRound,
     totalRounds: session.totalRounds,
     question: {
       questionId: question.questionId,
-      youtubeUrl: question.youtubeUrl, // YouTube URL
-      artist: question.artist, // 아티스트 정보 (힌트로 사용 가능)
     },
     timeLimit: session.roundTimeLimit || 30,
   });
-
-  // 시간 제한이 있으면 타이머 시작
-  if (session.roundTimeLimit) {
-    setTimeout(() => {
-      if (gameSessions.has(roomId)) {
-        const currentSession = gameSessions.get(roomId)!;
-        if (
-          currentSession.currentRound === session.currentRound &&
-          currentSession.status === "PLAYING"
-        ) {
-          endRound(roomId);
-        }
-      }
-    }, session.roundTimeLimit * 1000);
-  }
 
   console.log(`[Game] Round ${session.currentRound} started in room ${roomId}`);
 }

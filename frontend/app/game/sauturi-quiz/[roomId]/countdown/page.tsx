@@ -1,35 +1,91 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSocket } from '@/context/SocketContext';
 
 interface Player {
   id: string;
   name: string;
   isHost: boolean;
   joinedAt?: number;
+  character?: string;
+  characterUrl?: string;
+  score?: number;
 }
+
+const PLAYERS_KEY = (rid: string) => `sauturi-quiz-room-${rid}-players`;
 
 export default function CountdownPage() {
   const router = useRouter();
   const params = useParams();
   const roomId = params.roomId as string;
+  const { socket } = useSocket();
   const [countdown, setCountdown] = useState(3);
   const [players, setPlayers] = useState<Player[]>([]);
+  const hasJoinedRef = useRef(false);
 
-  // 참가자 목록 불러오기
+  // 참가자 목록 불러오기 (localStorage) + 주기적 리로드로 play 진입 전 데이터 확보
   useEffect(() => {
-    const playersKey = `sauturi-quiz-room-${roomId}-players`;
-    const storedPlayers = localStorage.getItem(playersKey);
-    if (storedPlayers) {
-      try {
-        const parsedPlayers = JSON.parse(storedPlayers);
-        setPlayers(parsedPlayers);
-      } catch (e) {
-        console.error('Failed to parse players', e);
+    const load = () => {
+      const raw = localStorage.getItem(PLAYERS_KEY(roomId));
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as Player[];
+          setPlayers((prev) => (prev.length > 0 ? prev : parsed));
+        } catch (e) {
+          console.error('Failed to parse players', e);
+        }
       }
-    }
+    };
+    load();
+    const t = setInterval(load, 400);
+    return () => clearInterval(t);
   }, [roomId]);
+
+  // 소켓: game_join → game_players_update 수신 시 play용 형식으로 localStorage 저장 (게임 시작 시 캐릭터/플레이어 복구)
+  useEffect(() => {
+    if (!socket || !roomId) return;
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') ?? '' : '';
+    if (!userId) return;
+
+    const handlePlayersUpdate = (data: {
+      roomId: string;
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+    }) => {
+      if (data.roomId !== roomId) return;
+      const forPlay = data.players.map((p) => {
+        const url =
+          typeof window !== 'undefined'
+            ? localStorage.getItem(`equipped-character-${p.id}`) || '/character1.glb'
+            : '/character1.glb';
+        return {
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost,
+          joinedAt: p.joinedAt,
+          character: url,
+          characterUrl: url,
+          score: 0,
+        };
+      });
+      try {
+        localStorage.setItem(PLAYERS_KEY(roomId), JSON.stringify(forPlay));
+        setPlayers((prev) => (prev.length > 0 ? prev : forPlay));
+      } catch (_) {}
+    };
+
+    socket.on('game_players_update', handlePlayersUpdate);
+
+    if (!hasJoinedRef.current) {
+      hasJoinedRef.current = true;
+      socket.emit('game_join', { roomId, userId });
+    }
+
+    return () => {
+      socket.off('game_players_update', handlePlayersUpdate);
+    };
+  }, [socket, roomId]);
 
   useEffect(() => {
     if (countdown > 0) {
