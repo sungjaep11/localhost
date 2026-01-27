@@ -1311,15 +1311,8 @@ export default function GamePlayPage() {
     }
   };
 
-  // ✅ 모든 훅 아래에서만 조건부 return (훅 호출 순서 유지로 #310 방지)
-  if (songsLoading) {
-    return (
-      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)' }}>
-        <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
-      </main>
-    );
-  }
   // 재생 버튼 클릭 핸들러 (방장만) — backend/songs/ 장르별 랜덤 노래 1곡 재생, 이미 나온 곡 제외
+  // 반드시 모든 조건부 return 앞에 두어 훅 호출 순서를 매 렌더마다 동일하게 유지 (#310 방지)
   const handlePlayButton = useCallback(async () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
@@ -1437,6 +1430,15 @@ export default function GamePlayPage() {
       return { char, color, isCurrent, index };
     });
   };
+
+  // ✅ 조건부 return은 모든 훅 아래에 두어 훅 호출 순서 유지 (React #310 방지)
+  if (songsLoading) {
+    return (
+      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)' }}>
+        <div style={{ color: '#00ffff', fontSize: '1.2rem' }}>노래 목록 불러오는 중...</div>
+      </main>
+    );
+  }
 
   return (
     <main

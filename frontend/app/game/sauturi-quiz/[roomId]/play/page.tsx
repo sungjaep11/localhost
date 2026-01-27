@@ -126,7 +126,6 @@ export default function GamePlayPage() {
   const goToNextSauturiTurnRef = useRef<() => void>(() => {});
   const sauturiAnswerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handlePlayButtonRef = useRef<() => void>(() => {});
-  const hasAutoStartedRef = useRef(false); // 게임 시작 시 자동으로 첫 가사 재생했는지 여부
   const roundSongRef = useRef({ currentRound: 1, currentSong: 1, songsPerRound: 5, totalRounds: 1 });
   roundSongRef.current = { currentRound, currentSong, songsPerRound, totalRounds };
 
@@ -329,7 +328,7 @@ export default function GamePlayPage() {
       }
     };
 
-    // 가사/정답 동기화: 방장이 재생 시 전체에 가사·정답 전파 → 모두에게 가사 표시 및 사투리 자동 재생
+    // 가사/정답 동기화: 방장이 재생 시 전체에 가사·정답 전파 → 가사만 표시, 재생은 각자 재생 버튼으로
     const handleSauturiLyricSync = (payload: { roomId: string; dialect: string; original?: string; title?: string; artist?: string }) => {
       if (payload.roomId !== roomId) return;
       const text = payload.dialect || '';
@@ -339,13 +338,7 @@ export default function GamePlayPage() {
       setCurrentRoundArtist(payload.artist ?? '');
       setSauturiCorrectPlayers([]);
       sauturiGotCorrectRef.current = false;
-      if (typeof window !== 'undefined' && window.speechSynthesis && text) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ko-KR';
-        utterance.rate = 0.9;
-        window.speechSynthesis.speak(utterance);
-      }
+      // 자동 재생 제거: 매번 재생 버튼을 눌러야 음성이 나오도록 함
     };
 
     // 턴 종료(아무도 못 맞춤): 방 전체에 알림 → 모두 "아무도 못 맞췄다" 모달 후 다음 턴
@@ -626,33 +619,11 @@ export default function GamePlayPage() {
       if (socket && roomId) {
         socket.emit("sauturi_lyric_sync", { roomId, dialect: text, original: orig, title, artist });
       }
-      // 사투리 문장 자동 음성 재생 (브라우저 TTS)
-      if (typeof window !== "undefined" && window.speechSynthesis && text) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "ko-KR";
-        utterance.rate = 0.9;
-        window.speechSynthesis.speak(utterance);
-      }
+      // 매번 재생 버튼 눌러야 나오도록: 여기서는 로드만 하고 음성/타이머는 playCurrentTTS에서
       const duration = Math.max(15, Math.ceil((text.length || 10) * 0.15));
       setTotalDuration(duration);
       setCurrentTime(0);
-      setIsPlaying(true);
-      let simTime = 0;
-      const interval = setInterval(() => {
-        simTime += 0.1;
-        setCurrentTime(simTime);
-        if (simTime >= duration) {
-          clearInterval(interval);
-          simulationIntervalRef.current = null;
-          setIsPlaying(false);
-          setCurrentTime(0);
-          if (!sauturiGotCorrectRef.current && orig && socket && roomId) {
-            socket.emit("sauturi_turn_end", { roomId, nobodyGotIt: true, answer: orig, title, artist });
-          }
-        }
-      }, 100);
-      simulationIntervalRef.current = interval;
+      setIsPlaying(false);
     } catch (e) {
       console.error("Failed to load dialect lyric", e);
       setLyrics("가사를 불러오는 중 오류가 났어요.");
@@ -674,20 +645,43 @@ export default function GamePlayPage() {
   };
   handlePlayButtonRef.current = handlePlayButton;
 
-  // 방장 기준으로 가사 자동 재생 (게임 시작 시 첫 가사도 자동 재생)
-  useEffect(() => {
-    if (!currentUserId || !socket || totalRounds <= 0) return;
-    if (lyrics || showSauturiAnswerModal) return;
-    const isHost = host?.id === currentUserId;
-    if (!isHost) return;
-    if (players.length === 0) return;
-    
-    // 600ms 후 자동으로 다음 가사 재생
-    const t = setTimeout(() => {
-      handlePlayButtonRef.current();
-    }, 600);
-    return () => clearTimeout(t);
-  }, [host?.id, currentUserId, players.length, lyrics, showSauturiAnswerModal, currentRound, currentSong, roomGenres.length, totalRounds, socket]);
+  // 현재 가사 TTS 재생 (매번 재생 버튼 눌렀을 때만 호출)
+  const playCurrentTTS = () => {
+    if (!lyrics || !totalDuration) return;
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis && lyrics) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(lyrics);
+      utterance.lang = "ko-KR";
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    }
+    setIsPlaying(true);
+    setCurrentTime(0);
+    const duration = totalDuration;
+    const orig = currentRoundAnswer;
+    const title = currentRoundTitle;
+    const artist = currentRoundArtist;
+    let simTime = 0;
+    const interval = setInterval(() => {
+      simTime += 0.1;
+      setCurrentTime(simTime);
+      if (simTime >= duration) {
+        clearInterval(interval);
+        simulationIntervalRef.current = null;
+        setIsPlaying(false);
+        setCurrentTime(0);
+        const isHost = players.find(p => p.isHost)?.id === currentUserId;
+        if (isHost && !sauturiGotCorrectRef.current && orig && socket && roomId) {
+          socket.emit("sauturi_turn_end", { roomId, nobodyGotIt: true, answer: orig, title, artist });
+        }
+      }
+    }, 100);
+    simulationIntervalRef.current = interval;
+  };
 
   // TTS 일시정지/재개
   const toggleTTS = () => {
@@ -702,18 +696,20 @@ export default function GamePlayPage() {
         setIsPlaying(true);
       }
     } 
-    // 시뮬레이션 중인 경우
-    else if (simulationIntervalRef.current) {
+    // 시뮬레이션 중인 경우 (사투리 TTS)
+    else if (simulationIntervalRef.current || (lyrics && !audioRef.current)) {
       if (isPlaying) {
-        // 시뮬레이션 일시정지 (interval 정리)
         if (simulationIntervalRef.current) {
           clearInterval(simulationIntervalRef.current);
           simulationIntervalRef.current = null;
         }
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
         setIsPlaying(false);
       } else {
-        // 시뮬레이션 재개 (다시 시작)
-        handlePlayButton();
+        // 재개: 현재 가사 다시 재생
+        if (lyrics && totalDuration > 0) playCurrentTTS();
       }
     }
   };
@@ -1029,19 +1025,60 @@ export default function GamePlayPage() {
               {host.name}
             </div>
 
-            {/* 재생은 자동으로 진행 (재생 버튼 없음) */}
-            {totalDuration > 0 && isPlaying && (
-              <div
-                style={{
-                  color: "#ffffff",
-                  fontSize: "0.85rem",
-                  marginTop: "0.5rem",
-                  textAlign: "center",
-                }}
-              >
-                {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
-              </div>
-            )}
+            {/* 재생 버튼: 매번 눌러야 음성 나옴 (예전처럼) */}
+            <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
+              {isCurrentUserHost && !lyrics && !showSauturiAnswerModal && (
+                <button
+                  onClick={handlePlayButton}
+                  style={{
+                    padding: "0.6rem 1.2rem",
+                    background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
+                    border: "2px solid rgba(0, 255, 255, 0.8)",
+                    borderRadius: "12px",
+                    color: "#00ffff",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: "0 0 15px rgba(0, 255, 255, 0.4)",
+                  }}
+                >
+                  다음 가사 불러오기
+                </button>
+              )}
+              {lyrics && (
+                <button
+                  onClick={() => (isPlaying ? toggleTTS() : playCurrentTTS())}
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "50%",
+                    background: isPlaying ? "rgba(0, 255, 0, 0.2)" : "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
+                    border: `2px solid ${isPlaying ? "rgba(0, 255, 0, 0.8)" : "rgba(0, 255, 255, 0.8)"}`,
+                    color: isPlaying ? "#00ff00" : "#00ffff",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: isPlaying ? "0 0 15px rgba(0, 255, 0, 0.4)" : "0 0 15px rgba(0, 255, 255, 0.4)",
+                  }}
+                >
+                  {isPlaying ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                    </svg>
+                  ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
+              )}
+              {totalDuration > 0 && isPlaying && (
+                <div style={{ color: "#ffffff", fontSize: "0.85rem", textAlign: "center" }}>
+                  {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
+                </div>
+              )}
+            </div>
           </div>
         )}
 
