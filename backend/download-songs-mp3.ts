@@ -10,6 +10,10 @@
  *
  * 실패분만 재시도: RETRY_ONLY=1 npm run download:songs
  *   (이미 있는 mp3는 건너뛰고 없는 곡만 다운로드)
+ *
+ * "Sign in to confirm you're not a bot" 나오면 쿠키 사용:
+ *   YTDLP_COOKIES=chrome npm run download:songs   (Chrome 로그인 쿠키)
+ *   또는 YTDLP_COOKIES_FILE=/path/to/cookies.txt npm run download:songs
  */
 
 import { execSync, spawnSync } from "child_process";
@@ -45,24 +49,29 @@ export interface YtDlpError extends Error {
 function runYtDlp(url: string, outTemplate: string): void {
   const isYoutube = /youtube\.com|youtu\.be/.test(url);
 
-  // 기본 옵션 (URL과 출력 경로는 나중에 추가)
-  const args = [
+  // 기본 옵션 (출력 경로와 URL은 맨 마지막에만 추가)
+  const args: string[] = [
     "-x",
     "--audio-format", "mp3",
     "--no-playlist",
     "--no-warnings",
     "--retries", "5",
     "--fragment-retries", "5",
-    // "--socket-timeout", "60", // 타임아웃 때문에 끊길 수 있어 주석 처리
     "--force-ipv4",
   ];
 
   if (isYoutube) {
-    // 차단 우회를 위해 ios 클라이언트 흉내
     args.push("--extractor-args", "youtube:player_client=ios");
   }
 
-  // 출력 경로와 URL을 맨 마지막에 추가
+  const cookies = process.env.YTDLP_COOKIES;
+  const cookiesFile = process.env.YTDLP_COOKIES_FILE;
+  if (cookies) {
+    args.push("--cookies-from-browser", cookies);
+  } else if (cookiesFile) {
+    args.push("--cookies", cookiesFile);
+  }
+
   args.push("-o", outTemplate, url);
 
   const result = spawnSync("yt-dlp", args, {
