@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     const data = await res.json();
     return NextResponse.json(
-      { success: true, userId: data.userId, nickname: data.nickname },
+      { success: true, userId: data.userId, nickname: data.nickname, email: data.email },
       { status: 200 }
     );
   } catch (error: any) {
