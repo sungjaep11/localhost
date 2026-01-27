@@ -862,6 +862,11 @@ export default function GamePlayPage() {
     }));
     localStorage.setItem(resultsKey, JSON.stringify(results));
     
+    // 백엔드에 게임 종료 알림 → 방 즉시 삭제
+    if (socket && roomId) {
+      socket.emit('game_end_request', { roomId });
+    }
+    
     // 결과 페이지로 이동
     setTimeout(() => {
       router.push(`/game/song-guess/${roomId}/result`);

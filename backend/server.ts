@@ -646,12 +646,13 @@ app.post(
 
 app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
   const roomId = req.params.roomId;
-  const userId = (req as any).userId as string;
+  const userId = req.header("x-user-id") || "";
 
   console.log(`[DeleteRoom] Request: roomId=${roomId}, userId=${userId}`);
 
   try {
     if (!roomId) return res.status(400).json({ success: false, error: "roomId required" });
+    if (!userId) return res.status(401).json({ success: false, error: "userId required" });
 
     // 1. 방 조회
     const room = await prisma.room.findUnique({ where: { id: roomId } });
@@ -1312,6 +1313,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  // 프론트엔드 게임 종료 요청 (로컬 게임이 끝났을 때 방 즉시 삭제)
+  socket.on("game_end_request", async ({ roomId }) => {
+    try {
+      if (!roomId) return;
+
+      const room = await prisma.room.findUnique({ where: { id: roomId } });
+      if (!room || !["MUSIC_QUIZ", "DIALECT_QUIZ"].includes(room.type)) {
+        return;
+      }
+      // PLAYING 상태인 방만 종료 요청 허용 (실제 게임이 진행 중이었던 방)
+      if (room.status !== "PLAYING") return;
+
+      await deleteRoomAfterGame(roomId);
+    } catch (error) {
+      console.error("[game_end_request] error", error);
+    }
+  });
+
   // 게임 시작 (방장만 가능)
   socket.on("game_start", async ({ roomId, userId, options }) => {
     try {
@@ -1364,6 +1383,9 @@ io.on("connection", (socket) => {
         where: { id: roomId },
         data: { status: "PLAYING" },
       });
+
+      // 방 목록 화면에서 해당 방 즉시 제거되도록 브로드캐스트
+      io.emit("room_status_changed", { roomId, status: "PLAYING" });
 
       session.status = "COUNTDOWN";
       session.currentRound = 0;
@@ -1756,6 +1778,29 @@ async function endRound(roomId: string) {
   console.log(`[Game] Round ${session.currentRound} ended in room ${roomId}`);
 }
 
+/**
+ * 게임 종료 후 방 삭제 (소켓 알림 + DB 삭제)
+ * endGame의 setTimeout과 game_end_request 소켓에서 공통 사용
+ */
+async function deleteRoomAfterGame(roomId: string): Promise<void> {
+  try {
+    io.to(roomId).emit("roomDeleted", { roomId });
+    io.emit("room_deleted", { roomId });
+
+    const sockets = await io.in(roomId).fetchSockets();
+    sockets.forEach((s) => s.leave(roomId));
+
+    gameSessions.delete(roomId);
+
+    // 스키마 onDelete: Cascade로 GameHistory, PlaylistTrack, GameResult 자동 삭제
+    await prisma.room.delete({ where: { id: roomId } });
+
+    console.log(`[Game] Room ${roomId} deleted after game finished`);
+  } catch (error) {
+    console.error("[deleteRoomAfterGame] Failed to delete room:", error);
+  }
+}
+
 // 게임 종료
 async function endGame(roomId: string) {
   const session = gameSessions.get(roomId);
@@ -1821,39 +1866,8 @@ async function endGame(roomId: string) {
     results: finalResults,
   });
 
-  // 게임 종료 후 방 삭제 (결과 확인 후)
-  setTimeout(async () => {
-    try {
-      // 소켓 알림
-      io.to(roomId).emit("roomDeleted", { roomId });
-      io.emit("room_deleted", { roomId });
-
-      // 소켓에서 나가기
-      const sockets = await io.in(roomId).fetchSockets();
-      sockets.forEach((s) => s.leave(roomId));
-
-      // 세션 정리
-      gameSessions.delete(roomId);
-
-      // DB에서 방 삭제 (관련 레코드 포함 트랜잭션으로 처리)
-      await prisma.$transaction(async (tx) => {
-        await tx.gameResult.deleteMany({
-          where: { history: { roomId: roomId } }
-        });
-        await tx.gameHistory.deleteMany({
-          where: { roomId: roomId }
-        });
-        await tx.playlistTrack.deleteMany({
-          where: { roomId: roomId }
-        });
-        await tx.room.delete({ where: { id: roomId } });
-      });
-
-      console.log(`[Game] Room ${roomId} deleted after game finished`);
-    } catch (error) {
-      console.error("[endGame] Failed to delete room:", error);
-    }
-  }, 10000); // 10초 후 방 삭제 (결과 확인 시간)
+  // 10초 후 방 삭제 (결과 확인 시간)
+  setTimeout(() => deleteRoomAfterGame(roomId), 10000);
 
   console.log(`[Game] Game finished in room ${roomId}`);
 }

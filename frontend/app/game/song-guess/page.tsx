@@ -111,12 +111,20 @@ export default function SongGuessPage() {
       setRooms((prevRooms) => prevRooms.filter((r) => r.id !== data.roomId));
     };
 
+    const handleRoomStatusChanged = (data: { roomId: string; status: string }) => {
+      if (data.status === 'PLAYING') {
+        setRooms((prevRooms) => prevRooms.filter((r) => r.id !== data.roomId));
+      }
+    };
+
     socket.on('room_created', handleRoomCreated);
     socket.on('room_deleted', handleRoomDeleted);
+    socket.on('room_status_changed', handleRoomStatusChanged);
 
     return () => {
       socket.off('room_created', handleRoomCreated);
       socket.off('room_deleted', handleRoomDeleted);
+      socket.off('room_status_changed', handleRoomStatusChanged);
     };
   }, [socket]);
 
@@ -181,7 +189,13 @@ export default function SongGuessPage() {
         }
       } else {
         const error = await res.json();
+        const msg = error.error || error.message || '방 입장에 실패했습니다.';
         if (res.status === 403) {
+          // 게임이 이미 진행 중인 경우 비밀번호 프롬프트 없이 메시지만 표시
+          if (msg.includes('진행 중') || msg.includes('progress')) {
+            alert(msg);
+            return;
+          }
           // 비밀번호 필요
           const password = prompt('비밀번호를 입력하세요:');
           if (password) {
@@ -203,7 +217,7 @@ export default function SongGuessPage() {
             }
           }
         } else {
-          alert(error.error || '방 입장에 실패했습니다.');
+          alert(msg);
         }
       }
     } catch (error) {
