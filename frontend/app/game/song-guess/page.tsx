@@ -40,9 +40,11 @@ export default function SongGuessPage() {
 
   // 백엔드에서 방 목록 불러오기
   useEffect(() => {
-    const fetchRooms = async () => {
+    const fetchRooms = async (showLoading = false) => {
       try {
-        setLoading(true);
+        if (showLoading) {
+          setLoading(true);
+        }
         const userId = localStorage.getItem('userId') || '';
         const res = await fetch('/api/games/rooms?page=1&pageSize=50', {
           headers: userId ? { 'x-user-id': userId } : {},
@@ -55,20 +57,41 @@ export default function SongGuessPage() {
             const musicRooms = data.rooms
               .filter((room: BackendRoom) => room.type === 'MUSIC_QUIZ' && room.status === 'WAITING')
               .map((room: BackendRoom) => mapBackendRoomToFrontend(room));
-            setRooms(musicRooms);
+            
+            // 데이터가 실제로 변경되었을 때만 업데이트 (깜빡임 방지)
+            setRooms((prevRooms) => {
+              // 방 ID와 currentPlayers를 비교하여 변경사항 확인
+              if (prevRooms.length !== musicRooms.length) {
+                return musicRooms;
+              }
+              
+              // Map을 사용하여 더 정확한 비교
+              const prevRoomsMap = new Map(prevRooms.map(r => [r.id, r]));
+              const hasChanged = musicRooms.some(newRoom => {
+                const prevRoom = prevRoomsMap.get(newRoom.id);
+                return !prevRoom || 
+                  prevRoom.currentPlayers !== newRoom.currentPlayers ||
+                  prevRoom.name !== newRoom.name;
+              });
+              
+              return hasChanged ? musicRooms : prevRooms;
+            });
           }
         }
       } catch (error) {
         console.error('Failed to fetch rooms:', error);
       } finally {
-        setLoading(false);
+        if (showLoading) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchRooms();
+    // 초기 로드 시에만 loading 표시
+    fetchRooms(true);
     
-    // 주기적으로 방 목록 새로고침 (플레이어 수 업데이트)
-    const interval = setInterval(fetchRooms, 3000); // 3초마다 새로고침
+    // 주기적으로 방 목록 새로고침 (플레이어 수 업데이트) - loading 없이
+    const interval = setInterval(() => fetchRooms(false), 5000); // 5초마다 새로고침 (간격 증가)
     
     return () => clearInterval(interval);
   }, []);

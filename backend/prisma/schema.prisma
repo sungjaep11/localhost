@@ -101,7 +101,8 @@ model PlaylistTrack {
   status      TrackStatus @default(WAITING) // WAITING, PLAYING, PLAYED
   orderIndex  Int      // 대기열 순서
 
-  room        Room     @relation(fields: [roomId], references: [id])
+  // 방이 삭제되면 신청곡도 함께 삭제
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   requester   User     @relation(fields: [userId], references: [id])
 }
 
@@ -114,7 +115,8 @@ model GameHistory {
   // 당시 설정 (라운드 수 등) 백업
   gameType    RoomType
   
-  room        Room     @relation(fields: [roomId], references: [id])
+  // 방이 삭제되면 게임 기록도 함께 삭제
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   results     GameResult[]
 }
 
@@ -128,7 +130,8 @@ model GameResult {
   score         Int         // 획득 점수
   rewardBeats   Int         // 보상으로 받은 비트
 
-  history       GameHistory @relation(fields: [gameHistoryId], references: [id])
+  // 게임 헤더가 삭제되면 상세 결과도 함께 삭제
+  history       GameHistory @relation(fields: [gameHistoryId], references: [id], onDelete: Cascade)
   user          User        @relation(fields: [userId], references: [id])
 }
 
