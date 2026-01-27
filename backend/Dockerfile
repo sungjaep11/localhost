@@ -20,5 +20,5 @@ COPY . .
 # Expose port
 EXPOSE 3001
 
-# Run migrations and start server
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+# Run migrations, seed songs (노래 맞추기용), then start server
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run seed:songs && npm start"]
