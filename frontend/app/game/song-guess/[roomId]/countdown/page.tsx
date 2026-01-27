@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface Player {
   id: string;
@@ -16,6 +16,9 @@ export default function CountdownPage() {
   const roomId = params.roomId as string;
   const [countdown, setCountdown] = useState(3);
   const [players, setPlayers] = useState<Player[]>([]);
+  
+  // 네비게이션 중복 방지
+  const hasNavigatedRef = useRef(false);
 
   // 참가자 목록 불러오기
   useEffect(() => {
@@ -37,11 +40,13 @@ export default function CountdownPage() {
         setCountdown(countdown - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else {
-      // 카운트다운이 끝나면 게임 화면으로 이동
-      setTimeout(() => {
+    } else if (!hasNavigatedRef.current) {
+      // 카운트다운이 끝나면 게임 화면으로 이동 (한 번만)
+      hasNavigatedRef.current = true;
+      const timer = setTimeout(() => {
         router.push(`/game/song-guess/${roomId}/play`);
       }, 500);
+      return () => clearTimeout(timer);
     }
   }, [countdown, router, roomId]);
 

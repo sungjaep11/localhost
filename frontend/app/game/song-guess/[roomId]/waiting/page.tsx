@@ -63,8 +63,14 @@ export default function WaitingRoomPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isHost, setIsHost] = useState(false);
 
-  // 현재 사용자 정보
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+  // 현재 사용자 정보 - useState로 관리하여 무한 렌더 방지
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  
+  // 컴포넌트 마운트 시 한 번만 userId 로드
+  useEffect(() => {
+    const userId = localStorage.getItem('userId') || '';
+    setCurrentUserId(userId);
+  }, []);
 
   // 소켓 연결 및 게임 입장
   useEffect(() => {

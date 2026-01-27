@@ -671,11 +671,16 @@ export default function GamePlayPage() {
   const gameStateRef = useRef({ isPlaying, currentSongData, correctPlayers, players });
   gameStateRef.current = { isPlaying, currentSongData, correctPlayers, players };
 
-  // 게임 초기화 함수 (불러온 노래 풀에서 랜덤 선택)
+  // 게임 설정값 ref (useEffect 내부에서 최신 값 참조용)
+  const gameConfigRef = useRef({ totalRounds, songsPerRound });
+  gameConfigRef.current = { totalRounds, songsPerRound };
+
+  // 게임 초기화 함수 (불러온 노래 풀에서 랜덤 선택) - ref로 최신 값 참조
   const initializeGame = useCallback((songPool: GameSong[]) => {
     if (songPool.length === 0) return;
+    const { totalRounds: rounds, songsPerRound: songs } = gameConfigRef.current;
     const shuffled = [...songPool].sort(() => Math.random() - 0.5);
-    const totalSongsNeeded = totalRounds * songsPerRound;
+    const totalSongsNeeded = rounds * songs;
     const selectedSongs = shuffled.slice(0, Math.min(totalSongsNeeded, shuffled.length));
     setGameSongs(selectedSongs);
     setCurrentSongData(selectedSongs[0]);
@@ -683,7 +688,7 @@ export default function GamePlayPage() {
     setCurrentRound(1);
     setCurrentSong(1);
     setCorrectPlayers([]);
-  }, [totalRounds, songsPerRound]);
+  }, []); // 의존성 제거하여 함수 재생성 방지
 
   // 현재 사용자 정보 및 방 정보 불러오기
   useEffect(() => {
@@ -708,8 +713,13 @@ export default function GamePlayPage() {
     }
   }, [roomId]);
 
+  // 노래 로드 완료 여부 추적 (중복 호출 방지)
+  const songsLoadedRef = useRef(false);
+
   // 백엔드(seed-songs)에서 노래 목록 로드 후 게임 초기화
   useEffect(() => {
+    // 이미 로드했으면 스킵
+    if (songsLoadedRef.current) return;
     if (totalRounds <= 0 || songsPerRound <= 0) return;
 
     let cancelled = false;
@@ -728,6 +738,7 @@ export default function GamePlayPage() {
         const gameSongsList = (list as BackendSong[]).map(toGameSong);
         setSongsLoading(false);
         if (gameSongsList.length > 0) {
+          songsLoadedRef.current = true; // 로드 완료 표시
           initializeGame(gameSongsList);
         }
       } catch (e) {
@@ -738,6 +749,25 @@ export default function GamePlayPage() {
 
     return () => { cancelled = true; };
   }, [totalRounds, songsPerRound, initializeGame]);
+
+  // 시간 초과 처리 - useCallback으로 안정화
+  const handleTimeUp = useCallback(() => {
+    setIsPlaying(false);
+    setGamePhase('answer_revealed');
+    setShowAnswerModal(true);
+    
+    // 시스템 메시지 추가 (currentSongData는 ref로 최신 값 참조)
+    const songData = gameStateRef.current.currentSongData;
+    const systemMsg: ChatMessage = {
+      id: Date.now().toString(),
+      playerId: 'system',
+      playerName: '시스템',
+      message: `⏰ 시간 초과! 정답은 "${songData?.title}" - ${songData?.artist} 입니다!`,
+      timestamp: Date.now(),
+      isSystem: true,
+    };
+    setChatMessages(prev => [...prev, systemMsg]);
+  }, []);
 
   // 타이머 로직
   useEffect(() => {
@@ -755,25 +785,7 @@ export default function GamePlayPage() {
         clearTimeout(timerRef.current);
       }
     };
-  }, [isPlaying, timeLeft]);
-
-  // 시간 초과 처리
-  const handleTimeUp = () => {
-    setIsPlaying(false);
-    setGamePhase('answer_revealed');
-    setShowAnswerModal(true);
-    
-    // 시스템 메시지 추가
-    const systemMsg: ChatMessage = {
-      id: Date.now().toString(),
-      playerId: 'system',
-      playerName: '시스템',
-      message: `⏰ 시간 초과! 정답은 "${currentSongData?.title}" - ${currentSongData?.artist} 입니다!`,
-      timestamp: Date.now(),
-      isSystem: true,
-    };
-    setChatMessages(prev => [...prev, systemMsg]);
-  };
+  }, [isPlaying, timeLeft, handleTimeUp]);
 
   // 노래 재생 시작
   const startPlaying = () => {
