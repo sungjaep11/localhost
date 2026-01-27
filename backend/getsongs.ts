@@ -1,42 +1,26 @@
+import { exec } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import * as util from "util";
 import { prisma } from "./lib/prisma";
 import { songs } from "./seed-songs-data";
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const execPromise = util.promisify(exec);
 
 function buildSearchTerm(song: { title: string; artist: string }) {
-  // 보통 "제목 가수 official audio"가 꽤 잘 맞음 (원하면 official mv로 바꿔도 됨)
   return `${song.title} ${song.artist} official audio`;
 }
 
 async function fetchFirstYoutubeVideoId(query: string): Promise<string | null> {
-  if (!YOUTUBE_API_KEY) throw new Error("YOUTUBE_API_KEY is missing in env");
-
-  const params = new URLSearchParams({
-    key: YOUTUBE_API_KEY,
-    part: "snippet",
-    type: "video",
-    q: query,
-    maxResults: "1",
-    // regionCode를 KR로 두면 한국에서 보는 결과에 가까워짐 (원하면 JP/US 등으로 변경)
-    regionCode: "KR",
-    // relevanceLanguage도 참고용 (엄밀히 완전 동일 보장은 아님)
-    relevanceLanguage: "ko",
-    safeSearch: "none",
-  });
-
-  const url = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`YouTube API error: ${res.status} ${text}`);
+  try {
+    // ytsearch1: tells yt-dlp to search and return the first result; --get-id only returns the video ID
+    const command = `yt-dlp "ytsearch1:${query.replace(/"/g, '\\"')}" --get-id`;
+    const { stdout } = await execPromise(command);
+    const videoId = stdout.trim();
+    return videoId || null;
+  } catch {
+    return null;
   }
-
-  const data = (await res.json()) as any;
-  const item = data?.items?.[0];
-  const videoId = item?.id?.videoId;
-  return typeof videoId === "string" ? videoId : null;
 }
 
 function toWatchUrl(videoId: string) {

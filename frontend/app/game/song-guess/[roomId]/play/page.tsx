@@ -60,12 +60,26 @@ interface BackendSong {
   youtubeUrl: string;
 }
 
+// API /api/songs/random 응답 (backend/songs/ 기준, mp3Url 포함)
+interface RandomSongFromApi {
+  id: string;
+  genre: string;
+  title: string;
+  artist: string;
+  mp3Url: string;
+}
+
 // 게임용 노래 (answer는 정답 체크용 변형 목록)
-type GameSong = { id: string; title: string; artist: string; answer: string[]; youtubeUrl?: string };
+type GameSong = { id: string; title: string; artist: string; answer: string[]; youtubeUrl?: string; mp3Url?: string };
 
 function toGameSong(s: BackendSong): GameSong {
   const norms = [s.title, s.title.replace(/\s/g, '')];
   return { id: s.id, title: s.title, artist: s.artist, answer: [...new Set(norms)], youtubeUrl: s.youtubeUrl };
+}
+
+function randomSongToGameSong(s: RandomSongFromApi): GameSong {
+  const norms = [s.title, s.title.replace(/\s/g, '')];
+  return { id: s.id, title: s.title, artist: s.artist, answer: [...new Set(norms)], mp3Url: s.mp3Url };
 }
 
 // 선착순 점수 (1등부터)
@@ -634,7 +648,9 @@ export default function GamePlayPage() {
   const [currentSong, setCurrentSong] = useState(1);
   const [totalRounds, setTotalRounds] = useState(1);
   const [songsPerRound, setSongsPerRound] = useState(5);
+  const [roomGenres, setRoomGenres] = useState<string[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const usedSongIdsRef = useRef<Set<string>>(new Set());
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [bubbleMessages, setBubbleMessages] = useState<BubbleMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -721,49 +737,14 @@ export default function GamePlayPage() {
         if (currentRoom) {
           setTotalRounds(currentRoom.rounds);
           setSongsPerRound(currentRoom.songsPerRound);
+          setRoomGenres(Array.isArray(currentRoom.genres) ? currentRoom.genres : []);
+          setSongsLoading(false);
         }
       } catch (e) {
         console.error('Failed to load room info', e);
       }
     }
   }, [roomId]);
-
-  // 노래 로드 완료 여부 추적 (중복 호출 방지)
-  const songsLoadedRef = useRef(false);
-
-  // 백엔드(seed-songs)에서 노래 목록 로드 후 게임 초기화
-  useEffect(() => {
-    // 이미 로드했으면 스킵
-    if (songsLoadedRef.current) return;
-    if (totalRounds <= 0 || songsPerRound <= 0) return;
-
-    let cancelled = false;
-    setSongsLoading(true);
-
-    (async () => {
-      try {
-        const res = await fetch('/api/songs');
-        const data = await res.json();
-        if (cancelled) return;
-        if (!res.ok) {
-          setSongsLoading(false);
-          return;
-        }
-        const list = Array.isArray(data) ? data : (data.songs ?? data.data ?? []);
-        const gameSongsList = (list as BackendSong[]).map(toGameSong);
-        setSongsLoading(false);
-        if (gameSongsList.length > 0) {
-          songsLoadedRef.current = true; // 로드 완료 표시
-          initializeGame(gameSongsList);
-        }
-      } catch (e) {
-        if (!cancelled) setSongsLoading(false);
-        console.error('Failed to fetch songs', e);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [totalRounds, songsPerRound, initializeGame]);
 
   // 시간 초과 처리 - useCallback으로 안정화
   const handleTimeUp = useCallback(() => {
@@ -874,8 +855,7 @@ export default function GamePlayPage() {
     const snap = nextSongSnapshotRef.current;
     const data = snap ?? progressRef.current;
     if (snap) nextSongSnapshotRef.current = null;
-    const { currentRound: r, currentSong: s, totalRounds: tr, songsPerRound: spr, gameSongs: gs } = data;
-    const nextSongIndex = (r - 1) * spr + s;
+    const { currentRound: r, currentSong: s, totalRounds: tr, songsPerRound: spr } = data;
 
     if (s >= spr) {
       // 이번 라운드 마지막 곡까지 끝남 → 라운드 종료
@@ -886,11 +866,9 @@ export default function GamePlayPage() {
         setGamePhase('round_end');
       }
     } else {
-      // 다음 곡
+      // 다음 곡 (다음 곡은 방장이 재생 버튼 누를 때 API로 장르별 랜덤 로드)
       setCurrentSong(prev => prev + 1);
-      if (gs[nextSongIndex]) {
-        setCurrentSongData(gs[nextSongIndex]);
-      }
+      setCurrentSongData(null);
       setCorrectPlayers([]);
       setGamePhase('waiting');
       setTimeLeft(30);
@@ -901,13 +879,9 @@ export default function GamePlayPage() {
   // 다음 라운드 시작
   const startNextRound = () => {
     setShowRoundEndModal(false);
-    const { currentRound: r, songsPerRound: spr, gameSongs: gs } = progressRef.current;
     setCurrentRound(prev => prev + 1);
     setCurrentSong(1);
-    const nextRoundFirstIndex = r * spr; // 다음 라운드 첫 곡 인덱스
-    if (gs[nextRoundFirstIndex]) {
-      setCurrentSongData(gs[nextRoundFirstIndex]);
-    }
+    setCurrentSongData(null);
     setCorrectPlayers([]);
     setGamePhase('waiting');
     setTimeLeft(30);
@@ -1274,46 +1248,90 @@ export default function GamePlayPage() {
       </main>
     );
   }
-  if (!songsLoading && gameSongs.length === 0 && totalRounds > 0) {
-    return (
-      <main style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,30,0.95)', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ color: '#ff6b6b', fontSize: '1.1rem' }}>노래를 불러올 수 없습니다. 시드 데이터를 먼저 넣어 주세요.</div>
-        <button onClick={() => router.push('/game/song-guess')} style={{ padding: '0.75rem 1.5rem', background: 'rgba(0,255,255,0.3)', border: '2px solid #00ffff', borderRadius: 8, color: '#00ffff', cursor: 'pointer' }}>방 목록으로</button>
-      </main>
-    );
-  }
-
-  // 재생 버튼 클릭 핸들러 (방장만) — 음원은 로컬/다운로드로 넣을 예정, 당분간 시뮬레이션만
-  const handlePlayButton = () => {
+  // 재생 버튼 클릭 핸들러 (방장만) — backend/songs/ 장르별 랜덤 노래 1곡 재생, 이미 나온 곡 제외
+  const handlePlayButton = useCallback(async () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
-    if ((gamePhase === 'waiting' || gamePhase === 'answer_revealed')) {
-      fallbackSimulatePlay();
-    }
-  };
+    if (gamePhase !== 'waiting' && gamePhase !== 'answer_revealed') return;
 
-  function fallbackSimulatePlay() {
-    const exampleLyrics = currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '노래를 재생합니다';
-    setLyrics(exampleLyrics);
-    setTotalDuration(5);
-    setCurrentTime(0);
-    setIsAudioPlaying(true);
-    let simTime = 0;
-    const interval = setInterval(() => {
-      simTime += 0.1;
-      setCurrentTime(simTime);
-      if (simTime >= 5) {
-        clearInterval(interval);
-        simulationIntervalRef.current = null;
+    const genre = roomGenres[currentRound - 1] ?? roomGenres[0] ?? '발라드';
+    const exclude = Array.from(usedSongIdsRef.current).join(',');
+
+    try {
+      const params = new URLSearchParams({ genre });
+      if (exclude) params.set('exclude', exclude);
+      const res = await fetch(`/api/songs/random?${params.toString()}`);
+      const data = await res.json();
+      const song = res.ok && data?.song ? data.song : data;
+      if (!song?.id || !song?.mp3Url) {
+        const msg = res.status === 404 ? '이 장르에 재생할 노래가 없어요.' : '노래를 불러오지 못했어요.';
+        setLyrics(msg);
+        setTotalDuration(5);
+        setCurrentTime(0);
+        setIsAudioPlaying(true);
+        const iv = setInterval(() => {
+          setCurrentTime((t) => {
+            if (t >= 5) {
+              clearInterval(iv);
+              setIsAudioPlaying(false);
+              return 0;
+            }
+            return t + 0.1;
+          });
+        }, 100);
+        simulationIntervalRef.current = iv;
+        startPlaying();
+        return;
+      }
+
+      const gameSong = randomSongToGameSong(song as RandomSongFromApi);
+      setCurrentSongData(gameSong);
+      usedSongIdsRef.current.add(song.id);
+
+      setLyrics(`${gameSong.title} - ${gameSong.artist}`);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      const audio = new Audio(song.mp3Url);
+      audioRef.current = audio;
+      setTtsAudio(audio);
+      audio.addEventListener('loadedmetadata', () => setTotalDuration(audio.duration));
+      audio.addEventListener('timeupdate', () => setCurrentTime(audio.currentTime));
+      audio.addEventListener('ended', () => {
         setIsAudioPlaying(false);
         setCurrentTime(0);
-      }
-    }, 100);
-    simulationIntervalRef.current = interval;
-    startPlaying();
-  }
+      });
+      audio.onerror = () => {
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+      };
+      await audio.play();
+      setIsAudioPlaying(true);
+      setCurrentTime(0);
+      startPlaying();
+    } catch (e) {
+      console.error('Failed to load/play random song', e);
+      setLyrics('노래를 재생할 수 없어요.');
+      setTotalDuration(5);
+      setCurrentTime(0);
+      setIsAudioPlaying(true);
+      const iv = setInterval(() => {
+        setCurrentTime((t) => {
+          if (t >= 5) {
+            clearInterval(iv);
+            setIsAudioPlaying(false);
+            return 0;
+          }
+          return t + 0.1;
+        });
+      }, 100);
+      simulationIntervalRef.current = iv;
+      startPlaying();
+    }
+  }, [gamePhase, currentRound, roomGenres]);
 
   // 가사 색상 계산 (노래방 스타일)
   const getLyricsWithColors = () => {
@@ -1742,12 +1760,10 @@ export default function GamePlayPage() {
             totalDuration={totalDuration}
             currentTime={currentTime}
             onPlayClick={() => {
-              if (lyrics && isAudioPlaying) {
+              if (lyrics) {
                 toggleTTS();
-              } else if (lyrics && !isAudioPlaying) {
-                toggleTTS();
-              } else if (gamePhase === 'waiting' || gamePhase === 'answer_revealed') {
-                startPlaying();
+              } else if (gamePhase === 'waiting') {
+                handlePlayButton();
               }
             }}
             onSkipClick={() => {

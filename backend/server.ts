@@ -3,6 +3,8 @@ import express, { NextFunction, Request, Response } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 import { prisma } from "./lib/prisma";
 
 type RoomFromDb = Awaited<ReturnType<typeof prisma.room.findMany>>[number];
@@ -17,6 +19,12 @@ const port = process.env.PORT || 3001;
 // CORS 설정
 app.use(cors());
 app.use(express.json());
+
+// MP3 정적 서빙 (backend/songs/ → GET /songs/장르/파일명.mp3)
+const songsDir = path.join(__dirname, "songs");
+if (fs.existsSync(songsDir)) {
+  app.use("/songs", express.static(songsDir));
+}
 
 // 간단 인증 미들웨어
 // - 실제 서비스에서는 OAuth / JWT 등으로 대체해야 함
@@ -816,41 +824,63 @@ app.get("/api/shop/items", async (req: Request, res: Response) => {
 });
 
 /**
- * 장르별 랜덤 노래 조회
- * GET /api/songs/random?genre=발라드&count=1
+ * 장르별 랜덤 노래 조회 (backend/songs/<장르>/*.mp3 기준, 이미 나온 곡 제외)
+ * GET /api/songs/random?genre=발라드&count=1&exclude=id1,id2
  */
 app.get("/api/songs/random", async (req: Request, res: Response) => {
   try {
-    const genre = req.query.genre as string | undefined;
+    const genre = (req.query.genre as string)?.trim();
     const count = parseInt((req.query.count as string) || "1", 10);
+    const excludeRaw = (req.query.exclude as string) || "";
+    const excludeIds = new Set(
+      excludeRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    );
 
     if (!genre) {
       return res.status(400).json({ message: "genre parameter is required" });
     }
 
-    // 해당 장르의 모든 노래 가져오기
-    // @ts-ignore - Prisma Client 타입이 아직 업데이트되지 않았을 수 있음 (TypeScript 캐시 문제)
-    const allSongs = await prisma.song.findMany({
-      where: { genre },
-    });
+    const baseUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
+    const genreDir = path.join(__dirname, "songs", genre);
 
-    if (allSongs.length === 0) {
-      return res.status(404).json({ message: `No songs found for genre: ${genre}` });
+    if (!fs.existsSync(genreDir)) {
+      return res.status(404).json({ message: `No songs folder for genre: ${genre}` });
     }
 
-    // 랜덤하게 선택
-    const selectedSongs: typeof allSongs = [];
-    const shuffled = [...allSongs].sort(() => Math.random() - 0.5);
-    
-    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-      selectedSongs.push(shuffled[i]);
+    const files = fs.readdirSync(genreDir).filter((f) => f.endsWith(".mp3"));
+    const candidates: { id: string; title: string; artist: string; genre: string; mp3Url: string }[] = [];
+
+    for (const f of files) {
+      const base = f.replace(/\.mp3$/i, "");
+      const lastUnderscore = base.lastIndexOf("_");
+      const title = lastUnderscore >= 0 ? base.slice(0, lastUnderscore).replace(/_/g, " ") : base;
+      const artist = lastUnderscore >= 0 ? base.slice(lastUnderscore + 1) : "";
+      const id = `${genre}/${f}`;
+      if (excludeIds.has(id)) continue;
+      candidates.push({
+        id,
+        title: title || base,
+        artist,
+        genre,
+        mp3Url: `${baseUrl}/songs/${encodeURIComponent(genre)}/${encodeURIComponent(f)}`,
+      });
     }
 
-    // 단일 노래인 경우 객체로, 여러 개인 경우 배열로 반환
+    if (candidates.length === 0) {
+      return res.status(404).json({
+        message: excludeIds.size > 0
+          ? `No more songs for genre: ${genre} (all played or none available)`
+          : `No mp3 files found for genre: ${genre}`,
+      });
+    }
+
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+
     if (count === 1) {
-      res.json(selectedSongs[0]);
+      res.json(selected[0]);
     } else {
-      res.json(selectedSongs);
+      res.json(selected);
     }
   } catch (err) {
     console.error("[GET /api/songs/random] error", err);

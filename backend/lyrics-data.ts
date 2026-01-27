@@ -20,7 +20,7 @@ const GENRE = {
 
 export const dialectLyrics: DialectLyric[] = [
   // 1. 발라드
-  { genre: GENRE.BALLAD, title: "0+0 (영 더하기 영)", artist: "한로로", original: "영 더하기 영은 영이건만 우린 뭐라도 될 줄 알았나 봐", dialect: "빵 더하기 빵은 빵인데, 우리는 뭐라도 될 줄 알았는갑네" },
+  { genre: GENRE.BALLAD, title: "0+0", artist: "한로로", original: "영 더하기 영은 영이건만 우린 뭐라도 될 줄 알았나 봐", dialect: "빵 더하기 빵은 빵인데, 우리는 뭐라도 될 줄 알았는갑네" },
   { genre: GENRE.BALLAD, title: "Love Wins All", artist: "아이유", original: "일부러 나란히 길 잃은 우리 두 사람", dialect: "일부러 나란히 길 잃어뿐 우리 두 사람 아인가" },
   { genre: GENRE.BALLAD, title: "그대만 있다면", artist: "너드커넥션", original: "그대만 있다면 세상 모든 걸 다 가진 기분일 텐데", dialect: "니만 있다 카면 세상 천지 다 가진 기분일 낀데" },
   { genre: GENRE.BALLAD, title: "헤어지자 말해요", artist: "박재정", original: "헤어지자 말해요 오늘이 지나면 우린 볼 수 없게", dialect: "헤어지자 안 카나, 오늘 지나면 우리는 인자 몬 본데이" },
@@ -36,14 +36,14 @@ export const dialectLyrics: DialectLyric[] = [
   { genre: GENRE.BALLAD, title: "좋니", artist: "윤종신", original: "좋니 사랑해서 사랑을 시작할 때", dialect: "좋나? 사랑해서 사랑 시작할 때 말이다" },
   { genre: GENRE.BALLAD, title: "모든 날, 모든 순간", artist: "폴킴", original: "모든 날 모든 순간 함께해", dialect: "모든 날 모든 순간 같이 하자" },
   { genre: GENRE.BALLAD, title: "예뻤어", artist: "DAY6", original: "예뻤어 날 바라봐 주던 그 눈빛", dialect: "이뻤데이, 내 쳐다보던 그 눈깔" },
-  { genre: GENRE.BALLAD, title: "해요 (2022)", artist: "#안녕", original: "그녀와 난 결혼을 해요", dialect: "가스나 가랑 내랑 결혼한데이" },
+  { genre: GENRE.BALLAD, title: "해요", artist: "#안녕", original: "그녀와 난 결혼을 해요", dialect: "가스나 가랑 내랑 결혼한데이" },
   { genre: GENRE.BALLAD, title: "비의 랩소디", artist: "임재현", original: "내게 소중한 건 너뿐이야", dialect: "내한테 중한 거는 니뿐이데이" },
   { genre: GENRE.BALLAD, title: "사랑인가 봐", artist: "멜로망스", original: "사랑인가 봐 무얼 해도 신나고", dialect: "사랑인갑다, 뭘 해도 신나노" },
   { genre: GENRE.BALLAD, title: "첫 눈", artist: "EXO", original: "너를 만나면 눈물 차올라", dialect: "니 만나면 눈물이 차오른다 아이가" },
   // 2. K-pop
   { genre: GENRE.KPOP, title: "Supernova", artist: "에스파", original: "사건은 다가와 Ah Oh Ay", dialect: "큰일이 다가온다 안 카나 Ah Oh Ay" },
   { genre: GENRE.KPOP, title: "Magnetic", artist: "아일릿", original: "You You You You like it's magnetic", dialect: "니 니 니 니 억수로 땡긴다 자석 맹키로" },
-  { genre: GENRE.KPOP, title: "해야 (HEYA)", artist: "아이브", original: "해야 해야 해야 한 입에 널 삼킬 때야", dialect: "해야 해야 해야 한 입에 니를 확 삼킬 때다" },
+  { genre: GENRE.KPOP, title: "해야", artist: "아이브", original: "해야 해야 해야 한 입에 널 삼킬 때야", dialect: "해야 해야 해야 한 입에 니를 확 삼킬 때다" },
   { genre: GENRE.KPOP, title: "Armageddon", artist: "에스파", original: "거침없이 난 널 이끌어", dialect: "거침없이 내는 니를 끄시 당겨" },
   { genre: GENRE.KPOP, title: "나는 아픈 건 딱 질색이니까", artist: "(여자)아이들", original: "나는 아픈 건 딱 질색이니까 오늘 하루도 잘 부탁해", dialect: "내는 아픈 거는 억수로 질색이다 아이가, 오늘 하루도 잘 부탁한데이" },
   { genre: GENRE.KPOP, title: "Hype Boy", artist: "NewJeans", original: "Cuz I know what you like boy", dialect: "내 니 뭐 좋아하는지 안다 머스마야" },

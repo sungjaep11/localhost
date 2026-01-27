@@ -7,6 +7,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const genre = searchParams.get("genre");
     const count = searchParams.get("count") || "1";
+    const exclude = searchParams.get("exclude") || "";
 
     if (!genre) {
       return NextResponse.json(
@@ -15,8 +16,10 @@ export async function GET(request: Request) {
       );
     }
 
+    const params = new URLSearchParams({ genre, count });
+    if (exclude) params.set("exclude", exclude);
     const res = await fetch(
-      `${BACKEND_URL}/api/songs/random?genre=${encodeURIComponent(genre)}&count=${count}`,
+      `${BACKEND_URL}/api/songs/random?${params.toString()}`,
       {
         method: "GET",
         headers: {

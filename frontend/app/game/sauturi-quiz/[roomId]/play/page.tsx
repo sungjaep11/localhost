@@ -328,15 +328,23 @@ export default function GamePlayPage() {
       }
     };
 
-    // 가사/정답 동기화: 방장이 재생 시 전체에 가사·정답 전파 → 모두에게 가사 표시
+    // 가사/정답 동기화: 방장이 재생 시 전체에 가사·정답 전파 → 모두에게 가사 표시 및 사투리 자동 재생
     const handleSauturiLyricSync = (payload: { roomId: string; dialect: string; original?: string; title?: string; artist?: string }) => {
       if (payload.roomId !== roomId) return;
-      setLyrics(payload.dialect || '');
+      const text = payload.dialect || '';
+      setLyrics(text);
       setCurrentRoundAnswer(payload.original ?? '');
       setCurrentRoundTitle(payload.title ?? '');
       setCurrentRoundArtist(payload.artist ?? '');
       setSauturiCorrectPlayers([]);
       sauturiGotCorrectRef.current = false;
+      if (typeof window !== 'undefined' && window.speechSynthesis && text) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      }
     };
 
     // 턴 종료(아무도 못 맞춤): 방 전체에 알림 → 모두 "아무도 못 맞췄다" 모달 후 다음 턴
@@ -617,6 +625,14 @@ export default function GamePlayPage() {
       if (socket && roomId) {
         socket.emit("sauturi_lyric_sync", { roomId, dialect: text, original: orig, title, artist });
       }
+      // 사투리 문장 자동 음성 재생 (브라우저 TTS)
+      if (typeof window !== "undefined" && window.speechSynthesis && text) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "ko-KR";
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      }
       const duration = Math.max(15, Math.ceil((text.length || 10) * 0.15));
       setTotalDuration(duration);
       setCurrentTime(0);
@@ -660,12 +676,12 @@ export default function GamePlayPage() {
   // 방장일 때 가사 없으면 자동 재생 (재생 버튼 없이 턴 시작 시 자동 진행)
   useEffect(() => {
     if (!(host?.id === currentUserId) || lyrics || showSauturiAnswerModal) return;
-    if (roomGenres.length === 0 || totalRounds <= 0) return;
+    if (totalRounds <= 0 || !socket) return;
     const t = setTimeout(() => {
       handlePlayButtonRef.current();
     }, 400);
     return () => clearTimeout(t);
-  }, [host?.id, currentUserId, lyrics, showSauturiAnswerModal, currentRound, currentSong, roomGenres.length, totalRounds]);
+  }, [host?.id, currentUserId, lyrics, showSauturiAnswerModal, currentRound, currentSong, roomGenres.length, totalRounds, socket]);
 
   // TTS 일시정지/재개
   const toggleTTS = () => {
