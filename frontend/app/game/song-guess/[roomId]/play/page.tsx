@@ -666,6 +666,7 @@ export default function GamePlayPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const answerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const goToNextSongRef = useRef<() => void>(() => {});
+  const startPlayingRef = useRef<() => void>(() => {});
 
   // 소켓 핸들러에서 최신 상태를 읽기 위한 ref (의존성 배열 확대·무한 리렌더 방지)
   const gameStateRef = useRef({ isPlaying, currentSongData, correctPlayers, players });
@@ -839,6 +840,7 @@ export default function GamePlayPage() {
       setChatMessages(prev => [...prev, systemMsg]);
     }
   };
+  startPlayingRef.current = startPlaying;
 
   // 정답 비교용 노멀라이저: 영어 대소문자 무시, 쉼표·하이픈 제거
   const normalizeAnswer = (s: string) =>
@@ -1092,13 +1094,54 @@ export default function GamePlayPage() {
       }, 2500);
     };
 
+    // 방장이 재생 시 방 전체에 같은 곡 동기화 — 모든 클라이언트(방장 포함)가 이 이벤트로 같은 곡 재생
+    const handleSongGuessSync = (data: { roomId: string; song: { id: string; title: string; artist: string; mp3Url: string } }) => {
+      if (data.roomId !== roomId || !data.song?.id || !data.song?.mp3Url) return;
+      const gameSong = randomSongToGameSong({ ...data.song, genre: '' } as RandomSongFromApi);
+      setCurrentSongData(gameSong);
+      usedSongIdsRef.current.add(data.song.id);
+      setLyrics('');
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      const audio = new Audio(data.song.mp3Url);
+      audioRef.current = audio;
+      setTtsAudio(audio);
+      audio.addEventListener('loadedmetadata', () => setTotalDuration(audio.duration));
+      audio.addEventListener('timeupdate', () => setCurrentTime(audio.currentTime));
+      audio.addEventListener('ended', () => {
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+      });
+      audio.onerror = () => {
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+      };
+      audio.play().then(() => {
+        setIsAudioPlaying(true);
+        setCurrentTime(0);
+        startPlayingRef.current();
+      }).catch(() => {
+        setIsAudioPlaying(false);
+        setCurrentTime(0);
+        startPlayingRef.current();
+      });
+    };
+
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
+    socket.on('song_guess_sync', handleSongGuessSync);
 
     // ❌ cleanup에서 game_leave를 보내면 Strict Mode 시 무한 루프 발생
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
+      socket.off('song_guess_sync', handleSongGuessSync);
       if (answerModalTimeoutRef.current) {
         clearTimeout(answerModalTimeoutRef.current);
         answerModalTimeoutRef.current = null;
@@ -1386,6 +1429,16 @@ export default function GamePlayPage() {
         return;
       }
 
+      // 실방: 방장이 재생 시 서버로 곡만 보내고, song_guess_sync로 모든 클라이언트(방장 포함)가 같은 곡 재생
+      if (roomId !== 'preview-room' && socket) {
+        socket.emit('song_guess_play', {
+          roomId,
+          song: { id: song.id, title: song.title, artist: song.artist, mp3Url: song.mp3Url },
+        });
+        return;
+      }
+
+      // 미리보기 또는 소켓 없음: 로컬에서만 재생
       const gameSong = randomSongToGameSong(song as RandomSongFromApi);
       setCurrentSongData(gameSong);
       usedSongIdsRef.current.add(song.id);
@@ -1433,7 +1486,7 @@ export default function GamePlayPage() {
       simulationIntervalRef.current = iv;
       startPlaying();
     }
-  }, [gamePhase, currentRound, roomGenres]);
+  }, [gamePhase, currentRound, roomGenres, socket, roomId]);
 
   // ✅ 조건부 return은 모든 훅 아래에서만 (훅 호출 순서 동일 유지로 React #310 방지)
   if (songsLoading) {

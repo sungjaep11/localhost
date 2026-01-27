@@ -1646,6 +1646,12 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("game_chat", payload);
   });
 
+  // 노래 맞추기: 방장이 재생한 곡을 방 전체에 동기화 — 모두 같은 곡을 듣고 맞출 수 있게
+  socket.on("song_guess_play", ({ roomId, song }: { roomId: string; song: { id: string; title: string; artist: string; mp3Url: string } }) => {
+    if (!roomId || !song?.id || !song?.mp3Url) return;
+    io.to(roomId).emit("song_guess_sync", { roomId, song: { id: song.id, title: song.title, artist: song.artist, mp3Url: song.mp3Url } });
+  });
+
   // 사투리 가사 맞추기: 가사/정답 동기화 (방장이 로드 시 전체에게 전파)
   socket.on("sauturi_lyric_sync", ({ roomId, dialect, original, title, artist }: { roomId: string; dialect: string; original?: string; title?: string; artist?: string }) => {
     if (!roomId || !dialect) return;
