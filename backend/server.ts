@@ -79,6 +79,7 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
+app.set("io", io); // 라우트에서 req.app.get("io")로 안전하게 접근
 
 // 기본 라우트
 app.get("/", (req: Request, res: Response) => {
@@ -641,115 +642,72 @@ app.post(
 /**
  * 방 삭제 (방 생성자만 가능)
  * DELETE /api/rooms/:roomId
+ * - Socket 알림은 삭제 전에 보내고, 소켓 예외는 별도 try-catch로 잡아서 DB 삭제가 항상 시도되도록 함.
  */
 app.delete("/api/rooms/:roomId", async (req: Request, res: Response) => {
+  const roomId = req.params.roomId;
+  const userId = (req as any).userId as string;
+
+  console.log(`[DeleteRoom] Request: roomId=${roomId}, userId=${userId}`);
+
   try {
-    const roomId = req.params.roomId;
-    const userId = (req as any).userId as string;
-
-    console.log(`[DELETE /api/rooms/:roomId] Request: roomId=${roomId}, userId=${userId}`);
-
     if (!roomId) {
-      return res.status(400).json({ message: "방 ID가 필요합니다." });
+      return res.status(400).json({ success: false, error: "방 ID가 필요합니다." });
     }
-
     if (!userId) {
-      return res.status(401).json({ message: "인증이 필요합니다." });
+      return res.status(401).json({ success: false, error: "인증이 필요합니다." });
     }
 
-    // 방 정보 조회
+    // 1. 방 존재 여부 및 방장 여부 확인
     const room = await prisma.room.findUnique({
       where: { id: roomId },
     });
 
     if (!room) {
-      return res.status(404).json({ message: "방을 찾을 수 없습니다." });
+      return res.status(404).json({ success: false, error: "방을 찾을 수 없습니다." });
     }
-
-    console.log(`[DELETE /api/rooms/:roomId] Room found: hostId=${room.hostId}, requesting userId=${userId}, match: ${room.hostId === userId}`);
-
-    // 방 생성자 확인
     if (room.hostId !== userId) {
-      return res
-        .status(403)
-        .json({ message: "방장만 방을 삭제할 수 있습니다." });
+      return res.status(403).json({ success: false, error: "방장만 방을 삭제할 수 있습니다." });
     }
 
-    // 1. (중요) Socket.io로 "방 폭파" 알림 보내기 - 삭제 *전에* 알림을 보내는 것이 안전합니다.
+    // 2. (중요) Socket.io로 "방 폭파" 알림 — 삭제 *전에* 보냄. 실패해도 삭제는 진행.
     try {
+      const io = req.app.get("io") as InstanceType<typeof Server> | undefined;
       if (io) {
-        // 방에 있는 모든 사람에게 '방 삭제됨' 이벤트 전송
         io.to(roomId).emit("roomDeleted", { roomId });
-        
-        // 모든 클라이언트에게도 브로드캐스트 (방 목록 업데이트용)
         io.emit("room_deleted", { roomId });
-        
-        // (선택사항) 해당 방의 소켓 연결 끊기
         try {
           const sockets = await io.in(roomId).fetchSockets();
-          sockets.forEach((socket) => {
-            socket.leave(roomId);
-          });
-          console.log(`[DELETE /api/rooms/:roomId] Socket notification sent for room ${roomId}`);
-        } catch (fetchErr: any) {
-          // fetchSockets 실패는 무시 (이미 방이 삭제되었을 수 있음)
-          console.warn("[DELETE /api/rooms/:roomId] Failed to fetch sockets:", fetchErr.message);
+          sockets.forEach((s: { leave: (r: string) => void }) => s.leave(roomId));
+        } catch {
+          // fetchSockets 실패는 무시
         }
+        console.log(`[DeleteRoom] Socket notification sent for room ${roomId}`);
       } else {
-        console.warn("[DELETE /api/rooms/:roomId] Socket.io instance not found - skipping notification");
+        console.warn("[DeleteRoom] Socket.io instance not found - skipping notification");
       }
-    } catch (socketError: any) {
-      // 소켓 에러가 나도 방 삭제는 진행되어야 하므로 로그만 찍고 넘어감
-      console.error("[DELETE /api/rooms/:roomId] Socket Error:", socketError);
+    } catch (socketError) {
+      console.error("[DeleteRoom] Socket Error:", socketError);
     }
 
-    // 2. 게임 세션 정리
-    if (gameSessions.has(roomId)) {
-      gameSessions.delete(roomId);
-    }
+    // 3. 메모리 내 게임 세션 정리
+    gameSessions.delete(roomId);
 
-    // 3. DB에서 방 삭제 (Cascade 덕분에 연관 데이터 자동 삭제됨)
-    // 스키마에 onDelete: Cascade가 설정되어 있으므로 Room만 삭제하면 됨
+    // 4. DB에서 방 삭제 (Cascade로 연관 데이터 자동 삭제)
     await prisma.room.delete({
       where: { id: roomId },
     });
 
-    console.log(`[DELETE /api/rooms/:roomId] Successfully deleted room ${roomId}`);
-    
-    // 4. 성공 응답 반환
-    return res.status(200).json({ 
-      success: true, 
-      message: "방이 삭제되었습니다.",
-      roomId 
+    console.log(`[DeleteRoom] Successfully deleted room ${roomId}`);
+    return res.status(200).json({ success: true, message: "방이 삭제되었습니다.", roomId });
+  } catch (error) {
+    console.error("[DeleteRoom] Critical Error:", error);
+    if (res.headersSent) return;
+    return res.status(500).json({
+      success: false,
+      error: "서버 내부 오류가 발생했습니다.",
+      details: error instanceof Error ? error.message : String(error),
     });
-  } catch (err: any) {
-    console.error("[DELETE /api/rooms/:roomId] error", err);
-    console.error("[DELETE /api/rooms/:roomId] error details:", {
-      message: err.message,
-      code: err.code,
-      meta: err.meta,
-      stack: err.stack,
-    });
-    
-    // 응답이 이미 전송되었는지 확인
-    if (res.headersSent) {
-      console.error("[DELETE /api/rooms/:roomId] Response already sent, cannot send error response");
-      return;
-    }
-    
-    // Prisma 에러인 경우 더 구체적인 메시지 제공
-    let errorMessage = "방 삭제에 실패했습니다.";
-    if (err.code === 'P2003') {
-      errorMessage = "방과 연결된 데이터가 있어 삭제할 수 없습니다.";
-    } else if (err.code === 'P2025') {
-      errorMessage = "방을 찾을 수 없습니다.";
-    } else if (err.code === 'P2014') {
-      errorMessage = "방과 연결된 관계가 있어 삭제할 수 없습니다.";
-    } else if (err.message) {
-      errorMessage = `방 삭제에 실패했습니다: ${err.message}`;
-    }
-    
-    res.status(500).json({ message: errorMessage, error: err.message || "Internal server error" });
   }
 });
 

@@ -70,6 +70,19 @@ export default function ShopPage() {
   const [purchasedCharacters, setPurchasedCharacters] = useState<string[]>([]);
   const [purchasedActions, setPurchasedActions] = useState<string[]>([]);
   const [equippedCharacter, setEquippedCharacter] = useState<string>('');
+  const characterScrollRef = useRef<HTMLDivElement>(null);
+
+  // Horizontal wheel scroll: use non-passive listener so preventDefault is allowed
+  useEffect(() => {
+    const el = characterScrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   // 코인 및 구매 정보 불러오기
   useEffect(() => {
@@ -329,6 +342,7 @@ export default function ShopPage() {
             </button>
 
             <div
+              ref={characterScrollRef}
               id="character-scroll-container"
               style={{
                 display: "flex", gap: "2rem", overflowX: "auto", overflowY: "hidden",
@@ -336,7 +350,6 @@ export default function ShopPage() {
                 scrollbarWidth: "thin", scrollbarColor: "rgba(0, 255, 255, 0.5) transparent",
                 scrollBehavior: "smooth", alignItems: "flex-start", paddingTop: "2rem",
               }}
-              onWheel={(e) => { e.preventDefault(); e.currentTarget.scrollLeft += e.deltaY; }}
             >
               {characters.map((character) => {
                 const owned = isCharacterOwned(character.id);
