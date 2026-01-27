@@ -49,8 +49,8 @@ export interface YtDlpError extends Error {
 function runYtDlp(url: string, outTemplate: string): void {
   const isYoutube = /youtube\.com|youtu\.be/.test(url);
 
-  // 기본 옵션 (출력 경로와 URL은 맨 마지막에만 추가)
-  const args: string[] = [
+  // 1. 기본 옵션 설정
+  const args = [
     "-x",
     "--audio-format", "mp3",
     "--no-playlist",
@@ -60,22 +60,19 @@ function runYtDlp(url: string, outTemplate: string): void {
     "--force-ipv4",
   ];
 
+  // 2. 유튜브일 경우 봇 감지 우회 설정 추가
   if (isYoutube) {
+    // ios 클라이언트로 위장하면 봇 차단을 피할 확률이 높음
     args.push("--extractor-args", "youtube:player_client=ios");
   }
 
-  const cookies = process.env.YTDLP_COOKIES;
-  const cookiesFile = process.env.YTDLP_COOKIES_FILE;
-  if (cookies) {
-    args.push("--cookies-from-browser", cookies);
-  } else if (cookiesFile) {
-    args.push("--cookies", cookiesFile);
-  }
+  // 3. 출력 경로와 URL 설정 (반드시 짝을 맞춰서 추가)
+  args.push("-o", outTemplate);
+  args.push(url);
 
-  args.push("-o", outTemplate, url);
-
+  // 4. 실행
   const result = spawnSync("yt-dlp", args, {
-    stdio: ["inherit", "inherit", "pipe"],
+    stdio: ["inherit", "inherit", "pipe"], // stdout은 터미널에 표시, stderr는 캡처
     cwd: __dirname,
     maxBuffer: 10 * 1024 * 1024,
     encoding: "utf8",
