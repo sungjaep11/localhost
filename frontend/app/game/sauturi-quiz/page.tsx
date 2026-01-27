@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useSocket } from '@/context/SocketContext';
+import { RoomDeleteModal, type RoomDeleteModalMode } from '@/components/ui/RoomDeleteModal';
 
 interface BackendRoom {
   id: string;
@@ -37,6 +38,12 @@ export default function SauturiQuizPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    mode: RoomDeleteModalMode;
+    message?: string;
+    roomToDelete: Room | null;
+  }>({ open: false, mode: 'confirm', roomToDelete: null });
 
   // 백엔드에서 방 목록 불러오기
   useEffect(() => {
@@ -226,67 +233,54 @@ export default function SauturiQuizPage() {
     }
   };
 
-  const handleDeleteRoom = async (room: Room, e: React.MouseEvent) => {
-    e.stopPropagation(); // 방 클릭 이벤트 방지
-
-    if (!confirm('정말 이 방을 삭제하시겠습니까?')) {
-      return;
-    }
-
+  const handleDeleteRoomClick = (room: Room, e: React.MouseEvent) => {
+    e.stopPropagation();
     const userId = localStorage.getItem('userId');
-    console.log(`[DeleteRoom] Attempting to delete room ${room.id}, userId: ${userId}, room.hostId: ${room.hostId}, isHost: ${room.hostId === userId}`);
-    
     if (!userId) {
-      alert('로그인이 필요합니다.');
+      setDeleteModal({ open: true, mode: 'error', message: '로그인이 필요합니다.', roomToDelete: null });
       return;
     }
+    setDeleteModal({ open: true, mode: 'confirm', roomToDelete: room });
+  };
 
+  const performDeleteRoom = async (room: Room) => {
+    const userId = localStorage.getItem('userId') || '';
     try {
       const res = await fetch(`/api/rooms/${room.id}`, {
         method: 'DELETE',
-        headers: {
-          'x-user-id': userId,
-        },
+        headers: { 'x-user-id': userId },
       });
-
-      // 응답 본문 파싱
       let data: any = { success: false, error: '방 삭제에 실패했습니다.' };
       try {
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          data = await res.json();
-        } else if (!res.ok) {
-          data = { success: false, error: `서버 오류 (${res.status}): ${res.statusText}` };
-        }
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
-        if (!res.ok) {
-          data = { success: false, error: `서버 응답 오류 (${res.status}): ${res.statusText}` };
-        }
+        const ct = res.headers.get('content-type');
+        if (ct?.includes('application/json')) data = await res.json();
+        else if (!res.ok) data = { success: false, error: `서버 오류 (${res.status}): ${res.statusText}` };
+      } catch {
+        if (!res.ok) data = { success: false, error: `서버 응답 오류 (${res.status})` };
       }
-
       if (res.ok && data.success) {
-        // 방 목록에서 제거
-        setRooms((prevRooms) => prevRooms.filter((r) => r.id !== room.id));
-        // 소켓 이벤트로 다른 클라이언트에게도 알림 (이미 백엔드에서 처리됨)
-        alert('방이 삭제되었습니다.');
+        setRooms((prev) => prev.filter((r) => r.id !== room.id));
+        setDeleteModal({ open: true, mode: 'success', roomToDelete: null });
       } else {
-        const errorMessage = data.error || data.message || '방 삭제에 실패했습니다.';
-        console.error('Room deletion failed:', {
-          status: res.status,
-          statusText: res.statusText,
-          error: errorMessage,
-          roomId: room.id,
-          userId: userId,
-          responseData: data,
-        });
-        alert(errorMessage);
+        const msg = data.error || data.message || '방 삭제에 실패했습니다.';
+        setDeleteModal({ open: true, mode: 'error', message: msg, roomToDelete: null });
       }
-    } catch (error: any) {
-      console.error('Failed to delete room:', error);
-      const errorMessage = error.message || '방 삭제에 실패했습니다. 네트워크 오류가 발생했을 수 있습니다.';
-      alert(errorMessage);
+    } catch (err: any) {
+      const msg = err?.message || '방 삭제에 실패했습니다. 네트워크 오류가 발생했을 수 있습니다.';
+      setDeleteModal({ open: true, mode: 'error', message: msg, roomToDelete: null });
     }
+  };
+
+  const handleDeleteModalConfirm = () => {
+    if (deleteModal.mode === 'confirm' && deleteModal.roomToDelete) {
+      performDeleteRoom(deleteModal.roomToDelete);
+      return;
+    }
+    setDeleteModal({ open: false, mode: 'confirm', roomToDelete: null });
+  };
+
+  const handleDeleteModalCancel = () => {
+    setDeleteModal({ open: false, mode: 'confirm', roomToDelete: null });
   };
 
   // 검색 필터링
@@ -307,6 +301,13 @@ export default function SauturiQuizPage() {
         padding: "2rem",
       }}
     >
+      <RoomDeleteModal
+        open={deleteModal.open}
+        mode={deleteModal.mode}
+        message={deleteModal.message}
+        onConfirm={handleDeleteModalConfirm}
+        onCancel={deleteModal.mode === "confirm" ? handleDeleteModalCancel : undefined}
+      />
       {/* 떠다니는 음표들 */}
       <div className="floating-notes">
         {[...Array(6)].map((_, i) => (
@@ -630,7 +631,7 @@ export default function SauturiQuizPage() {
                   {/* 방 삭제 버튼 (방장만) */}
                   {isRoomHost && (
                     <button
-                      onClick={(e) => handleDeleteRoom(room, e)}
+                      onClick={(e) => handleDeleteRoomClick(room, e)}
                       style={{
                         position: "absolute",
                         top: "0.5rem",

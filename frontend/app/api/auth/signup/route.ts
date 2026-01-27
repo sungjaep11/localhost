@@ -31,20 +31,19 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Signup error:", error);
-    
-    // Handle timeout or connection errors
-    if (error.name === "AbortError" || error.name === "TypeError") {
+    const err = error as { name?: string; message?: string; cause?: { code?: string } };
+    // 연결 거부·타임아웃 등
+    if (err.name === "AbortError" || err.name === "TypeError" || err?.cause?.code === "ECONNREFUSED") {
       return NextResponse.json(
         { success: false, error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요." },
         { status: 503 }
       );
     }
-    
-    return NextResponse.json(
-      { success: false, error: "회원가입에 실패했습니다." },
-      { status: 500 }
-    );
+    const msg = process.env.NODE_ENV === "development" && err?.message
+      ? `회원가입 처리 중 오류: ${err.message}`
+      : "회원가입에 실패했습니다.";
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
