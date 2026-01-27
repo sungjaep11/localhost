@@ -915,12 +915,13 @@ export default function GamePlayPage() {
     }, 1500);
   };
 
-  // 소켓 연결 및 게임 입장
-  useEffect(() => {
-    if (!socket || !roomId || !currentUserId) return;
+  // -------------------------------------------------------------
+  // [수정된 부분] 소켓 연결 로직 분리 (무한 재렌더링 방지)
+  // -------------------------------------------------------------
 
-    // 방 입장
-    socket.emit('game_join', { roomId, userId: currentUserId });
+  // 1. 소켓 이벤트 리스너 등록 (Join/Leave 로직 없음)
+  useEffect(() => {
+    if (!socket || !roomId) return;
 
     // 플레이어 목록 업데이트 리스너
     const handlePlayersUpdate = (data: { 
@@ -929,13 +930,10 @@ export default function GamePlayPage() {
       sessionStatus: string;
     }) => {
       if (data.roomId === roomId) {
-        // 각 플레이어의 캐릭터 정보 확인 (localStorage에서 가져오기)
         const playersWithCharacters = data.players.map((player) => {
-          // localStorage에서 각 플레이어의 장착된 캐릭터 가져오기
           const equippedCharacter = typeof window !== 'undefined' 
             ? localStorage.getItem(`equipped-character-${player.id}`) 
             : null;
-          
           return {
             id: player.id,
             name: player.name,
@@ -950,7 +948,7 @@ export default function GamePlayPage() {
       }
     };
 
-    // 채팅 메시지 수신 리스너 (ref로 최신 상태 참조 → 의존성에 gameState 넣지 않아 무한 리렌더 방지)
+    // 채팅 메시지 수신 리스너
     const handleChatMessage = (data: {
       roomId: string;
       playerId: string;
@@ -984,6 +982,7 @@ export default function GamePlayPage() {
         return [...prev, newBubble];
       });
 
+      // 정답 체크 로직 (gameStateRef 사용)
       const state = gameStateRef.current;
       if (!state.isPlaying || !state.currentSongData) return;
 
@@ -1027,15 +1026,32 @@ export default function GamePlayPage() {
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
 
+    // Cleanup: 리스너만 제거하고 Leave는 하지 않음 (중요!)
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
-      // 방 나가기
+    };
+  }, [socket, roomId]); // 의존성: socket과 roomId만
+
+  // 2. 방 입장/퇴장 처리 (Mount/Unmount 시에만 실행)
+  useEffect(() => {
+    if (socket && roomId && currentUserId) {
+      socket.emit('game_join', { roomId, userId: currentUserId });
+    }
+    
+    // 컴포넌트가 사라질 때만 Leave (페이지 이동 등)
+    return () => {
       if (socket && roomId && currentUserId) {
-        socket.emit('game_leave', { roomId, userId: currentUserId });
+        // 페이지를 떠날 때만 실행됨
+        // socket.emit('game_leave', { roomId, userId: currentUserId }); 
+        // 주의: React 18 Strict Mode에서는 mount/unmount가 두 번 일어나서 바로 나가버릴 수 있음
+        // 따라서 명시적인 '나가기 버튼'을 눌렀을 때만 leave를 하거나, 
+        // socket disconnect가 서버에서 처리하도록 두는 것이 안전함.
       }
     };
-  }, [socket, roomId, currentUserId]);
+  }, [socket, roomId, currentUserId]); // 접속 시 한 번만 실행
+
+  // -------------------------------------------------------------
 
   // 참가자 목록 불러오기 (localStorage 백업) — players.length를 의존성에 넣지 않음 (무한 렌더 방지)
   useEffect(() => {
@@ -1626,7 +1642,12 @@ export default function GamePlayPage() {
                 취소
               </button>
               <button
-                onClick={() => router.push('/main/lobby')}
+                onClick={() => {
+                  if (socket && roomId && currentUserId) {
+                    socket.emit('game_leave', { roomId, userId: currentUserId });
+                  }
+                  router.push('/main/lobby');
+                }}
                 style={{
                   padding: "0.75rem 1.5rem",
                   background: "rgba(255, 100, 100, 0.5)",
