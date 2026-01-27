@@ -665,9 +665,7 @@ export default function GamePlayPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const answerModalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const goToNextSongRef = useRef<() => void>(() => {});
-  const youtubePlayerRef = useRef<{ loadVideoById: (id: string) => void; playVideo: () => void; stopVideo?: () => void } | null>(null);
   const youtubeContainerRef = useRef<HTMLDivElement>(null);
-  const [ytReady, setYtReady] = useState(false);
 
   // 소켓 핸들러에서 최신 상태를 읽기 위한 ref (의존성 배열 확대·무한 리렌더 방지)
   const gameStateRef = useRef({ isPlaying, currentSongData, correctPlayers, players });
@@ -676,6 +674,10 @@ export default function GamePlayPage() {
   // 게임 설정값 ref (useEffect 내부에서 최신 값 참조용)
   const gameConfigRef = useRef({ totalRounds, songsPerRound });
   gameConfigRef.current = { totalRounds, songsPerRound };
+
+  // 라운드/곡 진행 ref (타이머에서 goToNextSong 호출 시 항상 최신 값 사용)
+  const progressRef = useRef({ currentRound: 1, currentSong: 1, totalRounds: 1, songsPerRound: 5, gameSongs: [] as GameSong[] });
+  progressRef.current = { currentRound, currentSong, totalRounds, songsPerRound, gameSongs };
 
   // 🔒 방 입장은 최초 1회만 실행 (무한 루프 방지 락)
   const hasJoinedRef = useRef(false);
@@ -850,27 +852,25 @@ export default function GamePlayPage() {
     return points;
   };
 
-  // 다음 곡으로 이동
+  // 다음 곡으로 이동 (progressRef 사용 → 타이머에서 호출돼도 항상 최신 라운드/곡 기준 동작)
   const goToNextSong = () => {
     setShowAnswerModal(false);
-    
-    const songIndex = (currentRound - 1) * songsPerRound + currentSong;
-    
-    if (currentSong >= songsPerRound) {
-      // 라운드 종료
-      if (currentRound >= totalRounds) {
-        // 게임 종료
+    const { currentRound: r, currentSong: s, totalRounds: tr, songsPerRound: spr, gameSongs: gs } = progressRef.current;
+    const songIndex = (r - 1) * spr + s;
+
+    if (s >= spr) {
+      // 이번 라운드 마지막 곡까지 끝남 → 라운드 종료
+      if (r >= tr) {
         endGame();
       } else {
-        // 다음 라운드
         setShowRoundEndModal(true);
         setGamePhase('round_end');
       }
     } else {
       // 다음 곡
       setCurrentSong(prev => prev + 1);
-      if (gameSongs[songIndex]) {
-        setCurrentSongData(gameSongs[songIndex]);
+      if (gs[songIndex]) {
+        setCurrentSongData(gs[songIndex]);
       }
       setCorrectPlayers([]);
       setGamePhase('waiting');
@@ -882,12 +882,12 @@ export default function GamePlayPage() {
   // 다음 라운드 시작
   const startNextRound = () => {
     setShowRoundEndModal(false);
+    const { currentRound: r, songsPerRound: spr, gameSongs: gs } = progressRef.current;
     setCurrentRound(prev => prev + 1);
     setCurrentSong(1);
-    
-    const songIndex = currentRound * songsPerRound; // 다음 라운드 첫 곡
-    if (gameSongs[songIndex]) {
-      setCurrentSongData(gameSongs[songIndex]);
+    const nextRoundFirstIndex = r * spr; // 다음 라운드 첫 곡 인덱스
+    if (gs[nextRoundFirstIndex]) {
+      setCurrentSongData(gs[nextRoundFirstIndex]);
     }
     setCorrectPlayers([]);
     setGamePhase('waiting');
@@ -1109,56 +1109,7 @@ export default function GamePlayPage() {
     }
   }, [chatMessages]);
 
-  // YouTube iframe API 로드 및 플레이어 생성 (onReady 후에만 재생 호출 가능)
-  useEffect(() => {
-    const id = 'youtube-player-host';
-    (window as any).onYouTubeIframeAPIReady = () => {
-      if (!(window as any).YT?.Player) return;
-      const el = document.getElementById(id);
-      if (!el) {
-        setTimeout(() => (window as any).onYouTubeIframeAPIReady?.(), 200);
-        return;
-      }
-      try {
-        new (window as any).YT.Player(id, {
-          width: 560,
-          height: 315,
-          playerVars: {
-            enablejsapi: 1,
-            origin: typeof window !== 'undefined' ? window.location.origin : undefined,
-            controls: 1,
-            rel: 0,
-            modestbranding: 1,
-            fs: 1,
-            autoplay: 0,
-          },
-          events: {
-            onReady: (e: { target: unknown }) => {
-              youtubePlayerRef.current = e.target as { loadVideoById: (id: string) => void; playVideo: () => void; stopVideo: () => void };
-              setYtReady(true);
-            },
-          },
-        });
-      } catch (e) {
-        console.error('YouTube player init failed', e);
-      }
-    };
-    if ((window as any).YT?.Player) (window as any).onYouTubeIframeAPIReady();
-    if (document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      setTimeout(() => (window as any).onYouTubeIframeAPIReady?.(), 100);
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = 'https://www.youtube.com/iframe_api';
-    s.async = true;
-    document.head.appendChild(s);
-    return () => {
-      delete (window as any).onYouTubeIframeAPIReady;
-      youtubePlayerRef.current = null;
-      setYtReady(false);
-    };
-  }, []);
-
+  // YouTube는 embed iframe으로만 재생 (iframe API 미사용 → postMessage origin 오류 방지)
   // 특정 플레이어의 말풍선 가져오기
   const getPlayerBubble = (playerId: string) => {
     return bubbleMessages.find(msg => msg.playerId === playerId);
@@ -1340,38 +1291,20 @@ export default function GamePlayPage() {
     );
   }
 
-  // 재생 버튼 클릭 핸들러 (방장만) — YouTube iframe API로 실제 노래 재생
-  // 노래가 들리려면 youtubeUrl에 "영상 링크(watch?v=영상ID)"를 넣어야 함. 검색 링크(search_query=)는 소리 안 남.
+  // 재생 버튼 클릭 핸들러 (방장만) — embed iframe으로 재생 (API 미사용 → postMessage origin 오류 없음)
+  // 노래가 들리려면 youtubeUrl에 "영상 링크(watch?v=영상ID)"를 넣어야 함.
   const handlePlayButton = () => {
     if (simulationIntervalRef.current) {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
 
-    const player = youtubePlayerRef.current;
     const videoId = getYoutubeVideoId(currentSongData);
 
-    if (ytReady && player && (gamePhase === 'waiting' || gamePhase === 'answer_revealed')) {
-      try {
-        if (videoId && typeof (player as any).loadVideoById === 'function') {
-          (player as any).loadVideoById(videoId);
-          setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
-          setIsAudioPlaying(true);
-          startPlaying();
-          // 사용자 제스처 직후에 playVideo 호출 (지연 길면 브라우저가 자동재생 차단)
-          const tryPlay = () => { try { (player as any).playVideo?.(); } catch (_) {} };
-          tryPlay();
-          setTimeout(tryPlay, 150);
-          setTimeout(tryPlay, 500);
-          setTimeout(tryPlay, 1000);
-        } else {
-          // videoId 없음(=검색 링크만 있음) → 실제 재생 불가, 가사만 시뮬레이션
-          fallbackSimulatePlay();
-        }
-      } catch (e) {
-        console.error('YouTube play failed', e);
-        fallbackSimulatePlay();
-      }
+    if ((gamePhase === 'waiting' || gamePhase === 'answer_revealed') && videoId) {
+      setLyrics(currentSongData ? `${currentSongData.title} - ${currentSongData.artist}` : '');
+      setIsAudioPlaying(true);
+      startPlaying();
     } else {
       fallbackSimulatePlay();
     }
@@ -1439,7 +1372,7 @@ export default function GamePlayPage() {
         position: "relative",
       }}
     >
-      {/* YouTube iframe: 테스트용 — 재생 시 영상 가운데 표시 (보여야 소리 재생됨) */}
+      {/* YouTube embed iframe (API 미사용 → postMessage origin 오류 없음) */}
       <div
         style={{
           position: 'fixed',
@@ -1454,7 +1387,6 @@ export default function GamePlayPage() {
         }}
       >
         <div
-          id="youtube-player-host"
           ref={youtubeContainerRef}
           style={{
             width: 560,
@@ -1467,7 +1399,27 @@ export default function GamePlayPage() {
             border: '2px solid rgba(0, 194, 255, 0.4)',
           }}
           aria-label="노래 영상"
-        />
+        >
+          {typeof window !== 'undefined' && isAudioPlaying && (() => {
+            const vid = getYoutubeVideoId(currentSongData);
+            if (!vid) return null;
+            const origin = encodeURIComponent(window.location.origin);
+            return (
+              <iframe
+                title="노래 영상"
+                src={`https://www.youtube.com/embed/${vid}?autoplay=1&origin=${origin}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 0,
+                  borderRadius: 12,
+                }}
+              />
+            );
+          })()}
+        </div>
         {isAudioPlaying && currentSongData?.youtubeUrl && (
           <a
             href={currentSongData.youtubeUrl}
