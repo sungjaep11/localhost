@@ -289,18 +289,27 @@ export default function SauturiQuizPage() {
   );
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "auto",
-        position: "relative",
-        padding: "2rem",
-      }}
-    >
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
+      </div>
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+          );
+        })}
+      </div>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, minHeight: 0, overflowX: 'hidden', overflowY: 'auto', padding: '1rem 0.75rem', width: '100%' }}>
       <RoomDeleteModal
         open={deleteModal.open}
         mode={deleteModal.mode}
@@ -308,25 +317,14 @@ export default function SauturiQuizPage() {
         onConfirm={handleDeleteModalConfirm}
         onCancel={deleteModal.mode === "confirm" ? handleDeleteModalCancel : undefined}
       />
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
-      </div>
-
       <div
         style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
           width: "100%",
+          padding: "0 0.5rem",
+          boxSizing: "border-box",
         }}
       >
-        {/* 헤더 */}
+        {/* 헤더 — 로고(홈) + 제목 */}
         <div
           style={{
             display: "flex",
@@ -336,34 +334,31 @@ export default function SauturiQuizPage() {
             gap: "1rem",
           }}
         >
-          <button
-            onClick={() => router.push('/main/lobby')}
-            style={{
-              background: "rgba(0, 0, 0, 0.5)",
-              border: "2px solid rgba(0, 255, 255, 0.5)",
-              borderRadius: "12px",
-              padding: "0.75rem 1rem",
-              color: "#00ffff",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              transition: "all 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
-              e.currentTarget.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            뒤로
-          </button>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => router.push('/main/lobby')}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                lineHeight: 0,
+                transition: "transform 0.2s ease, filter 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.05)";
+                e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(0, 255, 255, 0.5))";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.filter = "none";
+              }}
+              aria-label="홈으로"
+            >
+              <img src="/logo2.png" alt="LOCAL HOST" style={{ height: "120px", width: "auto" }} />
+            </button>
+          </div>
 
           <h1
             style={{
@@ -382,11 +377,12 @@ export default function SauturiQuizPage() {
           <div style={{ width: "100px" }} /> {/* 공간 맞추기 */}
         </div>
 
-        {/* 상단 바 - 방 생성 버튼과 검색 */}
+        {/* 상단 바 - 방 생성 버튼과 검색, 가운데 유지 */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: "1rem",
             marginBottom: "2rem",
           }}
@@ -429,7 +425,8 @@ export default function SauturiQuizPage() {
           {/* 검색 바 */}
           <div
             style={{
-              flex: 1,
+              width: "800px",
+              maxWidth: "95%",
               position: "relative",
             }}
           >
@@ -669,6 +666,7 @@ export default function SauturiQuizPage() {
             })
           )}
         </div>
+      </div>
       </div>
     </main>
   );

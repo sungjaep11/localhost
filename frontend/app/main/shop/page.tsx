@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
@@ -20,43 +20,93 @@ interface Action {
   description: string;
 }
 
-// Model 컴포넌트
+// public 폴더 경로의 공백 등을 인코딩해 GLB 로드 안정화 (Next 정적 파일)
+const toGlbUrl = (path: string) => (path || '').replace(/ /g, '%20');
+
+// 같은 파일명의 (1) 버전에서 행동(애니메이션) 로드. 예: bunny.glb → bunny (1).glb
+const getAnimationModelUrl = (displayUrl: string): string => {
+  if (!displayUrl) return displayUrl;
+  if (displayUrl.includes('(1)')) return displayUrl;
+  if (displayUrl.includes('princess')) return displayUrl;
+  return displayUrl.replace(/\.glb$/i, ' (1).glb');
+};
+
+// (1) 붙은 저장값을 표시용(비1) 경로로 통일
+const toDisplayModelUrl = (url: string): string => (url || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
+
+// Model 컴포넌트 (정적) — 상점 카드용, 250×300 박스에 맞춤
 function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF(url);
+  const loadUrl = toGlbUrl(url);
+  const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   
-  // 모든 애니메이션 정지
   useEffect(() => {
-    Object.values(actions).forEach(action => {
-      action?.stop();
-    });
+    Object.values(actions).forEach(action => action?.stop());
   }, [actions]);
   
-  // character1은 축이 달라서 다른 position 적용
   const isCharacter1 = url.includes('character1');
-  const positionY = isCharacter1 ? -1.0 : 0;
-  const scale = isCharacter1 ? 2.5 : 2.5;
-  
-  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const isPrincess = url.includes('princess');
+  const positionY = isCharacter1 ? -0.4 : 0;
+  const scale = isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5);
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
-// 캐릭터 모델 뷰어 컴포넌트
+// 애니메이션 재생 가능 Model — (1) 붙은 GLB = 애니메이션 포함. scaleModal=true면 400×400 모달용 크기
+function AnimatedModel({ url, playingName, onNames, scaleModal }: { url: string; playingName: string | null; onNames: (names: string[]) => void; scaleModal?: boolean }) {
+  const group = useRef<THREE.Group>(null);
+  const loadUrl = toGlbUrl(url);
+  const { scene, animations } = useGLTF(loadUrl);
+  const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  
+  useEffect(() => {
+    if (animations?.length) {
+      const names = animations.map((c) => c.name);
+      onNames(names);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[GLB 애니메이션] ${url}: ${names.length}개 →`, names);
+      }
+    } else {
+      onNames([]);
+      if (process.env.NODE_ENV === 'development' && url.includes('(1)')) {
+        console.warn(`[GLB 애니메이션] ${url}: animations 배열이 비어 있음. 이 파일에 클립이 있는지 확인해 보세요.`);
+      }
+    }
+  }, [animations, onNames, url]);
+  
+  useEffect(() => {
+    const acts = Object.values(actions);
+    acts.forEach(a => a?.stop());
+    if (playingName && actions[playingName]) {
+      const act = actions[playingName];
+      act.reset().fadeIn(0.2).play();
+      return () => { act.stop(); };
+    }
+  }, [playingName, actions]);
+  
+  const isCharacter1 = url.includes('character1');
+  const isPrincess = url.includes('princess');
+  const positionY = isCharacter1 ? (scaleModal ? -0.6 : -0.4) : (scaleModal ? 0 : 0);
+  const scale = scaleModal
+    ? (isPrincess ? 2.0 : (isCharacter1 ? 1.4 : 2.2))
+    : (isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5));
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+}
+
+// 캐릭터 모델 뷰어 (카드용) — 250×300 박스에 맞게 정면
 function CharacterModelViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%" }}>
-      <Canvas camera={{ position: [0, 0.5, 4.5], fov: 45 }}>
+      <Canvas camera={{ position: [0, 0.2, 1.8], fov: 50 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
         <Model url={modelUrl} />
-        <OrbitControls 
-          autoRotate={false}
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
-        />
+        <OrbitControls autoRotate={false} enableZoom={false} enablePan={false} enableRotate={true} />
       </Canvas>
     </div>
   );
@@ -65,12 +115,15 @@ function CharacterModelViewer({ modelUrl }: { modelUrl: string }) {
 export default function ShopPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string>('');
-  const [coins, setCoins] = useState(2000);
+  const [coins, setCoins] = useState(3000);
   const [activeTab, setActiveTab] = useState<'character' | 'action'>('character');
   const [purchasedCharacters, setPurchasedCharacters] = useState<string[]>([]);
   const [purchasedActions, setPurchasedActions] = useState<string[]>([]);
-  const [equippedCharacter, setEquippedCharacter] = useState<string>('');
+  const [equippedCharacter, setEquippedCharacter] = useState<string>('/character1.glb');
   const characterScrollRef = useRef<HTMLDivElement>(null);
+  const [previewCharacter, setPreviewCharacter] = useState<Character | null>(null);
+  const [previewAnimationNames, setPreviewAnimationNames] = useState<string[]>([]);
+  const [previewPlayingName, setPreviewPlayingName] = useState<string | null>(null);
 
   // Horizontal wheel scroll: use non-passive listener so preventDefault is allowed
   useEffect(() => {
@@ -93,13 +146,19 @@ export default function ShopPage() {
     }
     setUserId(storedUserId);
 
-    // 코인 불러오기 (사용자별)
+    // 코인 불러오기 (사용자별, 이전 기본 1000이면 3000으로 올림)
     const savedCoins = localStorage.getItem(`userCoins-${storedUserId}`);
     if (savedCoins) {
-      setCoins(parseInt(savedCoins, 10));
+      const amount = parseInt(savedCoins, 10);
+      if (amount === 1000) {
+        localStorage.setItem(`userCoins-${storedUserId}`, '3000');
+        setCoins(3000);
+      } else {
+        setCoins(amount);
+      }
     } else {
-      setCoins(1000);
-      localStorage.setItem(`userCoins-${storedUserId}`, '1000');
+      setCoins(3000);
+      localStorage.setItem(`userCoins-${storedUserId}`, '3000');
     }
 
     // 구매한 캐릭터 불러오기 (사용자별)
@@ -110,23 +169,23 @@ export default function ShopPage() {
     const purchasedActs = JSON.parse(localStorage.getItem(`purchasedActions-${storedUserId}`) || '[]');
     setPurchasedActions(purchasedActs);
 
-    // 장착한 캐릭터 불러오기
+    // 장착한 캐릭터 불러오기 (기존 (1) 경로는 표시용 비(1)로 정규화)
     const equipped = localStorage.getItem(`equipped-character-${storedUserId}`);
-    setEquippedCharacter(equipped || '/character1.glb');
+    setEquippedCharacter(toDisplayModelUrl(equipped || '') || '/character1.glb');
   }, [router]);
 
-  // 캐릭터 데이터
+  // 캐릭터 데이터 — (1) 없는 GLB로 표시, 애니 필요 시 getAnimationModelUrl 사용
   const characters: Character[] = [
     { id: 'char1', name: '기본 캐릭터', price: 0, modelUrl: '/character1.glb' },
-    { id: 'char2', name: '소년', price: 500, modelUrl: '/boy.glb' },
-    { id: 'char3', name: '토끼', price: 800, modelUrl: '/bunny.glb' },
-    { id: 'char4', name: '귀여운 소녀', price: 1000, modelUrl: '/cute+girl.glb' },
-    { id: 'char5', name: '헬스왕', price: 1500, modelUrl: '/gym+rat.glb' },
-    { id: 'char6', name: '햄스터', price: 1200, modelUrl: '/hamster.glb' },
-    { id: 'char7', name: '펭귄', price: 1000, modelUrl: '/penguin.glb' },
+    { id: 'char2', name: '소년', price: 600, modelUrl: '/boy.glb' },
+    { id: 'char3', name: '토끼', price: 900, modelUrl: '/bunny.glb' },
+    { id: 'char4', name: '귀여운 소녀', price: 1200, modelUrl: '/cute+girl.glb' },
+    { id: 'char5', name: '헬스왕', price: 1800, modelUrl: '/gym+rat.glb' },
+    { id: 'char6', name: '햄스터', price: 1100, modelUrl: '/hamster.glb' },
+    { id: 'char7', name: '펭귄', price: 1300, modelUrl: '/penguin.glb' },
     { id: 'char8', name: '공주', price: 2000, modelUrl: '/princess.glb' },
-    { id: 'char9', name: '스타일리시 소녀', price: 1800, modelUrl: '/stylized+girl.glb' },
-    { id: 'char10', name: '마법사', price: 2500, modelUrl: '/wizard.glb' },
+    { id: 'char9', name: '스타일리시 소녀', price: 1600, modelUrl: '/stylized+girl.glb' },
+    { id: 'char10', name: '마법사', price: 2200, modelUrl: '/wizard.glb' },
   ];
 
   // 행동 데이터
@@ -193,31 +252,51 @@ export default function ShopPage() {
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        padding: "1rem 2rem",
-      }}
-    >
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
+    <main className="lobby-premium-root">
+      {/* 로비와 동일한 배경·분위기 */}
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
+      </div>
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div
+              key={i}
+              className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`}
+              style={{
+                left: `${8 + (i % 10) * 8}%`,
+                top: `${8 + (Math.floor(i / 10) % 4) * 22}%`,
+                animationDelay: `${(i * 0.4) % 8}s`,
+                animationDuration: `${10 + (i % 5)}s`,
+              }}
+            />
+          );
+        })}
       </div>
 
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '1rem 0.75rem',
+          overflowX: 'hidden',
+          width: '100%',
+          minHeight: 0,
+          boxSizing: 'border-box',
+        }}
+      >
       {/* 헤더 */}
       <div
         style={{
@@ -247,13 +326,13 @@ export default function ShopPage() {
               e.currentTarget.style.filter = "none";
             }}
           >
-            <img src="/logo.png" alt="Localhost Logo" style={{ height: "70px", width: "auto" }} />
+            <img src="/logo2.png" alt="LOCAL HOST" style={{ height: "70px", width: "auto" }} />
           </button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <h1 style={{ fontSize: "2rem", fontWeight: 800, color: "#ffffff", textShadow: "0 0 20px rgba(0, 255, 255, 0.8)" }}>
-            STORE
+            상점
           </h1>
 
           <div
@@ -274,8 +353,7 @@ export default function ShopPage() {
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))" }}>
-              <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
-              <path d="M12 6v12M8 10h8M8 14h8" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="12" cy="12" r="10" fill="currentColor"/>
             </svg>
             <span>{coins.toLocaleString()}p</span>
           </div>
@@ -318,23 +396,27 @@ export default function ShopPage() {
         </button>
       </div>
 
-      {/* 콘텐츠 영역 */}
-      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+      {/* 콘텐츠 영역 — minHeight 0으로 flex 스크롤 영역 확보 */}
+      <div style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
         {activeTab === 'character' ? (
-          <div style={{ position: "relative", height: "100%", display: "flex", alignItems: "center" }}>
-            {/* 왼쪽 화살표 */}
+          <div style={{ position: "relative", height: "100%", minHeight: "320px", display: "flex", alignItems: "stretch" }}>
+            {/* 왼쪽 스크롤 버튼 */}
             <button
+              type="button"
               onClick={() => {
                 const container = document.getElementById('character-scroll-container');
                 if (container) container.scrollBy({ left: -300, behavior: 'smooth' });
               }}
               style={{
-                position: "absolute", left: "1rem", zIndex: 20, width: "50px", height: "50px",
-                borderRadius: "50%", background: "rgba(0, 0, 0, 0.7)",
+                position: "absolute", left: "0.5rem", top: "50%", transform: "translateY(-50%)",
+                zIndex: 30, width: "48px", height: "48px", flexShrink: 0,
+                borderRadius: "50%", background: "rgba(0, 0, 0, 0.8)",
                 border: "2px solid rgba(0, 255, 255, 0.6)", color: "#00ffff",
                 cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 0.3s ease", backdropFilter: "blur(10px)",
+                transition: "all 0.2s ease", backdropFilter: "blur(10px)",
+                boxShadow: "0 0 16px rgba(0, 255, 255, 0.3)",
               }}
+              aria-label="왼쪽으로 넘기기"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -346,7 +428,7 @@ export default function ShopPage() {
               id="character-scroll-container"
               style={{
                 display: "flex", gap: "2rem", overflowX: "auto", overflowY: "hidden",
-                padding: "1rem 4rem", height: "100%", width: "100%",
+                padding: "1rem 3.5rem", height: "100%", width: "100%", minWidth: 0,
                 scrollbarWidth: "thin", scrollbarColor: "rgba(0, 255, 255, 0.5) transparent",
                 scrollBehavior: "smooth", alignItems: "flex-start", paddingTop: "2rem",
               }}
@@ -390,11 +472,28 @@ export default function ShopPage() {
                       </div>
                     )}
 
-                    <div style={{
-                      width: "100%", height: "300px", background: "rgba(0, 0, 0, 0.3)",
-                      borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0, 255, 255, 0.3)",
-                    }}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setPreviewCharacter(character);
+                        setPreviewPlayingName(null);
+                        setPreviewAnimationNames([]);
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && (setPreviewCharacter(character), setPreviewPlayingName(null), setPreviewAnimationNames([]))}
+                      style={{
+                        width: "100%", height: "300px", background: "rgba(0, 0, 0, 0.3)",
+                        borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0, 255, 255, 0.3)",
+                        cursor: "pointer", position: "relative",
+                      }}
+                    >
                       <CharacterModelViewer modelUrl={character.modelUrl} />
+                      <div style={{
+                        position: "absolute", bottom: "8px", left: "50%", transform: "translateX(-50%)",
+                        background: "rgba(0,0,0,0.7)", color: "#00ffff", fontSize: "0.8rem", padding: "4px 10px", borderRadius: "8px",
+                      }}>
+                        애니메이션 미리보기
+                      </div>
                     </div>
 
                     <div style={{ color: "#ffffff", fontSize: "1.1rem", fontWeight: 600 }}>
@@ -449,19 +548,23 @@ export default function ShopPage() {
               })}
             </div>
 
-            {/* 오른쪽 화살표 */}
+            {/* 오른쪽 스크롤 버튼 */}
             <button
+              type="button"
               onClick={() => {
                 const container = document.getElementById('character-scroll-container');
                 if (container) container.scrollBy({ left: 300, behavior: 'smooth' });
               }}
               style={{
-                position: "absolute", right: "1rem", zIndex: 20, width: "50px", height: "50px",
-                borderRadius: "50%", background: "rgba(0, 0, 0, 0.7)",
+                position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)",
+                zIndex: 30, width: "48px", height: "48px", flexShrink: 0,
+                borderRadius: "50%", background: "rgba(0, 0, 0, 0.8)",
                 border: "2px solid rgba(0, 255, 255, 0.6)", color: "#00ffff",
                 cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 0.3s ease", backdropFilter: "blur(10px)",
+                transition: "all 0.2s ease", backdropFilter: "blur(10px)",
+                boxShadow: "0 0 16px rgba(0, 255, 255, 0.3)",
               }}
+              aria-label="오른쪽으로 넘기기"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -560,6 +663,89 @@ export default function ShopPage() {
             })}
           </div>
         )}
+      </div>
+
+      {/* 캐릭터 애니메이션 미리보기 모달 */}
+      {previewCharacter && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "1rem",
+          }}
+          onClick={() => setPreviewCharacter(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "linear-gradient(135deg, rgba(20,20,40,0.98), rgba(30,30,50,0.98))",
+              backdropFilter: "blur(20px)", border: "3px solid rgba(0, 255, 255, 0.6)",
+              borderRadius: "20px", maxWidth: "90vw", maxHeight: "90vh", display: "flex", flexDirection: "column",
+              overflow: "hidden", boxShadow: "0 0 60px rgba(0, 255, 255, 0.3)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.5rem", borderBottom: "2px solid rgba(0,255,255,0.3)" }}>
+              <div>
+                <h2 style={{ color: "#fff", margin: 0, fontSize: "1.5rem" }}>{previewCharacter.name}</h2>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  <span style={{ color: "#ffd700", fontWeight: 700 }}>{previewCharacter.price.toLocaleString()}p</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewCharacter(null)}
+                style={{
+                  background: "rgba(255,0,0,0.3)", border: "2px solid rgba(255,0,0,0.8)", borderRadius: "10px",
+                  color: "#ff6666", padding: "0.5rem 1rem", cursor: "pointer", fontSize: "1rem",
+                }}
+              >
+                닫기
+              </button>
+            </div>
+            <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+              <div style={{ width: "400px", height: "400px", flexShrink: 0 }} key={getAnimationModelUrl(previewCharacter.modelUrl)}>
+                <Canvas camera={{ position: [0, 0.3, 2.2], fov: 52 }}>
+                  <ambientLight intensity={0.5} />
+                  <directionalLight position={[10, 10, 5]} intensity={1} />
+                  <Environment preset="city" />
+                  <Suspense fallback={null}>
+                    <AnimatedModel url={getAnimationModelUrl(previewCharacter.modelUrl)} playingName={previewPlayingName} onNames={setPreviewAnimationNames} scaleModal />
+                  </Suspense>
+                  <OrbitControls autoRotate={false} enableZoom={false} enablePan={false} enableRotate={true} />
+                </Canvas>
+              </div>
+              <div style={{ padding: "1rem 1.5rem", overflowY: "auto", minWidth: "200px" }}>
+                <div style={{ color: "#00ffff", fontSize: "1rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+                  재생할 동작 선택
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+                  아래 버튼을 누르면 미리보기에서 해당 애니메이션이 재생됩니다. (1) 붙은 파일에만 행동이 있습니다.
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {previewAnimationNames.length ? previewAnimationNames.map((name) => (
+                    <button
+                      key={name}
+                      onClick={() => setPreviewPlayingName(name === previewPlayingName ? null : name)}
+                      style={{
+                        padding: "0.6rem 1rem", background: previewPlayingName === name ? "rgba(0,255,255,0.3)" : "rgba(0,255,255,0.1)",
+                        border: `2px solid ${previewPlayingName === name ? "rgba(0,255,255,0.8)" : "rgba(0,255,255,0.4)"}`,
+                        borderRadius: "8px", color: "#00ffff", cursor: "pointer", textAlign: "left", fontSize: "0.9rem",
+                      }}
+                    >
+                      {previewPlayingName === name ? "■ " : "▶ "}{name}
+                    </button>
+                  )) : (
+                    <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
+                      캐릭터 (1) 버전 로딩 중… 이 캐릭터에 애니가 없으면 목록이 비어 있을 수 있습니다.
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </main>
   );

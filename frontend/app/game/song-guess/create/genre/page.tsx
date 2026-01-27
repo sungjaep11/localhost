@@ -138,87 +138,93 @@ function GenreSelectionContent() {
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "auto",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        position: "relative",
-      }}
-    >
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
       </div>
-
-      <div
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+          );
+        })}
+      </div>
+      {/* 뒤로 버튼 — 왼쪽 위, 아이콘만 */}
+      <button
+        type="button"
+        onClick={() => router.push('/game/song-guess/create')}
+        aria-label="뒤로"
         style={{
-          maxWidth: "800px",
-          width: "100%",
-          textAlign: "center",
+          position: "fixed",
+          top: "1rem",
+          left: "1rem",
+          zIndex: 20,
+          width: "44px",
+          height: "44px",
+          borderRadius: "12px",
+          border: "1px solid rgba(0, 255, 255, 0.5)",
+          background: "rgba(0, 8, 20, 0.75)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          color: "#00ffff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 0 16px rgba(0, 255, 255, 0.15)",
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+          e.currentTarget.style.boxShadow = "0 0 24px rgba(0, 255, 255, 0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
+          e.currentTarget.style.boxShadow = "0 0 16px rgba(0, 255, 255, 0.15)";
         }}
       >
-        {/* 뒤로가기 버튼 */}
-        <button
-          onClick={() => router.push('/game/song-guess/create')}
-          style={{
-            position: "absolute",
-            top: "2rem",
-            left: "2rem",
-            background: "rgba(0, 0, 0, 0.5)",
-            border: "2px solid rgba(0, 255, 255, 0.5)",
-            borderRadius: "12px",
-            padding: "0.75rem 1rem",
-            color: "#00ffff",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            transition: "all 0.3s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
-            e.currentTarget.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.5)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
-            e.currentTarget.style.boxShadow = "none";
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          뒤로
-        </button>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
 
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 2rem', width: '100%', boxSizing: 'border-box' }}>
+      <div
+        style={{
+          maxWidth: "920px",
+          width: "100%",
+          textAlign: "center",
+          background: "linear-gradient(160deg, rgba(0, 255, 255, 0.05) 0%, rgba(8, 12, 28, 0.9) 40%, rgba(4, 8, 22, 0.95) 100%)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(0, 255, 255, 0.4)",
+          borderRadius: "20px",
+          padding: "2rem 2.5rem",
+          boxShadow: "0 0 0 1px rgba(100, 80, 255, 0.15), 0 0 40px rgba(0, 255, 255, 0.12), inset 0 0 60px rgba(0, 255, 255, 0.03)",
+        }}
+      >
         {/* 제목 */}
         <h1
           style={{
-            fontSize: "2rem",
+            fontSize: "1.75rem",
             fontWeight: 800,
-            marginBottom: "3rem",
-            background: "linear-gradient(135deg, #00ffff, #ff00ff)",
+            marginBottom: "2rem",
+            background: "linear-gradient(135deg, #00ffff, #e0a0ff)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            textShadow: "0 0 20px rgba(0, 255, 255, 0.5)",
           }}
         >
-          게임하실 장르를 선택해주세요! ({rounds}라운드)
+          게임하실 장르를 선택해주세요 ({rounds}라운드)
         </h1>
 
         {/* 장르 선택 그리드 */}
@@ -226,8 +232,8 @@ function GenreSelectionContent() {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "1.5rem",
-            marginBottom: "3rem",
+            gap: "1.25rem",
+            marginBottom: "2rem",
           }}
         >
           {genres.map((genre) => {
@@ -331,6 +337,7 @@ function GenreSelectionContent() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
+      </div>
       </div>
     </main>
   );

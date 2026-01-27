@@ -34,7 +34,6 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     console.error("Signup error:", error);
     const err = error as { name?: string; message?: string; cause?: { code?: string } };
-    // 연결 거부·타임아웃 등
     if (err.name === "AbortError" || err.name === "TypeError" || err?.cause?.code === "ECONNREFUSED") {
       return NextResponse.json(
         { success: false, error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요." },

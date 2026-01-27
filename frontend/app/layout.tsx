@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Localhost",
+  title: "LOCAL HOST",
   description: "음악 게임 플랫폼",
 };
 
@@ -29,7 +29,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SocketProvider>
-          {children}
+          <div id="app-root" style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', minWidth: 0, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+            {children}
+          </div>
         </SocketProvider>
       </body>
     </html>

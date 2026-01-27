@@ -11,14 +11,15 @@ export default function CreateRoomPage() {
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [isPublic, setIsPublic] = useState(true);
   const [password, setPassword] = useState('');
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const handleNext = () => {
     if (!roomName.trim()) {
-      alert('방 이름을 입력해주세요.');
+      setAlertModal({ open: true, message: '방 이름을 입력해주세요.' });
       return;
     }
     if (!isPublic && !password.trim()) {
-      alert('비공개 방은 비밀번호를 설정해주세요.');
+      setAlertModal({ open: true, message: '비공개 방은 비밀번호를 설정해주세요.' });
       return;
     }
     // 방 정보를 sessionStorage에 임시 저장 (장르 선택 후 실제 생성)
@@ -38,45 +39,80 @@ export default function CreateRoomPage() {
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "auto",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        position: "relative",
-      }}
-    >
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </div>
-        ))}
+    <main className="lobby-premium-root">
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
       </div>
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div key={i} className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`} style={{ left: `${8 + (i % 10) * 8}%`, top: `${8 + (Math.floor(i / 10) % 4) * 22}%`, animationDelay: `${(i * 0.4) % 8}s`, animationDuration: `${10 + (i % 5)}s` }} />
+          );
+        })}
+      </div>
+      {/* 뒤로 버튼 — 왼쪽 위, 단순화 */}
+      <button
+        type="button"
+        onClick={handleBack}
+        aria-label="뒤로"
+        style={{
+          position: "fixed",
+          top: "1rem",
+          left: "1rem",
+          zIndex: 20,
+          width: "44px",
+          height: "44px",
+          borderRadius: "12px",
+          border: "1px solid rgba(0, 255, 255, 0.5)",
+          background: "rgba(0, 8, 20, 0.75)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          color: "#00ffff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 0 16px rgba(0, 255, 255, 0.15)",
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+          e.currentTarget.style.boxShadow = "0 0 24px rgba(0, 255, 255, 0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.5)";
+          e.currentTarget.style.boxShadow = "0 0 16px rgba(0, 255, 255, 0.15)";
+        }}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
 
-      {/* 모달 */}
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 2rem', width: '100%', boxSizing: 'border-box' }}>
+      {/* 방 생성 폼 — 홀로그램 스타일, 꽉 찬 느낌 */}
       <div
         style={{
-          background: "rgba(0, 0, 0, 0.8)",
-          backdropFilter: "blur(15px)",
+          background: "linear-gradient(160deg, rgba(0, 255, 255, 0.05) 0%, rgba(8, 12, 28, 0.9) 40%, rgba(4, 8, 22, 0.95) 100%)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           borderRadius: "20px",
-          padding: "3rem",
-          maxWidth: "500px",
+          padding: "2.25rem 2.5rem",
+          maxWidth: "620px",
           width: "100%",
-          border: "3px solid rgba(0, 255, 255, 0.6)",
-          boxShadow: 
-            "0 0 50px rgba(0, 255, 255, 0.4), 0 0 80px rgba(255, 0, 255, 0.4)",
+          border: "1px solid rgba(0, 255, 255, 0.4)",
+          boxShadow: "0 0 0 1px rgba(100, 80, 255, 0.15), 0 0 40px rgba(0, 255, 255, 0.12), inset 0 0 60px rgba(0, 255, 255, 0.03)",
           zIndex: 10,
+          boxSizing: "border-box",
         }}
       >
         <h2
@@ -433,44 +469,13 @@ export default function CreateRoomPage() {
           )}
         </div>
 
-        {/* 버튼들 */}
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            justifyContent: "space-between",
-          }}
-        >
-          <button
-            onClick={handleBack}
-            style={{
-              flex: 1,
-              padding: "1rem 2rem",
-              background: "rgba(255, 255, 255, 0.1)",
-              border: "2px solid rgba(255, 255, 255, 0.4)",
-              borderRadius: "12px",
-              color: "#ffffff",
-              fontSize: "1rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
-              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.6)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.4)";
-            }}
-          >
-            돌아가기
-          </button>
+        {/* 다음 버튼 */}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button
             onClick={handleNext}
             style={{
-              flex: 1,
-              padding: "1rem 2rem",
+              padding: "0.9rem 2.2rem",
+              minWidth: "120px",
               background: "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2))",
               border: "2px solid rgba(0, 255, 255, 0.6)",
               borderRadius: "12px",
@@ -495,6 +500,63 @@ export default function CreateRoomPage() {
           </button>
         </div>
       </div>
+      </div>
+
+      {/* 입력 안내 팝업 — 홀로그램 스타일 */}
+      {alertModal.open && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+          }}
+          onClick={() => setAlertModal({ open: false, message: '' })}
+        >
+          <div
+            style={{
+              maxWidth: "360px",
+              width: "90%",
+              padding: "1.75rem 2rem",
+              background: "linear-gradient(160deg, rgba(0, 255, 255, 0.06) 0%, rgba(8, 12, 28, 0.92) 40%, rgba(4, 8, 20, 0.96) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(0, 255, 255, 0.45)",
+              borderRadius: "16px",
+              boxShadow: "0 0 0 1px rgba(100, 80, 255, 0.2), 0 0 40px rgba(0, 255, 255, 0.15), inset 0 0 50px rgba(0, 255, 255, 0.03)",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ color: "rgba(255, 255, 255, 0.95)", fontSize: "1.1rem", fontWeight: 600, margin: "0 0 1.25rem 0", lineHeight: 1.5 }}>
+              {alertModal.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setAlertModal({ open: false, message: '' })}
+              style={{
+                padding: "0.6rem 1.5rem",
+                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 200, 220, 0.15))",
+                border: "1px solid rgba(0, 255, 255, 0.6)",
+                borderRadius: "10px",
+                color: "#00ffff",
+                fontSize: "0.95rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                boxShadow: "0 0 16px rgba(0, 255, 255, 0.2)",
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

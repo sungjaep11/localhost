@@ -9,7 +9,6 @@ export default function LobbyPage() {
   const [coins, setCoins] = useState(0);
   const [equippedCharacter, setEquippedCharacter] = useState('/character1.glb');
 
-  // 사용자 데이터 불러오기
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     if (!userId) {
@@ -17,422 +16,181 @@ export default function LobbyPage() {
       return;
     }
 
-    // 사용자별 코인 가져오기
     const savedCoins = localStorage.getItem(`userCoins-${userId}`);
     if (savedCoins) {
-      setCoins(parseInt(savedCoins, 10));
+      const amount = parseInt(savedCoins, 10);
+      // 이전 기본값(1000)이었으면 3000으로 올림
+      if (amount === 1000) {
+        localStorage.setItem(`userCoins-${userId}`, '3000');
+        setCoins(3000);
+      } else {
+        setCoins(amount);
+      }
     } else {
-      setCoins(1000);
-      localStorage.setItem(`userCoins-${userId}`, '1000');
+      setCoins(3000);
+      localStorage.setItem(`userCoins-${userId}`, '3000');
     }
 
-    // 장착된 캐릭터 가져오기
     const equipped = localStorage.getItem(`equipped-character-${userId}`);
-    setEquippedCharacter(equipped || '/character1.glb');
+    setEquippedCharacter(equipped ? equipped.replace(/\s*\(1\)\s*\.glb$/i, '.glb') : '/character1.glb');
   }, [router]);
 
   const handleLogout = () => {
-    // TODO: 로그아웃 로직 구현 (세션 제거, 토큰 삭제 등)
-    console.log('Logout');
     router.push('/auth/login');
   };
 
   return (
-    <main
-      style={{
-        height: "100vh",
-        backgroundImage: "url('/images/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "2rem",
-        position: "relative",
-      }}
-    >
-      {/* 로고 - 가운데 상단 */}
-      <div
-        style={{
-          position: "absolute",
-          top: "2rem",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={() => router.push("/main/lobby")}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            transition: "all 0.3s ease",
-            display: "block",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.1)";
-            e.currentTarget.style.filter = "drop-shadow(0 0 20px rgba(0, 255, 255, 0.8))";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.filter = "none";
-          }}
-        >
-          <img
-            src="/logo.png"
-            alt="Localhost Logo"
-            style={{
-              height: "250px",
-              width: "auto",
-            }}
-          />
-        </button>
+    <main className="lobby-premium-root">
+      {/* Layered background: dense cyberpunk city skyline + bokeh + fog */}
+      <div className="lobby-premium-bg">
+        <div className="lobby-bg-base" />
+        <div className="lobby-city-dense" aria-hidden />
+        <div className="lobby-city-bokeh" aria-hidden />
+        <div className="lobby-city-traffic" aria-hidden />
+        <div className="lobby-interior-overlay" aria-hidden />
+        <div className="lobby-fog" aria-hidden />
+        <div className="lobby-fog-volumetric" aria-hidden />
+        <div className="lobby-floor-reflection" aria-hidden />
       </div>
 
-      {/* 로그아웃 버튼과 Myhome - 우측 상단 */}
-      <div
-        style={{
-          position: "absolute",
-          top: "2rem",
-          right: "2rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "1.5rem",
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={() => router.push("/main/mypage")}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#ffffff",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            textShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
-            fontFamily: "inherit",
-            lineHeight: "1.5",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#00ffff";
-            e.currentTarget.style.textShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#ffffff";
-            e.currentTarget.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
-          }}
-        >
-          Myhome
-        </button>
-
-        <button
-          onClick={() => router.push("/main/shop")}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#ffffff",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            textShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
-            fontFamily: "inherit",
-            lineHeight: "1.5",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#00ffff";
-            e.currentTarget.style.textShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#ffffff";
-            e.currentTarget.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.5)";
-          }}
-        >
-          Store
-        </button>
-
-        {/* 코인 표시 */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.5rem 1rem",
-            background: "rgba(0, 0, 0, 0.5)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 215, 0, 0.5)",
-            borderRadius: "20px",
-            color: "#ffd700",
-            fontSize: "0.9rem",
-            fontWeight: 700,
-            textShadow: "0 0 10px rgba(255, 215, 0, 0.8)",
-            boxShadow: "0 0 15px rgba(255, 215, 0, 0.3)",
-          }}
-        >
-          <svg 
-            width="20" 
-            height="20" 
-            viewBox="0 0 24 24" 
-            fill="currentColor"
-            style={{
-              filter: "drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))",
-            }}
-          >
-            <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
-            <path 
-              d="M12 6v12M8 10h8M8 14h8" 
-              stroke="#000" 
-              strokeWidth="1.5" 
-              strokeLinecap="round"
+      {/* Dense neon particles — cyberpunk atmosphere */}
+      <div className="lobby-neon-particles" aria-hidden>
+        {[...Array(40)].map((_, i) => {
+          const isPurple = i % 4 === 0;
+          const size = i % 5 === 0 ? 'lobby-particle-lg' : i % 3 === 1 ? 'lobby-particle-sm' : '';
+          return (
+            <div
+              key={i}
+              className={`lobby-particle ${isPurple ? 'lobby-particle-purple' : ''} ${size}`}
+              style={{
+                left: `${8 + (i % 10) * 8}%`,
+                top: `${8 + (Math.floor(i / 10) % 4) * 22}%`,
+                animationDelay: `${(i * 0.4) % 8}s`,
+                animationDuration: `${10 + (i % 5)}s`,
+              }}
             />
-          </svg>
-          <span>{coins.toLocaleString()}</span>
-        </div>
-        
-        {/* 디버깅 버튼 - 사투리 게임 노래방 화면 확인 */}
-        <button
-          onClick={() => {
-            // 테스트용 roomId 생성 및 플레이어 데이터 설정
-            const testRoomId = 'debug-room-123';
-            const userId = localStorage.getItem('userId') || 'test-user';
-            const userName = localStorage.getItem('userName') || '테스트유저';
-            
-            // 테스트용 플레이어 데이터 설정
-            const testPlayers = [
-              {
-                id: userId,
-                name: userName,
-                isHost: true,
-                score: 0,
-                character: localStorage.getItem(`equipped-character-${userId}`) || '/character1.glb',
-              }
-            ];
-            localStorage.setItem(`sauturi-quiz-room-${testRoomId}-players`, JSON.stringify(testPlayers));
-            
-            // 방 정보 설정
-            const testRoom = {
-              id: testRoomId,
-              name: '디버그 방',
-              rounds: 1,
-              songsPerRound: 1,
-            };
-            const rooms = JSON.parse(localStorage.getItem('sauturi-quiz-rooms') || '[]');
-            const existingIndex = rooms.findIndex((r: any) => r.id === testRoomId);
-            if (existingIndex >= 0) {
-              rooms[existingIndex] = testRoom;
-            } else {
-              rooms.push(testRoom);
-            }
-            localStorage.setItem('sauturi-quiz-rooms', JSON.stringify(rooms));
-            
-            router.push(`/game/sauturi-quiz/${testRoomId}/play`);
-          }}
-          style={{
-            padding: "0.75rem 1.5rem",
-            background: "rgba(255, 165, 0, 0.2)",
-            border: "2px solid rgba(255, 165, 0, 0.6)",
-            borderRadius: "12px",
-            color: "#ffa500",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255, 165, 0, 0.3)";
-            e.currentTarget.style.borderColor = "rgba(255, 165, 0, 0.9)";
-            e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 165, 0, 0.5)";
-            e.currentTarget.style.transform = "translateY(-2px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255, 165, 0, 0.2)";
-            e.currentTarget.style.borderColor = "rgba(255, 165, 0, 0.6)";
-            e.currentTarget.style.boxShadow = "none";
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          디버그: 노래방
-        </button>
-        
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "0.75rem 1.5rem",
-            background: "rgba(255, 0, 0, 0.2)",
-            border: "2px solid rgba(255, 0, 0, 0.6)",
-            borderRadius: "12px",
-            color: "#ff4444",
-            fontSize: "0.9rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255, 0, 0, 0.3)";
-            e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.9)";
-            e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.5)";
-            e.currentTarget.style.transform = "translateY(-2px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255, 0, 0, 0.2)";
-            e.currentTarget.style.borderColor = "rgba(255, 0, 0, 0.6)";
-            e.currentTarget.style.boxShadow = "none";
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          LOGOUT
-        </button>
+          );
+        })}
       </div>
-      {/* 떠다니는 음표들 */}
-      <div className="floating-notes">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className={`floating-note note-${i}`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+
+      {/* Top bar — 로고 가운데, 오른쪽 고정: 프로필·상점·코인·로그아웃 */}
+      <header className="lobby-top-bar">
+        <div aria-hidden />
+
+        <div className="lobby-logo-wrap">
+          <button type="button" onClick={() => router.push('/main/lobby')} aria-label="LOCAL HOST">
+            <img src="/logo2.png" alt="LOCAL HOST" />
+          </button>
+        </div>
+
+        <div className="lobby-top-bar-right">
+          <button type="button" className="lobby-nav-btn" onClick={() => router.push('/main/mypage')}>
+            프로필
+          </button>
+          <div className="lobby-nav-sep" aria-hidden />
+          <div className="lobby-coin-pill">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+            <span>{coins.toLocaleString()}</span>
+          </div>
+          <div className="lobby-nav-sep" aria-hidden />
+          <button type="button" className="lobby-pill lobby-pill-red" onClick={handleLogout}>
+            LOGOUT
+          </button>
+        </div>
+      </header>
+
+      {/* 상점만 — 프로필·코인 밑, 다른 모양 */}
+      <button
+        type="button"
+        className="lobby-shop-float"
+        onClick={() => router.push('/main/shop')}
+        aria-label="상점"
+      >
+        <svg className="lobby-shop-float-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+        <span className="lobby-shop-float-label">상점</span>
+      </button>
+
+      {/* 3D character on holographic podium + companion drones */}
+      <div className="lobby-character-stage">
+        <div className="lobby-holographic-podium" aria-hidden />
+        <div className="lobby-character-viewport">
+          <ModelViewer modelUrl={equippedCharacter} scaleMultiplier={1.15} />
+        </div>
+        {[
+          { pos: 'lobby-drone-left', size: 56, delay: 0 },
+          { pos: 'lobby-drone-right', size: 52, delay: 0.4 },
+          { pos: 'lobby-drone-top', size: 44, delay: 0.8 },
+          { pos: 'lobby-drone-back', size: 40, delay: 1.2 },
+        ].map((d, i) => (
+          <div
+            key={d.pos}
+            className={`lobby-drone-wrap ${d.pos}`}
+            aria-hidden
+            style={{ animationDelay: `${d.delay}s`, width: d.size, height: d.size }}
+          >
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+              <defs>
+                <linearGradient id={`lobby-drone-blue-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(0,255,255,0.95)" />
+                  <stop offset="100%" stopColor="rgba(0,180,255,0.8)" />
+                </linearGradient>
+                <filter id={`lobby-drone-glow-${i}`}>
+                  <feGaussianBlur stdDeviation="1.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <ellipse cx="32" cy="34" rx="14" ry="10" fill="rgba(18,22,32,0.9)" stroke={`url(#lobby-drone-blue-${i})`} strokeWidth="1.5" filter={`url(#lobby-drone-glow-${i})`} />
+              <circle cx="32" cy="34" r="4" fill={`url(#lobby-drone-blue-${i})`} opacity="0.9" />
+              <path d="M18 34 L10 34 M54 34 L46 34 M32 22 L32 14 M32 54 L32 46" stroke={`url(#lobby-drone-blue-${i})`} strokeWidth="1.2" strokeLinecap="round" opacity="0.85" />
+              <circle cx="14" cy="34" r="2.5" fill="rgba(0,255,255,0.9)" />
+              <circle cx="50" cy="34" r="2.5" fill="rgba(0,255,255,0.9)" />
+              <circle cx="32" cy="18" r="2.5" fill="rgba(0,255,255,0.9)" />
+              <circle cx="32" cy="50" r="2.5" fill="rgba(0,255,255,0.9)" />
             </svg>
           </div>
         ))}
       </div>
 
-      {/* 3D 캐릭터 - 화면 정중앙 */}
-      <div
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "55%",
-          transform: "translate(-50%, -50%)",
-          width: "600px",
-          height: "700px",
-          zIndex: 5,
-          pointerEvents: "none",
-        }}
-      >
-        <ModelViewer modelUrl={equippedCharacter} />
-      </div>
-      
-      <div
-        style={{
-          display: "flex",
-          width: "100%",
-          maxWidth: "1400px",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "0 4rem",
-          gap: "4rem",
-        }}
-      >
-        {/* 왼쪽 버튼 2개 */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: "5rem",
-            flex: 1,
-            paddingTop: "4rem",
-          }}
-        >
-          <button 
-            type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-left cyberpunk-3d-btn-parallelogram-reverse"
-            onClick={() => router.push("/game/song-guess")}
-            style={{
-              marginLeft: "2rem",
-            }}
+      {/* Left & right — floating holographic game panels */}
+      <div className="lobby-game-panels">
+        <div className="lobby-panel lobby-panel-left">
+          <button
+            type="button"
+            className="lobby-holo-panel lobby-holo-panel-left"
+            onClick={() => router.push('/game/song-guess')}
           >
-            <div className="cyberpunk-btn-glow" />
-            <div className="cyberpunk-btn-pattern" />
-            <div className="cyberpunk-btn-wave" />
-            <div className="cyberpunk-btn-content">
-              <svg className="cyberpunk-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            <div className="lobby-holo-glow" aria-hidden />
+            <div className="lobby-holo-content">
+              <svg className="lobby-holo-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
               </svg>
-              <div className="cyberpunk-btn-text">
-                <span className="cyberpunk-btn-title">노래 맞추기</span>
-              </div>
+              <span className="lobby-holo-title">노래 맞추기</span>
             </div>
-            <div className="cyberpunk-btn-shine" />
           </button>
-          
-          <button 
-            type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-left cyberpunk-3d-btn-parallelogram"
-            onClick={() => router.push("/game/sauturi-quiz")}
-            style={{
-              marginRight: "2rem",
-            }}
-          >
-            <div className="cyberpunk-btn-glow" />
-            <div className="cyberpunk-btn-pattern" />
-            <div className="cyberpunk-btn-wave" />
-            <div className="cyberpunk-btn-content">
-              <svg className="cyberpunk-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-              <div className="cyberpunk-btn-text">
-                <span className="cyberpunk-btn-title">사투리 가사 맞추기</span>
-              </div>
-            </div>
-            <div className="cyberpunk-btn-shine" />
-          </button>
-          
         </div>
 
-        {/* 오른쪽 Our Playlist */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            gap: "2rem",
-            flex: 1,
-          }}
-        >
-          <button 
-            type="button" 
-            className="cyberpunk-3d-btn cyberpunk-3d-btn-music cyberpunk-3d-btn-round"
-            onClick={() => router.push("/main/playlist")}
+        <div className="lobby-panel lobby-panel-right">
+          <button
+            type="button"
+            className="lobby-holo-panel lobby-holo-panel-right"
+            onClick={() => router.push('/game/sauturi-quiz')}
           >
-            <div className="cyberpunk-btn-glow" />
-            <div className="cyberpunk-btn-pattern" />
-            <div className="cyberpunk-btn-wave" />
-            <div className="cyberpunk-btn-content">
-              <svg className="cyberpunk-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <div className="lobby-holo-glow" aria-hidden />
+            <div className="lobby-holo-content">
+              <svg className="lobby-holo-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
-              <div className="cyberpunk-btn-text">
-                <span className="cyberpunk-btn-title">Our Playlist</span>
-              </div>
+              <span className="lobby-holo-title">사투리 가사 맞추기</span>
             </div>
-            <div className="cyberpunk-btn-shine" />
           </button>
         </div>
       </div>

@@ -48,17 +48,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, song: data }, { status: 200 });
   } catch (error: any) {
     console.error("Get random song error:", error);
-
     if (error.name === "AbortError" || error.name === "TypeError") {
       return NextResponse.json(
-        {
-          success: false,
-          error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.",
-        },
+        { success: false, error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요." },
         { status: 503 }
       );
     }
-
     return NextResponse.json(
       { success: false, error: "노래를 불러오는데 실패했습니다." },
       { status: 500 }

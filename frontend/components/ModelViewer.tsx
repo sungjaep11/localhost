@@ -6,30 +6,31 @@ import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three
 import { useEffect, useState, useRef, useMemo } from "react";
 import * as THREE from 'three';
 
-function Model({ url }: { url: string }) {
+function Model({ url, scaleMultiplier = 1 }: { url: string; scaleMultiplier?: number }) {
   const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   
-  // 모든 애니메이션 정지
   useEffect(() => {
     Object.values(actions).forEach(action => action?.stop());
   }, [actions]);
   
-  // character1은 축이 달라서 다른 position 적용
   const isCharacter1 = url.includes('character1');
-  const positionY = isCharacter1 ? -1.5 : -0.3;
-  const scale = isCharacter1 ? 2.8 : 2.8;
-  
-  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={[0, -Math.PI * 0.55, 0]} />;
+  const positionY = isCharacter1 ? -1.0 : -0.3;
+  const baseScale = isCharacter1 ? 1.8 : 2.8;
+  const scale = baseScale * scaleMultiplier;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
 interface ModelViewerProps {
   modelUrl?: string;
+  /** 로비 등에서 캐릭터를 약간 크게 보이게 할 때 1.0보다 크게 (예: 1.15) */
+  scaleMultiplier?: number;
 }
 
-export default function ModelViewer({ modelUrl }: ModelViewerProps) {
+export default function ModelViewer({ modelUrl, scaleMultiplier = 1 }: ModelViewerProps) {
   const [equippedCharacter, setEquippedCharacter] = useState<string>('/character1.glb');
 
   useEffect(() => {
@@ -61,14 +62,14 @@ export default function ModelViewer({ modelUrl }: ModelViewerProps) {
         <Environment preset="city" />
 
         {/* 모델 렌더링 */}
-        <Model url={equippedCharacter} />
+        <Model url={equippedCharacter} scaleMultiplier={scaleMultiplier} />
 
         {/* 마우스로 돌려보기 */}
         <OrbitControls 
           autoRotate={false}
           enableZoom={false}
           enablePan={false}
-          enableRotate={false}
+          enableRotate={true}
         />
       </Canvas>
     </div>

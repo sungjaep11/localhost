@@ -36,17 +36,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, ...data }, { status: 200 });
   } catch (error: any) {
     console.error("Get rooms error:", error);
-
     if (error.name === "AbortError" || error.name === "TypeError") {
       return NextResponse.json(
-        {
-          success: false,
-          error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.",
-        },
+        { success: false, error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요." },
         { status: 503 }
       );
     }
-
     return NextResponse.json(
       { success: false, error: "방 목록을 불러오는데 실패했습니다." },
       { status: 500 }
@@ -95,23 +90,13 @@ export async function POST(request: Request) {
     console.log("[POST /api/games/rooms] 성공", { roomId: data.id });
     return NextResponse.json({ success: true, room: data }, { status: 201 });
   } catch (error: any) {
-    console.error("[POST /api/games/rooms] 에러 발생", {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      BACKEND_URL,
-    });
-
+    console.error("[POST /api/games/rooms] 에러 발생", error?.message);
     if (error.name === "AbortError" || error.name === "TypeError") {
       return NextResponse.json(
-        {
-          success: false,
-          error: `백엔드 서버에 연결할 수 없습니다. (${BACKEND_URL}) 서버가 실행 중인지 확인해주세요.`,
-        },
+        { success: false, error: "백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요." },
         { status: 503 }
       );
     }
-
     return NextResponse.json(
       { success: false, error: error.message || "방 생성에 실패했습니다." },
       { status: 500 }
