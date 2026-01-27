@@ -87,13 +87,11 @@ async function main() {
   console.log('노래 데이터를 데이터베이스에 저장하는 중...');
 
   // 기존 노래 데이터 삭제 (선택사항)
-  // @ts-expect-error - Prisma Client 타입이 아직 업데이트되지 않았을 수 있음 (TypeScript 캐시 문제)
   await prisma.song.deleteMany({});
   console.log('기존 노래 데이터 삭제 완료');
 
   // 노래 데이터 저장
   for (const song of songs) {
-    // @ts-expect-error - Prisma Client 타입이 아직 업데이트되지 않았을 수 있음 (TypeScript 캐시 문제)
     await prisma.song.create({
       data: song,
     });
@@ -102,7 +100,6 @@ async function main() {
   console.log(`${songs.length}개의 노래가 성공적으로 저장되었습니다.`);
   
   // 장르별 노래 개수 확인
-  // @ts-expect-error - Prisma Client 타입이 아직 업데이트되지 않았을 수 있음 (TypeScript 캐시 문제)
   const genreCounts = await prisma.song.groupBy({
     by: ['genre'],
     _count: {
