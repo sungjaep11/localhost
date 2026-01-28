@@ -44,13 +44,13 @@ const ALL_ACTIONS: Action[] = [
 const toGlbUrl = toGlbLoadUrl;
 
 // 3D 모델 컴포넌트 (메인용) — animationName 있으면 animated_characters/ 에서 로드 후 그 행동 반복 재생
+// 애니 재생 시 scene 그대로 사용 (clone 사용 시 mixer가 원본 대상이라 애니메이션이 보이지 않음)
 function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: number; animationName?: string | null }) {
   const group = useRef<THREE.Group>(null);
   const isFullPath = url.startsWith('/default_characters/') || url.startsWith('/animated_characters/');
   const loadUrl = toGlbUrl(isFullPath ? url : (animationName ? toAnimatedCharacterPath(url) : toDefaultCharacterPath(url)));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   useEffect(() => {
     Object.values(actions).forEach(a => a?.stop());
@@ -68,7 +68,7 @@ function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: 
   const positionY = isCharacter1 ? -1.0 : -0.2;
   const rotation: [number, number, number] = isAnimFile ? [0, Math.PI / 2, 0] : [0, -Math.PI / 2, 0];
   const effectiveScale = scaleProp != null ? scaleProp : modelScale;
-  return <primitive ref={group} object={clonedScene} scale={effectiveScale} position={[0, positionY, 0]} rotation={rotation} />;
+  return <primitive ref={group} object={scene} scale={effectiveScale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
 // 3D 모델 컴포넌트 (작은 박스용) — default_characters/ 에서 로드
@@ -853,7 +853,7 @@ export default function MyPage() {
                       </div>
                     ) : (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                        {availableActionNames.map((name) => (
+                        {availableActionNames.map((name, idx) => (
                           <button
                             key={name}
                             onClick={() => handleEquipAction(name)}
@@ -868,7 +868,7 @@ export default function MyPage() {
                               fontWeight: equippedAction === name ? 700 : 500,
                             }}
                           >
-                            {name} {equippedAction === name ? ' ✓' : ''}
+                            애니메이션 {idx + 1}{equippedAction === name ? ' ✓' : ''}
                           </button>
                         ))}
                       </div>

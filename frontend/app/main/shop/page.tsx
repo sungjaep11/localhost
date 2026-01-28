@@ -38,12 +38,12 @@ function Model({ url }: { url: string }) {
 }
 
 // 애니메이션 재생 가능 Model — animated_characters/ GLB. scaleModal=true면 모달용, loop=true면 무한 재생
+// scene 그대로 사용 (clone 시 mixer가 원본 대상이라 애니메이션이 보이지 않음)
 function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: { url: string; playingName: string | null; onNames: (names: string[]) => void; scaleModal?: boolean; loop?: boolean }) {
   const group = useRef<THREE.Group>(null);
   const loadUrl = toGlbUrl(url);
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   useEffect(() => {
     if (animations?.length) {
@@ -84,7 +84,7 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
     : (isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5));
   // 미리보기는 정면이 보기 좋게
   const rotation: [number, number, number] = [0, 0, 0];
-  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
 // 캐릭터 모델 뷰어 (카드용) — default_characters/ 에서 로드
@@ -659,14 +659,11 @@ export default function ShopPage() {
                 </Canvas>
               </div>
               <div style={{ padding: "1rem 1.5rem", overflowY: "auto", minWidth: "200px" }}>
-                <div style={{ color: "#00ffff", fontSize: "1rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+                <div style={{ color: "#00ffff", fontSize: "1rem", fontWeight: 700, marginBottom: "0.75rem" }}>
                   재생할 동작 선택
                 </div>
-                <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
-                  아래 버튼을 누르면 미리보기에서 해당 애니메이션이 재생됩니다. animated_characters에 있는 캐릭터만 행동 목록이 표시됩니다.
-                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {previewAnimationNames.length ? previewAnimationNames.map((name) => (
+                  {previewAnimationNames.length ? previewAnimationNames.map((name, idx) => (
                     <button
                       key={name}
                       onClick={() => setPreviewPlayingName(name === previewPlayingName ? null : name)}
@@ -676,7 +673,7 @@ export default function ShopPage() {
                         borderRadius: "8px", color: "#00ffff", cursor: "pointer", textAlign: "left", fontSize: "0.9rem",
                       }}
                     >
-                      {previewPlayingName === name ? "■ " : "▶ "}{name}
+                      {previewPlayingName === name ? "■ " : "▶ "}애니메이션 {idx + 1}
                     </button>
                   )) : (
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
