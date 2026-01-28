@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +79,8 @@ export default function SignupPage() {
         }
       } catch (_) {}
 
-      router.push('/main/lobby');
+      setLoading(false);
+      setShowSuccessModal(true);
     } catch (err) {
       console.error('Signup error:', err);
       setError('회원가입에 실패했습니다.');
@@ -107,6 +109,110 @@ export default function SignupPage() {
           );
         })}
       </div>
+
+      {/* 회원가입 성공 모달 */}
+      {showSuccessModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => {
+            setShowSuccessModal(false);
+            router.push('/main/lobby');
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              maxWidth: "480px",
+              width: "90%",
+              padding: "2.5rem 3rem",
+              textAlign: "center",
+              animation: "holoModalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              background: "linear-gradient(160deg, rgba(0, 255, 255, 0.06) 0%, rgba(8, 12, 28, 0.92) 35%, rgba(4, 8, 20, 0.96) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(0, 255, 255, 0.45)",
+              borderRadius: "20px",
+              boxShadow: "0 0 0 1px rgba(100, 80, 255, 0.2), 0 0 48px rgba(0, 255, 255, 0.18), inset 0 0 60px rgba(0, 255, 255, 0.04)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 상단 라벨 */}
+            <div style={{ fontSize: "0.85rem", letterSpacing: "0.2em", color: "rgba(0, 255, 255, 0.9)", marginBottom: "1rem", textTransform: "uppercase" }}>
+              회원가입 완료
+            </div>
+
+            {/* 성공 아이콘 */}
+            <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🎉</div>
+
+            {/* 성공 메시지 */}
+            <h2
+              style={{
+                color: "#00ffff",
+                fontSize: "1.8rem",
+                marginBottom: "0.5rem",
+                fontWeight: 700,
+                textShadow: "0 0 20px rgba(0, 255, 255, 0.5)",
+              }}
+            >
+              환영합니다!
+            </h2>
+            <p
+              style={{
+                color: "rgba(255, 255, 255, 0.85)",
+                fontSize: "1.1rem",
+                marginBottom: "1.5rem",
+                lineHeight: 1.6,
+              }}
+            >
+              회원가입이 완료되었습니다.<br />
+              이제 게임을 즐기실 수 있습니다!
+            </p>
+
+            {/* 확인 버튼 */}
+            <button
+              onClick={() => {
+                setShowSuccessModal(false);
+                router.push('/main/lobby');
+              }}
+              style={{
+                padding: "0.9rem 2.2rem",
+                background: "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 200, 220, 0.15))",
+                border: "1px solid rgba(0, 255, 255, 0.6)",
+                borderRadius: "12px",
+                color: "#00ffff",
+                fontSize: "1rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.25s ease",
+                boxShadow: "0 0 20px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 28px rgba(0, 255, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15)";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              로비로 이동
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 2rem', width: '100%', boxSizing: 'border-box' }}>
       <div
@@ -448,8 +554,21 @@ export default function SignupPage() {
             로그인
           </button>
         </div>
+        </div>
       </div>
-      </div>
+
+      <style jsx>{`
+        @keyframes holoModalPop {
+          from {
+            opacity: 0;
+            transform: scale(0.88) translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
     </main>
   );
 }

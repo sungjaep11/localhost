@@ -155,10 +155,15 @@ export default function GamePlayPage() {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
+    if (sauturiTimerRef.current) {
+      clearTimeout(sauturiTimerRef.current);
+      sauturiTimerRef.current = null;
+    }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
     setIsPlaying(false);
+    setSauturiTimeLeft(0);
     setCurrentTime(0);
     setTotalDuration(0);
     const { currentRound: r, currentSong: s, songsPerRound: spr, totalRounds: tr } = roundSongRef.current;
@@ -185,10 +190,15 @@ export default function GamePlayPage() {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
+    if (sauturiTimerRef.current) {
+      clearTimeout(sauturiTimerRef.current);
+      sauturiTimerRef.current = null;
+    }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
     setIsPlaying(false);
+    setSauturiTimeLeft(0);
     setCurrentTime(0);
     setTotalDuration(0);
     setCurrentRound((prev) => prev + 1);
@@ -452,6 +462,21 @@ export default function GamePlayPage() {
 
   // -------------------------------------------------------------
 
+  // 15초 타이머 카운트다운
+  useEffect(() => {
+    if (isPlaying && sauturiTimeLeft > 0) {
+      const timer = setInterval(() => {
+        setSauturiTimeLeft(prev => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isPlaying, sauturiTimeLeft]);
+
   // 말풍선 자동 삭제 (3초 후)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -639,6 +664,10 @@ export default function GamePlayPage() {
       clearInterval(simulationIntervalRef.current);
       simulationIntervalRef.current = null;
     }
+    if (sauturiTimerRef.current) {
+      clearTimeout(sauturiTimerRef.current);
+      sauturiTimerRef.current = null;
+    }
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -650,6 +679,29 @@ export default function GamePlayPage() {
         socket.emit("sauturi_turn_end", { roomId, nobodyGotIt: true, answer: orig, title, artist });
       }
     };
+
+    // 15초 타이머 시작
+    setSauturiTimeLeft(15);
+    setIsPlaying(true);
+
+    // 15초 후 자동으로 라운드 종료
+    sauturiTimerRef.current = setTimeout(() => {
+      sauturiTimerRef.current = null;
+      setSauturiTimeLeft(0);
+      setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      doTurnEnd();
+    }, 15000);
 
     const voiceId = typeof window !== "undefined" ? localStorage.getItem(TTS_VOICE_STORAGE_KEY) : null;
     try {
@@ -667,7 +719,6 @@ export default function GamePlayPage() {
             utterance.rate = 0.9;
             window.speechSynthesis.speak(utterance);
           }
-          setIsPlaying(true);
           setCurrentTime(0);
           let simTime = 0;
           const interval = setInterval(() => {
@@ -676,9 +727,8 @@ export default function GamePlayPage() {
             if (simTime >= duration) {
               clearInterval(interval);
               simulationIntervalRef.current = null;
-              setIsPlaying(false);
               setCurrentTime(0);
-              doTurnEnd();
+              // TTS가 끝나도 자동 종료하지 않음 (15초 타이머가 종료 처리)
             }
           }, 100);
           simulationIntervalRef.current = interval;
@@ -694,9 +744,8 @@ export default function GamePlayPage() {
       const cleanup = () => {
         URL.revokeObjectURL(url);
         simulationIntervalRef.current = null;
-        setIsPlaying(false);
         setCurrentTime(0);
-        doTurnEnd();
+        // TTS가 끝나도 자동 종료하지 않음 (15초 타이머가 종료 처리)
       };
 
       audio.addEventListener("loadedmetadata", () => setTotalDuration(audio.duration));
@@ -712,7 +761,6 @@ export default function GamePlayPage() {
       }
       audioRef.current = audio;
       setTtsAudio(audio);
-      setIsPlaying(true);
       setCurrentTime(0);
       await audio.play();
     } catch (e) {
@@ -723,7 +771,6 @@ export default function GamePlayPage() {
         utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
       }
-      setIsPlaying(true);
       setCurrentTime(0);
       let simTime = 0;
       const interval = setInterval(() => {
@@ -732,9 +779,8 @@ export default function GamePlayPage() {
         if (simTime >= duration) {
           clearInterval(interval);
           simulationIntervalRef.current = null;
-          setIsPlaying(false);
           setCurrentTime(0);
-          doTurnEnd();
+          // TTS가 끝나도 자동 종료하지 않음 (15초 타이머가 종료 처리)
         }
       }, 100);
       simulationIntervalRef.current = interval;
@@ -818,21 +864,23 @@ export default function GamePlayPage() {
 
   // 현재 가사 TTS 재생 (이미 로드된 가사로 재생 — 동기화 받은 사람이 재생 버튼 눌렀을 때)
   const playCurrentTTS = () => {
-    if (!lyrics || !totalDuration) return;
-    startPlayWithData(lyrics, totalDuration, currentRoundAnswer, currentRoundTitle, currentRoundArtist);
+    if (!lyrics) return;
+    const duration = totalDuration || Math.max(15, Math.ceil((lyrics.length || 10) * 0.15));
+    startPlayWithData(lyrics, duration, currentRoundAnswer, currentRoundTitle, currentRoundArtist);
   };
 
   // TTS 일시정지/재개
   const toggleTTS = () => {
     // 실제 오디오가 있는 경우
-    if (audioRef.current) {
+    const audio = audioRef.current;
+    if (audio) {
       // 오디오 제어 (TTS)
       if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
+        audio.pause();
+        // 일시정지해도 타이머는 계속 진행
       } else {
-        audioRef.current.play();
-        setIsPlaying(true);
+        audio.play().catch((err: unknown) => console.error('Audio play error:', err));
+        // 재개해도 타이머는 계속 진행
       }
     } 
     // 시뮬레이션 중인 경우 (사투리 TTS)
@@ -842,18 +890,18 @@ export default function GamePlayPage() {
           clearInterval(simulationIntervalRef.current);
           simulationIntervalRef.current = null;
         }
-        if (sauturiTimerRef.current) {
-          clearInterval(sauturiTimerRef.current);
-          sauturiTimerRef.current = null;
-        }
-        setSauturiTimeLeft(0);
         if (typeof window !== "undefined" && window.speechSynthesis) {
           window.speechSynthesis.cancel();
         }
-        setIsPlaying(false);
+        // 일시정지해도 타이머는 계속 진행
       } else {
-        // 재개: 현재 가사 다시 재생
-        if (lyrics && totalDuration > 0) playCurrentTTS();
+        // 재개: 현재 가사 다시 재생 (audioRef가 없으므로 speechSynthesis 사용)
+        if (lyrics && typeof window !== "undefined" && window.speechSynthesis) {
+          const utterance = new SpeechSynthesisUtterance(lyrics);
+          utterance.lang = "ko-KR";
+          utterance.rate = 0.9;
+          window.speechSynthesis.speak(utterance);
+        }
       }
     }
   };
@@ -1170,8 +1218,8 @@ export default function GamePlayPage() {
           <img src="/logo2.png" alt="LOCAL HOST" style={{ height: "96px", width: "auto" }} />
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-          {/* 15초 타이머 — 노래 맞추기처럼 재생 중일 때만 */}
-          {isPlaying && (
+          {/* 15초 타이머 — 재생 중일 때만 표시 */}
+          {isPlaying && sauturiTimeLeft > 0 && (
             <div
               style={{
                 display: "flex",
@@ -1339,7 +1387,14 @@ export default function GamePlayPage() {
               {/* TTS 목소리 설정 — 선택 값은 localStorage에 저장되며 다음 재생부터 적용 */}
               {((isCurrentUserHost && !showSauturiAnswerModal) || lyrics) && (
                 <div style={{ marginTop: "0.5rem", width: "100%", maxWidth: "200px" }}>
-                  <label style={{ color: "rgba(255,255,255,0.8)", fontSize: "0.75rem", display: "block", marginBottom: "0.25rem" }}>
+                  <label style={{ 
+                    color: "#00ffff", 
+                    fontSize: "0.8rem", 
+                    display: "block", 
+                    marginBottom: "0.4rem",
+                    fontWeight: 600,
+                    textShadow: "0 0 8px rgba(0, 255, 255, 0.6)",
+                  }}>
                     TTS 목소리
                   </label>
                   <select
@@ -1351,17 +1406,40 @@ export default function GamePlayPage() {
                     }}
                     style={{
                       width: "100%",
-                      padding: "0.35rem 0.5rem",
-                      fontSize: "0.8rem",
-                      borderRadius: "8px",
-                      border: "1px solid rgba(0, 255, 255, 0.5)",
-                      background: "rgba(0,0,0,0.6)",
-                      color: "#fff",
+                      padding: "0.5rem 0.75rem",
+                      fontSize: "0.85rem",
+                      borderRadius: "12px",
+                      border: "2px solid rgba(0, 255, 255, 0.8)",
+                      background: "linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 200, 200, 0.15))",
+                      backdropFilter: "blur(10px)",
+                      color: "#00ffff",
                       cursor: "pointer",
+                      fontWeight: 500,
+                      boxShadow: "0 0 15px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.1)",
+                      transition: "all 0.3s ease",
+                      outline: "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(0, 255, 255, 1)";
+                      e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 15px rgba(0, 255, 255, 0.15)";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+                      e.currentTarget.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.1)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(0, 255, 255, 1)";
+                      e.currentTarget.style.boxShadow = "0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.2)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(0, 255, 255, 0.8)";
+                      e.currentTarget.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.1)";
                     }}
                   >
                     {TTS_VOICES.map((v) => (
-                      <option key={v.id} value={v.id} style={{ background: "#1a1a2e", color: "#fff" }}>
+                      <option key={v.id} value={v.id} style={{ background: "#1a1a2e", color: "#00ffff" }}>
                         {v.name}
                       </option>
                     ))}
@@ -1751,6 +1829,16 @@ export default function GamePlayPage() {
           50% {
             transform: scale(1.1);
             filter: drop-shadow(0 0 40px rgba(100, 200, 255, 1)) drop-shadow(0 0 80px rgba(100, 200, 255, 0.6));
+          }
+        }
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(1.05);
           }
         }
       `}</style>
