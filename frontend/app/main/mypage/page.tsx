@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
-import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl, animationKey } from '@/lib/character-paths';
 
 interface Character {
   id: string;
@@ -30,10 +30,6 @@ const ALL_CHARACTERS: Character[] = [
 // GLB 로드 시 lib의 toGlbLoadUrl 사용 (공백·+ 인코딩)
 const toGlbUrl = toGlbLoadUrl;
 
-function animationKey(modelUrl: string, index: number): string {
-  return `${toDisplayModelUrl(modelUrl)}:${index}`;
-}
-
 // 3D 모델 컴포넌트 (메인용) — animationName 있으면 animated_characters/ 에서 로드 후 그 행동 반복 재생
 // 애니 재생 시 scene 그대로 사용 (clone 사용 시 mixer가 원본 대상이라 애니메이션이 보이지 않음)
 function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: number; animationName?: string | null }) {
@@ -57,7 +53,7 @@ function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: 
   const isAnimFile = loadUrl.includes('animated_characters');
   const modelScale = isPrincess ? 2.2 : (isCharacter1 ? 2.0 : 3.6);
   const positionY = isCharacter1 ? -1.0 : -0.6;
-  const rotation: [number, number, number] = isAnimFile ? [0, Math.PI / 4, 0] : [0, -Math.PI / 2, 0];
+  const rotation: [number, number, number] = isAnimFile ? [0, Math.PI, 0] : [0, -Math.PI / 2, 0];
   const effectiveScale = scaleProp != null ? scaleProp : modelScale;
   return <primitive ref={group} object={scene} scale={effectiveScale} position={[0, positionY, 0]} rotation={rotation} />;
 }

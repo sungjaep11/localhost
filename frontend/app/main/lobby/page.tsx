@@ -1,13 +1,176 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import ModelViewer from '@/components/ModelViewer';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, useGLTF, useAnimations, Environment } from '@react-three/drei';
+import * as THREE from 'three';
+import {
+  toDisplayModelUrl,
+  toDefaultCharacterPath,
+  toAnimatedCharacterPath,
+  toGlbLoadUrl,
+  animationKey,
+} from '@/lib/character-paths';
+const scaleMultiplier = 1.15;
+
+function LobbyStaticModel({ url }: { url: string }) {
+  const group = useRef<THREE.Group>(null);
+  const loadUrl = toGlbLoadUrl(toDefaultCharacterPath(url));
+  const { scene, animations } = useGLTF(loadUrl);
+  const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  useEffect(() => {
+    Object.values(actions).forEach((a) => a?.stop());
+  }, [actions]);
+  const isCharacter1 = loadUrl.includes('character1');
+  const positionY = isCharacter1 ? -1.0 : -0.3;
+  const baseScale = isCharacter1 ? 1.8 : 2.8;
+  const scale = baseScale * scaleMultiplier;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+}
+
+function LobbyAnimatedModel({
+  url,
+  selectedOwnedIndex,
+  owned,
+  onNames,
+}: {
+  url: string;
+  selectedOwnedIndex: number;
+  owned: { name: string; idx: number }[];
+  onNames: (names: string[]) => void;
+}) {
+  const group = useRef<THREE.Group>(null);
+  const displayUrl = toDisplayModelUrl(url);
+  const loadUrl = toGlbLoadUrl(toAnimatedCharacterPath(displayUrl));
+  const { scene, animations } = useGLTF(loadUrl);
+  const { actions } = useAnimations(animations, group);
+
+  useEffect(() => {
+    if (animations?.length) onNames(animations.map((c) => c.name));
+    else onNames([]);
+  }, [animations, onNames]);
+
+  const nameToPlay = owned.length ? (owned[selectedOwnedIndex]?.name ?? owned[0]?.name) : null;
+
+  useEffect(() => {
+    Object.values(actions).forEach((a) => a?.stop());
+    if (nameToPlay && actions[nameToPlay]) {
+      const act = actions[nameToPlay];
+      act.reset().fadeIn(0.3).setLoop(THREE.LoopRepeat, Infinity).play();
+      return () => { act.stop(); };
+    }
+  }, [actions, nameToPlay]);
+
+  const isCharacter1 = loadUrl.includes('character1');
+  const positionY = isCharacter1 ? -1.0 : -0.3;
+  const baseScale = isCharacter1 ? 1.8 : 2.8;
+  const scale = baseScale * scaleMultiplier;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+}
+
+function LobbyCharacterViewer({
+  equippedCharacter,
+  purchasedAnimations,
+  equippedAction,
+}: {
+  equippedCharacter: string;
+  purchasedAnimations: string[];
+  equippedAction: string | null;
+}) {
+  const displayUrl = toDisplayModelUrl(equippedCharacter);
+  const [clipNames, setClipNames] = useState<string[] | null>(null);
+  const [selectedOwnedIndex, setSelectedOwnedIndex] = useState(0);
+
+  const owned = useMemo(() => {
+    if (!clipNames?.length) return [];
+    return clipNames
+      .map((name, idx) => ({ name, idx, key: animationKey(displayUrl, idx) }))
+      .filter(({ key }) => purchasedAnimations.includes(key))
+      .sort((a, b) => a.idx - b.idx);
+  }, [clipNames, displayUrl, purchasedAnimations]);
+
+  const hasSetInitial = useRef(false);
+  useEffect(() => {
+    hasSetInitial.current = false;
+  }, [equippedCharacter]);
+  useEffect(() => {
+    if (!owned.length || hasSetInitial.current) return;
+    hasSetInitial.current = true;
+    const i = equippedAction ? owned.findIndex((o) => o.name === equippedAction) : -1;
+    setSelectedOwnedIndex(i >= 0 ? i : 0);
+  }, [owned, equippedAction]);
+
+  useEffect(() => {
+    if (owned.length && selectedOwnedIndex >= owned.length) {
+      setSelectedOwnedIndex(0);
+    }
+  }, [owned.length, selectedOwnedIndex]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', minHeight: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        <Canvas camera={{ position: [0, 0.5, 5], fov: 45 }} style={{ width: '100%', height: '100%' }}>
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[10, 10, 5]} intensity={1} />
+          <Environment preset="city" />
+          <Suspense fallback={<LobbyStaticModel url={equippedCharacter} />}>
+            <LobbyAnimatedModel
+              url={equippedCharacter}
+              selectedOwnedIndex={selectedOwnedIndex}
+              owned={owned}
+              onNames={setClipNames}
+            />
+          </Suspense>
+          <OrbitControls autoRotate={false} enableZoom={false} enablePan={false} enableRotate={true} />
+        </Canvas>
+      </div>
+      {owned.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.5rem',
+            justifyContent: 'center',
+            padding: '0.5rem 0',
+            pointerEvents: 'auto',
+            flexShrink: 0,
+          }}
+        >
+          {owned.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setSelectedOwnedIndex(i)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: `2px solid ${selectedOwnedIndex === i ? 'rgba(0,255,255,0.9)' : 'rgba(0,255,255,0.4)'}`,
+                background: selectedOwnedIndex === i ? 'rgba(0,255,255,0.25)' : 'rgba(0,255,255,0.08)',
+                color: '#00ffff',
+                fontSize: '1rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function LobbyPage() {
   const router = useRouter();
   const [coins, setCoins] = useState(0);
   const [equippedCharacter, setEquippedCharacter] = useState('/character1.glb');
+  const [purchasedAnimations, setPurchasedAnimations] = useState<string[]>([]);
+  const [equippedAction, setEquippedAction] = useState<string | null>(null);
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -19,7 +182,6 @@ export default function LobbyPage() {
     const savedCoins = localStorage.getItem(`userCoins-${userId}`);
     if (savedCoins) {
       const amount = parseInt(savedCoins, 10);
-      // 이전 기본값(1000)이었으면 3000으로 올림
       if (amount === 1000) {
         localStorage.setItem(`userCoins-${userId}`, '3000');
         setCoins(3000);
@@ -33,6 +195,9 @@ export default function LobbyPage() {
 
     const equipped = localStorage.getItem(`equipped-character-${userId}`);
     setEquippedCharacter(equipped ? equipped.replace(/\s*\(1\)\s*\.glb$/i, '.glb') : '/character1.glb');
+    const animKeys = JSON.parse(localStorage.getItem(`purchasedAnimations-${userId}`) || '[]');
+    setPurchasedAnimations(animKeys);
+    setEquippedAction(localStorage.getItem(`equipped-action-${userId}`) || null);
   }, [router]);
 
   const handleLogout = () => {
@@ -120,7 +285,11 @@ export default function LobbyPage() {
       <div className="lobby-character-stage">
         <div className="lobby-holographic-podium" aria-hidden />
         <div className="lobby-character-viewport">
-          <ModelViewer modelUrl={equippedCharacter} scaleMultiplier={1.15} />
+          <LobbyCharacterViewer
+            equippedCharacter={equippedCharacter}
+            purchasedAnimations={purchasedAnimations}
+            equippedAction={equippedAction}
+          />
         </div>
         {[
           { pos: 'lobby-drone-left', size: 56, delay: 0 },

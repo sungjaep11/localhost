@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
-import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl, animationKey } from '@/lib/character-paths';
 
 interface Character {
   id: string;
@@ -18,9 +18,6 @@ interface Character {
 const toGlbUrl = toGlbLoadUrl;
 
 const ANIMATION_PRICE = 300;
-function animationKey(modelUrl: string, index: number): string {
-  return `${toDisplayModelUrl(modelUrl)}:${index}`;
-}
 
 // Model 컴포넌트 (정적) — 상점 카드용, 250×300 박스에 맞춤. url은 논리 경로 → 실제 로드는 default_characters/
 function Model({ url }: { url: string }) {
@@ -87,8 +84,8 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
   const scale = scaleModal
     ? (isPrincess ? 1.8 : (isCharacter1 ? 1.3 : 1.9))
     : (isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5));
-  // 모달: 약간 아래로 내리고, Y 회전으로 정면 보이게, 머리 잘림 방지
-  const rotation: [number, number, number] = scaleModal ? [0, Math.PI / 4, 0] : [0, 0, 0];
+  // 모달: Y 180° 회전으로 정면 보이게 (뒤 돌아보는 것 방지)
+  const rotation: [number, number, number] = scaleModal ? [0, Math.PI, 0] : [0, 0, 0];
   return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 

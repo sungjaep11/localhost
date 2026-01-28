@@ -76,3 +76,8 @@ export function toAnimatedCharacterPath(displayUrl: string): string {
 export function toGlbLoadUrl(path: string): string {
   return (path || '').replace(/ /g, '%20').replace(/\+/g, '%2B');
 }
+
+/** 구매한 애니메이션 키 (modelUrl:index). 로비/결과/마이페이지 등에서 사용 */
+export function animationKey(modelUrl: string, index: number): string {
+  return `${toDisplayModelUrl(modelUrl)}:${index}`;
+}

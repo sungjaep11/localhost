@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
-import { toDisplayModelUrl, toDefaultCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl, animationKey } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface PlayerResult {
@@ -30,18 +30,91 @@ function Model({ url, scale = 1.8 }: { url: string; scale?: number }) {
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
-function CharacterViewer({ characterUrl, size = 150 }: { characterUrl: string; size?: number }) {
+// 내 캐릭터용 — 보유 애니메이션 하나 무한 재생
+function ResultAnimatedModel({
+  characterUrl,
+  scale,
+  purchasedAnimations,
+  equippedAction,
+}: {
+  characterUrl: string;
+  scale: number;
+  purchasedAnimations: string[];
+  equippedAction: string | null;
+}) {
+  const group = useRef<THREE.Group>(null);
+  const displayUrl = toDisplayModelUrl(characterUrl);
+  const animPath = toAnimatedCharacterPath(displayUrl);
+  const loadUrl = toGlbLoadUrl(animPath);
+  const { scene, animations } = useGLTF(loadUrl);
+  const { actions } = useAnimations(animations, group);
+
+  const nameToPlay = useMemo(() => {
+    if (!animations?.length) return null;
+    const names = animations.map((c) => c.name);
+    const owned = names
+      .map((name, idx) => ({ name, idx, key: animationKey(displayUrl, idx) }))
+      .filter(({ key }) => purchasedAnimations.includes(key))
+      .sort((a, b) => a.idx - b.idx);
+    if (!owned.length) return null;
+    const match = owned.find((o) => o.name === equippedAction);
+    if (match) return match.name;
+    return owned[0].name;
+  }, [animations, displayUrl, purchasedAnimations, equippedAction]);
+
+  useEffect(() => {
+    Object.values(actions).forEach((a) => a?.stop());
+    if (nameToPlay && actions[nameToPlay]) {
+      const act = actions[nameToPlay];
+      act.reset().fadeIn(0.3).setLoop(THREE.LoopRepeat, Infinity).play();
+      return () => { act.stop(); };
+    }
+  }, [actions, nameToPlay]);
+
+  const isCharacter1 = loadUrl.includes('character1');
+  const positionY = isCharacter1 ? -1.0 : -0.5;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+}
+
+function CharacterViewer({
+  characterUrl,
+  size = 150,
+  isMe = false,
+  purchasedAnimations = [],
+  equippedAction = null,
+}: {
+  characterUrl: string;
+  size?: number;
+  isMe?: boolean;
+  purchasedAnimations?: string[];
+  equippedAction?: string | null;
+}) {
   const displayUrl = toDisplayModelUrl(characterUrl);
   const isChar1 = displayUrl.includes('character1');
   const scale = isChar1 ? (size > 150 ? 1.4 : 1.0) : (size > 150 ? 2.2 : 1.6);
   const camZ = size > 150 ? 3.5 : 3.2;
+
+  const useAnimated = isMe && purchasedAnimations.some((k) => k.startsWith(`${displayUrl}:`));
+
   return (
     <div style={{ width: size, height: size, overflow: "hidden" }}>
       <Canvas camera={{ position: [0, 0.2, camZ], fov: 50 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        <Model url={displayUrl} scale={scale} />
+        {useAnimated ? (
+          <Suspense fallback={<Model url={displayUrl} scale={scale} />}>
+            <ResultAnimatedModel
+              characterUrl={displayUrl}
+              scale={scale}
+              purchasedAnimations={purchasedAnimations}
+              equippedAction={equippedAction}
+            />
+          </Suspense>
+        ) : (
+          <Model url={displayUrl} scale={scale} />
+        )}
         <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} />
       </Canvas>
     </div>
@@ -75,10 +148,17 @@ export default function GameResultPage() {
   const [showCoinAnimation, setShowCoinAnimation] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [myResult, setMyResult] = useState<PlayerResult | null>(null);
+  const [purchasedAnimations, setPurchasedAnimations] = useState<string[]>([]);
+  const [equippedAction, setEquippedAction] = useState<string | null>(null);
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    if (userId) setCurrentUserId(userId);
+    if (userId) {
+      setCurrentUserId(userId);
+      const animKeys = JSON.parse(localStorage.getItem(`purchasedAnimations-${userId}`) || '[]');
+      setPurchasedAnimations(animKeys);
+      setEquippedAction(localStorage.getItem(`equipped-action-${userId}`) || null);
+    }
 
     // 게임 결과 불러오기
     const resultsKey = `song-guess-room-${roomId}-results`;
@@ -308,7 +388,13 @@ export default function GameResultPage() {
                   🥈
                 </div>
                 <div style={{ width: "100px", height: "100px", margin: "0 auto" }}>
-                  <CharacterViewer characterUrl={results[1].character || '/character1.glb'} size={100} />
+                  <CharacterViewer
+                    characterUrl={results[1].character || '/character1.glb'}
+                    size={100}
+                    isMe={results[1].id === currentUserId}
+                    purchasedAnimations={purchasedAnimations}
+                    equippedAction={equippedAction}
+                  />
                 </div>
                 <div style={{ color: "#ffffff", fontWeight: 700, marginTop: "0.5rem" }}>
                   {results[1].name}
@@ -352,7 +438,13 @@ export default function GameResultPage() {
                   👑
                 </div>
                 <div style={{ width: "120px", height: "120px", margin: "0 auto" }}>
-                  <CharacterViewer characterUrl={results[0].character || '/character1.glb'} size={120} />
+                  <CharacterViewer
+                    characterUrl={results[0].character || '/character1.glb'}
+                    size={120}
+                    isMe={results[0].id === currentUserId}
+                    purchasedAnimations={purchasedAnimations}
+                    equippedAction={equippedAction}
+                  />
                 </div>
                 <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.2rem", marginTop: "0.5rem" }}>
                   {results[0].name}
@@ -396,7 +488,13 @@ export default function GameResultPage() {
                   🥉
                 </div>
                 <div style={{ width: "90px", height: "90px", margin: "0 auto" }}>
-                  <CharacterViewer characterUrl={results[2].character || '/character1.glb'} size={90} />
+                  <CharacterViewer
+                    characterUrl={results[2].character || '/character1.glb'}
+                    size={90}
+                    isMe={results[2].id === currentUserId}
+                    purchasedAnimations={purchasedAnimations}
+                    equippedAction={equippedAction}
+                  />
                 </div>
                 <div style={{ color: "#ffffff", fontWeight: 700, marginTop: "0.5rem" }}>
                   {results[2].name}
@@ -446,7 +544,13 @@ export default function GameResultPage() {
                   {player.rank}
                 </div>
                 <div style={{ width: "50px", height: "50px" }}>
-                  <CharacterViewer characterUrl={player.character || '/character1.glb'} size={50} />
+                  <CharacterViewer
+                    characterUrl={player.character || '/character1.glb'}
+                    size={50}
+                    isMe={player.id === currentUserId}
+                    purchasedAnimations={purchasedAnimations}
+                    equippedAction={equippedAction}
+                  />
                 </div>
                 <div style={{ flex: 1, color: "#ffffff", fontWeight: 600 }}>
                   {player.name}
