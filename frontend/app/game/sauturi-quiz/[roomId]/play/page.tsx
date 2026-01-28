@@ -137,6 +137,7 @@ export default function GamePlayPage() {
   const [showSauturiRoundEndModal, setShowSauturiRoundEndModal] = useState(false);
   const [sauturiNobodyGotIt, setSauturiNobodyGotIt] = useState(false);
   const sauturiGotCorrectRef = useRef(false);
+  const usedInRoundLyricsRef = useRef<Set<string>>(new Set()); // 한 라운드 안에서 이미 나온 가사(곡) ID: "genre|title|artist"
   const sauturiStateRef = useRef({ currentRoundAnswer: '', currentRoundTitle: '', sauturiCorrectPlayers: [] as string[] });
   sauturiStateRef.current = { currentRoundAnswer, currentRoundTitle, sauturiCorrectPlayers };
   const goToNextSauturiTurnRef = useRef<() => void>(() => {});
@@ -183,6 +184,7 @@ export default function GamePlayPage() {
   // 다음 라운드 시작 — 라운드 종료 모달에서 "Round N+1 시작!" 클릭 시
   const startNextSauturiRound = () => {
     setShowSauturiRoundEndModal(false);
+    usedInRoundLyricsRef.current.clear(); // 새 라운드에서 같은 곡 다시 나올 수 있도록 라운드 내 사용 목록만 비움
     setLyrics('');
     setSauturiCorrectPlayers([]);
     setCurrentRoundAnswer('');
@@ -292,23 +294,21 @@ export default function GamePlayPage() {
   useEffect(() => {
     if (roomId === 'preview-room' || !socket || !roomId) return;
 
-    // 플레이어 목록 업데이트 리스너
+    // 플레이어 목록 업데이트 리스너 (서버에서 각 유저의 character/characterUrl 전달 — 선택한 캐릭터로 표시)
     const handlePlayersUpdate = (data: { 
       roomId: string; 
-      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number; score?: number; character?: string; characterUrl?: string }>;
       sessionStatus: string;
     }) => {
       if (data.roomId === roomId) {
         const playersWithCharacters = data.players.map((player) => {
-          const equippedCharacter = typeof window !== 'undefined' 
-            ? localStorage.getItem(`equipped-character-${player.id}`) 
-            : null;
-          const displayUrl = toDisplayModelUrl(equippedCharacter || '/character1.glb');
+          const fromServer = player.character ?? player.characterUrl;
+          const displayUrl = toDisplayModelUrl(fromServer || '/character1.glb');
           return {
             id: player.id,
             name: player.name,
             isHost: player.isHost,
-            score: 0,
+            score: player.score ?? 0,
             character: displayUrl,
             characterUrl: displayUrl,
             joinedAt: player.joinedAt,
@@ -448,7 +448,10 @@ export default function GamePlayPage() {
     if (roomId === 'preview-room') return;
     if (socket && roomId && currentUserId && !hasJoinedRef.current) {
       console.log('[Play] Joining game room:', roomId);
-      socket.emit('game_join', { roomId, userId: currentUserId });
+      const char = typeof window !== 'undefined'
+        ? toDisplayModelUrl(localStorage.getItem(`equipped-character-${currentUserId}`) || '/character1.glb')
+        : '/character1.glb';
+      socket.emit('game_join', { roomId, userId: currentUserId, characterUrl: char });
       hasJoinedRef.current = true;
     }
   }, [socket, roomId, currentUserId]);
@@ -796,9 +799,12 @@ export default function GamePlayPage() {
     }
 
     const genre = roomGenres[currentRound - 1] ?? roomGenres[0] ?? "발라드";
+    const exclude = Array.from(usedInRoundLyricsRef.current).join(",");
     try {
+      const params = new URLSearchParams({ genre });
+      if (exclude) params.set("exclude", exclude);
       const res = await fetch(
-        `/api/dialect-lyrics/random?genre=${encodeURIComponent(genre)}`
+        `/api/dialect-lyrics/random?${params.toString()}`
       );
       if (!res.ok) {
         setLyrics("이 장르의 가사를 불러오지 못했어요.");
@@ -828,6 +834,7 @@ export default function GamePlayPage() {
       const orig = (data.original ?? "").trim();
       const title = data.title ?? "";
       const artist = data.artist ?? "";
+      usedInRoundLyricsRef.current.add(`${genre}|${title}|${artist}`);
       setLyrics(text);
       setCurrentRoundAnswer(orig);
       setCurrentRoundTitle(title);

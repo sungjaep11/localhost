@@ -1,9 +1,12 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Canvas } from "@react-three/fiber";
+import { useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
 import { RoomDeleteModal, type RoomDeleteModalMode } from '@/components/ui/RoomDeleteModal';
+import * as THREE from 'three';
 
 interface BackendRoom {
   id: string;
@@ -15,6 +18,7 @@ interface BackendRoom {
   hostId: string;
   createdAt: string;
   options?: any;
+  hostCharacterUrl?: string | null;
 }
 
 interface Room {
@@ -26,10 +30,39 @@ interface Room {
   password?: string;
   hostId: string;
   hostName: string;
+  hostCharacterUrl?: string;
   rounds: number;
   songsPerRound: number;
   genres: string[];
   createdAt: number;
+}
+
+// 방 카드용 작은 3D 캐릭터 (방장)
+function RoomCardModel({ url }: { url: string }) {
+  const group = useRef<THREE.Group>(null);
+  const loadUrl = (url || '').replace(/ /g, '%20');
+  const { scene, animations } = useGLTF(loadUrl);
+  const { actions } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  useEffect(() => { Object.values(actions).forEach(a => a?.stop()); }, [actions]);
+  const isCharacter1 = url.includes('character1');
+  const positionY = isCharacter1 ? -0.8 : -0.5;
+  const scale = isCharacter1 ? 1.2 : 1.6;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+}
+
+function RoomCardCharacterViewer({ modelUrl }: { modelUrl: string }) {
+  return (
+    <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
+      <Canvas camera={{ position: [0, 1, 2.5], fov: 45 }}>
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <Environment preset="city" />
+        <RoomCardModel url={modelUrl} />
+      </Canvas>
+    </div>
+  );
 }
 
 export default function SauturiQuizPage() {
@@ -78,7 +111,8 @@ export default function SauturiQuizPage() {
                 const prevRoom = prevRoomsMap.get(newRoom.id);
                 return !prevRoom || 
                   prevRoom.currentPlayers !== newRoom.currentPlayers ||
-                  prevRoom.name !== newRoom.name;
+                  prevRoom.name !== newRoom.name ||
+                  prevRoom.hostCharacterUrl !== newRoom.hostCharacterUrl;
               });
               
               return hasChanged ? dialectRooms : prevRooms;
@@ -147,6 +181,7 @@ export default function SauturiQuizPage() {
       password: backendRoom.password || undefined,
       hostId: backendRoom.hostId,
       hostName: 'Host', // TODO: 호스트 이름을 가져와야 함
+      hostCharacterUrl: backendRoom.hostCharacterUrl ?? undefined,
       rounds: options.rounds || 4,
       songsPerRound: options.songsPerRound || 1,
       genres: options.genres || [],
@@ -561,22 +596,22 @@ export default function SauturiQuizPage() {
                       }
                     }}
                   >
-                    {/* 아이콘 */}
+                    {/* 방장 캐릭터 */}
                     <div
                       style={{
                         width: "80px",
-                        height: "80px",
+                        height: "100px",
+                        position: "relative",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         background: "rgba(0, 255, 255, 0.1)",
                         borderRadius: "12px",
                         border: "1px solid rgba(0, 255, 255, 0.3)",
+                        overflow: "hidden",
                       }}
                     >
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                      </svg>
+                      <RoomCardCharacterViewer modelUrl={room.hostCharacterUrl || '/character1.glb'} />
                     </div>
 
                     {/* 방 이름 */}

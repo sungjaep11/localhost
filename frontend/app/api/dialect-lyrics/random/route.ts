@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const genre = searchParams.get("genre");
+    const exclude = searchParams.get("exclude") || "";
 
     if (!genre) {
       return NextResponse.json(
@@ -14,8 +15,10 @@ export async function GET(request: Request) {
       );
     }
 
+    const params = new URLSearchParams({ genre });
+    if (exclude) params.set("exclude", exclude);
     const res = await fetch(
-      `${BACKEND_URL}/api/dialect-lyrics/random?genre=${encodeURIComponent(genre)}`,
+      `${BACKEND_URL}/api/dialect-lyrics/random?${params.toString()}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },

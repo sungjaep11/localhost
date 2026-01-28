@@ -124,6 +124,7 @@ export default function ShopPage() {
   const [previewCharacter, setPreviewCharacter] = useState<Character | null>(null);
   const [previewAnimationNames, setPreviewAnimationNames] = useState<string[]>([]);
   const [previewPlayingName, setPreviewPlayingName] = useState<string | null>(null);
+  const [purchaseSuccessModal, setPurchaseSuccessModal] = useState<{ message: string; isError?: boolean } | null>(null);
 
   // Horizontal wheel scroll: use non-passive listener so preventDefault is allowed
   useEffect(() => {
@@ -197,7 +198,7 @@ export default function ShopPage() {
 
   const handlePurchaseCharacter = (item: Character) => {
     if (coins < item.price) {
-      alert('코인이 부족합니다!');
+      setPurchaseSuccessModal({ message: '코인이 부족합니다!', isError: true });
       return;
     }
 
@@ -211,12 +212,12 @@ export default function ShopPage() {
     setPurchasedCharacters(newPurchased);
     localStorage.setItem(`purchasedCharacters-${userId}`, JSON.stringify(newPurchased));
 
-    alert(`${item.name}을(를) 구매했습니다!`);
+    setPurchaseSuccessModal({ message: `${item.name}을(를) 구매했습니다!` });
   };
 
   const handlePurchaseAction = (item: Action) => {
     if (coins < item.price) {
-      alert('코인이 부족합니다!');
+      setPurchaseSuccessModal({ message: '코인이 부족합니다!', isError: true });
       return;
     }
 
@@ -230,13 +231,13 @@ export default function ShopPage() {
     setPurchasedActions(newPurchased);
     localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify(newPurchased));
 
-    alert(`${item.name}을(를) 구매했습니다!`);
+    setPurchaseSuccessModal({ message: `${item.name}을(를) 구매했습니다!` });
   };
 
   const handleEquip = (character: Character) => {
     localStorage.setItem(`equipped-character-${userId}`, character.modelUrl);
     setEquippedCharacter(character.modelUrl);
-    alert(`${character.name}을(를) 장착했습니다!`);
+    setPurchaseSuccessModal({ message: `${character.name}을(를) 장착했습니다!` });
   };
 
   const isCharacterOwned = (characterId: string) => {
@@ -665,6 +666,113 @@ export default function ShopPage() {
         )}
       </div>
 
+      {/* 구매/장착/에러 알림 모달 — 테마 스타일 */}
+      {purchaseSuccessModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="purchase-modal-title"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 10000,
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+          }}
+          onClick={() => setPurchaseSuccessModal(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              maxWidth: "420px",
+              width: "100%",
+              padding: "2rem 2.5rem",
+              textAlign: "center",
+              animation: "holoModalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              background: purchaseSuccessModal.isError
+                ? "linear-gradient(160deg, rgba(255, 80, 80, 0.08) 0%, rgba(8, 12, 28, 0.92) 35%, rgba(4, 8, 20, 0.96) 100%)"
+                : "linear-gradient(160deg, rgba(0, 255, 255, 0.06) 0%, rgba(8, 12, 28, 0.92) 35%, rgba(4, 8, 20, 0.96) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: purchaseSuccessModal.isError
+                ? "1px solid rgba(255, 100, 100, 0.5)"
+                : "1px solid rgba(0, 255, 255, 0.45)",
+              borderRadius: "20px",
+              boxShadow: purchaseSuccessModal.isError
+                ? "0 0 0 1px rgba(255, 80, 80, 0.2), 0 0 48px rgba(255, 100, 100, 0.15), inset 0 0 60px rgba(255, 80, 80, 0.03)"
+                : "0 0 0 1px rgba(100, 80, 255, 0.2), 0 0 48px rgba(0, 255, 255, 0.18), inset 0 0 60px rgba(0, 255, 255, 0.04)",
+            }}
+          >
+            <div
+              id="purchase-modal-title"
+              style={{
+                fontSize: "2.5rem",
+                marginBottom: "1rem",
+                lineHeight: 1,
+              }}
+            >
+              {purchaseSuccessModal.isError ? "⚠️" : "🎉"}
+            </div>
+            <p
+              style={{
+                color: purchaseSuccessModal.isError ? "rgba(255, 180, 180, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                fontSize: "1.15rem",
+                fontWeight: 600,
+                margin: "0 0 1.5rem 0",
+                lineHeight: 1.5,
+              }}
+            >
+              {purchaseSuccessModal.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setPurchaseSuccessModal(null)}
+              style={{
+                padding: "0.75rem 2rem",
+                background: purchaseSuccessModal.isError
+                  ? "linear-gradient(135deg, rgba(255, 100, 100, 0.25), rgba(200, 60, 60, 0.2))"
+                  : "linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 200, 220, 0.15))",
+                border: purchaseSuccessModal.isError
+                  ? "1px solid rgba(255, 100, 100, 0.6)"
+                  : "1px solid rgba(0, 255, 255, 0.6)",
+                borderRadius: "12px",
+                color: purchaseSuccessModal.isError ? "#ff8888" : "#00ffff",
+                fontSize: "1rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.25s ease",
+                boxShadow: purchaseSuccessModal.isError
+                  ? "0 0 16px rgba(255, 100, 100, 0.2)"
+                  : "0 0 20px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = purchaseSuccessModal.isError
+                  ? "0 0 24px rgba(255, 100, 100, 0.35)"
+                  : "0 0 28px rgba(0, 255, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = purchaseSuccessModal.isError
+                  ? "0 0 16px rgba(255, 100, 100, 0.2)"
+                  : "0 0 20px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)";
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 캐릭터 애니메이션 미리보기 모달 */}
       {previewCharacter && (
         <div
@@ -747,6 +855,19 @@ export default function ShopPage() {
         </div>
       )}
       </div>
+
+      <style jsx>{`
+        @keyframes holoModalPop {
+          from {
+            opacity: 0;
+            transform: scale(0.88) translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
     </main>
   );
 }

@@ -435,13 +435,16 @@ app.get("/api/games/rooms", async (req: Request, res: Response) => {
       }),
     ]);
 
-    // 각 방의 현재 플레이어 수 추가
+    // 각 방의 현재 플레이어 수 + 방장 캐릭터 URL 추가
     const roomsWithPlayerCount = rooms.map((room: RoomFromDb) => {
       const session = gameSessions.get(room.id);
       const currentPlayers = session ? session.players.size : 0;
+      const hostPlayer = session?.players.get(room.hostId);
+      const hostCharacterUrl = hostPlayer?.characterUrl || null;
       return {
         ...room,
         currentPlayers,
+        hostCharacterUrl,
       };
     });
 
@@ -961,21 +964,35 @@ app.get("/api/songs", async (req: Request, res: Response) => {
 });
 
 /**
- * 사투리 가사 맞추기: 장르별 랜덤 가사 1개
- * GET /api/dialect-lyrics/random?genre=발라드
+ * 사투리 가사 맞추기: 장르별 랜덤 가사 1개 (한 라운드 내 이미 나온 곡 제외)
+ * GET /api/dialect-lyrics/random?genre=발라드&exclude=발라드|제목|가수,...
  */
+function dialectLyricId(item: { genre: string; title: string; artist: string }): string {
+  return `${item.genre}|${item.title}|${item.artist}`;
+}
 app.get("/api/dialect-lyrics/random", async (req: Request, res: Response) => {
   try {
     const genre = (req.query.genre as string)?.trim();
+    const excludeRaw = (req.query.exclude as string) || "";
+    const excludeIds = new Set(
+      excludeRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    );
     if (!genre) {
       return res.status(400).json({ message: "genre parameter is required" });
     }
     const { dialectLyrics } = await import("./lyrics-data");
     const byGenre = dialectLyrics.filter((l) => l.genre === genre);
-    if (byGenre.length === 0) {
-      return res.status(404).json({ message: `No dialect lyrics for genre: ${genre}` });
+    const candidates = excludeIds.size > 0
+      ? byGenre.filter((item) => !excludeIds.has(dialectLyricId(item)))
+      : byGenre;
+    if (candidates.length === 0) {
+      return res.status(404).json({
+        message: excludeIds.size > 0
+          ? `No more dialect lyrics for genre: ${genre} (all played in this round or none available)`
+          : `No dialect lyrics for genre: ${genre}`,
+      });
     }
-    const one = byGenre[Math.floor(Math.random() * byGenre.length)];
+    const one = candidates[Math.floor(Math.random() * candidates.length)];
     res.json(one);
   } catch (err) {
     console.error("[GET /api/dialect-lyrics/random] error", err);
@@ -1192,6 +1209,7 @@ interface GamePlayer {
   score: number;
   joinedAt: Date;
   isHost: boolean;
+  characterUrl?: string;
 }
 
 interface GameSession {
@@ -1236,7 +1254,7 @@ function getOrCreateGameSession(
   return gameSessions.get(roomId)!;
 }
 
-// 플레이어 목록을 배열로 변환
+// 플레이어 목록을 배열로 변환 (캐릭터 URL 포함 — 각 유저가 선택한 캐릭터로 표시)
 function getPlayersArray(session: GameSession) {
   return Array.from(session.players.values()).map((p) => ({
     id: p.userId,
@@ -1244,6 +1262,8 @@ function getPlayersArray(session: GameSession) {
     isHost: p.isHost,
     score: p.score,
     joinedAt: p.joinedAt.getTime(),
+    character: p.characterUrl || "/character1.glb",
+    characterUrl: p.characterUrl || "/character1.glb",
   }));
 }
 
@@ -1271,8 +1291,8 @@ io.on("connection", (socket) => {
     console.log(`[Socket] ${socket.id} left room ${roomId}`);
   });
 
-  // 게임 방 입장 (인증 필요)
-  socket.on("game_join", async ({ roomId, userId }) => {
+  // 게임 방 입장 (인증 필요). characterUrl: 클라이언트가 장착한 캐릭터 (다른 유저에게 표시용)
+  socket.on("game_join", async ({ roomId, userId, characterUrl }) => {
     try {
       if (!roomId || !userId) {
         socket.emit("game_error", { message: "roomId and userId are required" });
@@ -1316,10 +1336,14 @@ io.on("connection", (socket) => {
       socketRoomId = roomId;
       socket.join(roomId);
 
+      const defaultChar = "/character1.glb";
+      const charUrl = typeof characterUrl === "string" && characterUrl.trim() ? characterUrl.trim() : defaultChar;
+
       if (isReconnecting) {
-        // 재접속: 소켓 ID와 isHost 상태 업데이트 (방장이 변경되었을 수 있음)
+        // 재접속: 소켓 ID, isHost, 캐릭터 URL 업데이트
         const player = session.players.get(userId)!;
         player.socketId = socket.id;
+        player.characterUrl = charUrl;
         const isHost = room.hostId === userId;
         console.log(`[game_join] Reconnecting player ${user.nickname} (${userId}), room.hostId: ${room.hostId}, isHost: ${isHost}, roomStatus: ${room.status}`);
         player.isHost = isHost; // 방장 상태 최신화
@@ -1334,6 +1358,7 @@ io.on("connection", (socket) => {
           score: 0,
           joinedAt: new Date(),
           isHost,
+          characterUrl: charUrl,
         };
         session.players.set(userId, player);
 

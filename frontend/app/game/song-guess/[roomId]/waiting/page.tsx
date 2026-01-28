@@ -104,18 +104,16 @@ export default function WaitingRoomPage() {
   useEffect(() => {
     if (isPreview || !socket || !roomId) return;
 
-    // 플레이어 목록 업데이트 리스너
+    // 플레이어 목록 업데이트 리스너 (서버에서 각 유저의 character/characterUrl 전달 — 선택한 캐릭터로 표시)
     const handlePlayersUpdate = (data: { 
       roomId: string; 
-      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number; character?: string; characterUrl?: string }>;
       sessionStatus: string;
     }) => {
       if (data.roomId === roomId) {
         const playersWithCharacters = data.players.map((player) => {
-          const equippedCharacter = typeof window !== 'undefined' 
-            ? localStorage.getItem(`equipped-character-${player.id}`) 
-            : null;
-          const url = toDisplayModelUrl(equippedCharacter || '/character1.glb');
+          const fromServer = player.character ?? player.characterUrl;
+          const url = toDisplayModelUrl(fromServer || '/character1.glb');
           return {
             id: player.id,
             name: player.name,
@@ -176,12 +174,15 @@ export default function WaitingRoomPage() {
     };
   }, [socket, roomId, currentUserId, router]);
 
-  // 2. 방 입장 처리 (퇴장 로직 완전 제거, 미리보기 시 스킵)
+  // 2. 방 입장 처리 (퇴장 로직 완전 제거, 미리보기 시 스킵). 캐릭터 URL 전송 → 다른 유저에게 선택한 캐릭터로 보이게
   useEffect(() => {
     if (isPreview) return;
     if (socket && roomId && currentUserId && !hasJoinedRef.current) {
       console.log('[WaitingRoom] Joining game room:', roomId);
-      socket.emit('game_join', { roomId, userId: currentUserId });
+      const char = typeof window !== 'undefined'
+        ? toDisplayModelUrl(localStorage.getItem(`equipped-character-${currentUserId}`) || '/character1.glb')
+        : '/character1.glb';
+      socket.emit('game_join', { roomId, userId: currentUserId, characterUrl: char });
       hasJoinedRef.current = true;
     }
   }, [isPreview, socket, roomId, currentUserId]);

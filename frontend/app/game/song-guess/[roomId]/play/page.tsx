@@ -611,6 +611,7 @@ export default function GamePlayPage() {
   const [roomGenres, setRoomGenres] = useState<string[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const usedSongIdsRef = useRef<Set<string>>(new Set());
+  const usedInRoundIdsRef = useRef<Set<string>>(new Set()); // 한 라운드 안에서만 사용한 곡 ID (라운드 시작 시 초기화)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [bubbleMessages, setBubbleMessages] = useState<BubbleMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -904,6 +905,7 @@ export default function GamePlayPage() {
   // 다음 라운드 시작
   const startNextRound = () => {
     setShowRoundEndModal(false);
+    usedInRoundIdsRef.current.clear(); // 새 라운드에서 같은 노래 다시 나올 수 있도록 라운드 내 사용 목록만 비움
     
     // 오디오 정리 및 상태 초기화
     if (audioRef.current) {
@@ -1077,6 +1079,7 @@ export default function GamePlayPage() {
       const gameSong = randomSongToGameSong({ ...data.song, genre: '' } as RandomSongFromApi);
       setCurrentSongData(gameSong);
       usedSongIdsRef.current.add(data.song.id);
+      usedInRoundIdsRef.current.add(data.song.id);
       setLyrics('');
       if (simulationIntervalRef.current) {
         clearInterval(simulationIntervalRef.current);
@@ -1142,7 +1145,10 @@ export default function GamePlayPage() {
     if (hasJoinedRef.current) return;
     hasJoinedRef.current = true;
     console.log('[Play] Joining game room:', roomId);
-    socket.emit('game_join', { roomId, userId: currentUserId });
+    const char = typeof window !== 'undefined'
+      ? toDisplayModelUrl(localStorage.getItem(`equipped-character-${currentUserId}`) || '/character1.glb')
+      : '/character1.glb';
+    socket.emit('game_join', { roomId, userId: currentUserId, characterUrl: char });
     // ❌ return () => { socket.emit('game_leave', ...) } 금지 — 여기서 cleanup 두지 않음
   }, [socket, roomId, currentUserId]);
 
@@ -1382,7 +1388,8 @@ export default function GamePlayPage() {
     }
 
     const genre = roomGenres[currentRound - 1] ?? roomGenres[0] ?? '발라드';
-    const exclude = Array.from(usedSongIdsRef.current).join(',');
+    const excludeIds = new Set([...usedInRoundIdsRef.current, ...usedSongIdsRef.current]);
+    const exclude = Array.from(excludeIds).join(',');
     console.log('[Play] 노래 요청: genre=', genre, 'exclude=', exclude || '(없음)');
 
     try {
@@ -1416,7 +1423,8 @@ export default function GamePlayPage() {
 
       // 실방: 방장이 재생 시 서버로 곡만 보내고, song_guess_sync로 모든 클라이언트(방장 포함)가 같은 곡 재생
       if (roomId !== 'preview-room' && socket) {
-        usedSongIdsRef.current.add(song.id); // 한 게임 내 노래 중복 방지용으로 즉시 기록
+        usedSongIdsRef.current.add(song.id);
+        usedInRoundIdsRef.current.add(song.id);
         socket.emit('song_guess_play', {
           roomId,
           song: { id: song.id, title: song.title, artist: song.artist, mp3Url: song.mp3Url },

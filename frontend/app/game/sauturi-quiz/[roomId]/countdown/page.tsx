@@ -16,6 +16,8 @@ interface Player {
 
 const PLAYERS_KEY = (rid: string) => `sauturi-quiz-room-${rid}-players`;
 
+const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
+
 export default function CountdownPage() {
   const router = useRouter();
   const params = useParams();
@@ -51,14 +53,12 @@ export default function CountdownPage() {
 
     const handlePlayersUpdate = (data: {
       roomId: string;
-      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number; character?: string; characterUrl?: string }>;
     }) => {
       if (data.roomId !== roomId) return;
       const forPlay = data.players.map((p) => {
-        const url =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(`equipped-character-${p.id}`) || '/character1.glb'
-            : '/character1.glb';
+        const fromServer = p.character ?? p.characterUrl;
+        const url = toDisplayModelUrl(fromServer || '/character1.glb');
         return {
           id: p.id,
           name: p.name,
@@ -79,7 +79,10 @@ export default function CountdownPage() {
 
     if (!hasJoinedRef.current) {
       hasJoinedRef.current = true;
-      socket.emit('game_join', { roomId, userId });
+      const char = typeof window !== 'undefined'
+        ? toDisplayModelUrl(localStorage.getItem(`equipped-character-${userId}`) || '/character1.glb')
+        : '/character1.glb';
+      socket.emit('game_join', { roomId, userId, characterUrl: char });
     }
 
     return () => {
