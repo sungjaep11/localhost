@@ -1,6 +1,6 @@
 /**
- * public/default_characters/ = (1) 없는 정적 GLB
- * public/animated_characters/ = (1) 있는 애니메이션 GLB
+ * public/default_characters/ = 기본 정적 GLB
+ * public/animated_characters/ = 애니메이션 포함 GLB (boy_ani.glb 등)
  * 저장/API에서는 기존 경로(/character1.glb, /cute+girl.glb 등) 유지하고,
  * 실제 로드 시 toDefaultCharacterPath / toAnimatedCharacterPath 사용.
  */
@@ -19,13 +19,48 @@ export function toDefaultCharacterPath(url: string): string {
   return `/default_characters/${name}.glb`;
 }
 
-/** 애니메이션 GLB 로드 시 사용할 경로. princess는 (1) 없음 → default 사용 */
+/** 애니메이션 GLB 로드 시 사용할 경로. princess 등 애니가 없는 캐릭터는 default 사용 */
 export function toAnimatedCharacterPath(displayUrl: string): string {
   if (!displayUrl?.trim()) return '/default_characters/character1.glb';
+
+  // 이미 animated_characters 경로면 그대로 사용 (백워드 호환)
+  if (displayUrl.startsWith('/animated_characters/')) {
+    return displayUrl;
+  }
+
+  // (1) 접미사를 쓰던 예전 경로도 그대로 지원
+  if (/\(1\)\.glb$/i.test(displayUrl)) {
+    const baseLegacy = displayUrl.replace(/\s*\(1\)\s*\.glb$/i, ' (1).glb').trim();
+    if (baseLegacy.startsWith('/animated_characters/')) return baseLegacy;
+    const legacyName = baseLegacy.replace(/^\/+/, '').split('/').pop() || 'character1 (1).glb';
+    return `/animated_characters/${legacyName}`;
+  }
+
   const base = displayUrl.replace(/\s*\(1\)\s*\.glb$/i, '.glb').trim();
   const name = base.replace(/^\/+/, '').split('/').pop()?.replace(/\.glb$/i, '') || 'character1';
-  if (name.includes('princess')) return '/default_characters/princess.glb';
-  return `/animated_characters/${name} (1).glb`;
+
+  // 캐릭터별 애니메이션 파일 매핑 (_ani 접미사)
+  const animatedNameMap: Record<string, string> = {
+    'boy': 'boy_ani',
+    'bunny': 'bunny_ani',
+    'cute+girl': 'cute+girl_ani',
+    'gym+rat': 'gym+rat_ani',
+    'hamster': 'hamster_ani',
+    'wizard': 'wizard_ani',
+  };
+
+  if (name.includes('princess')) {
+    // 공주는 별도 애니 파일이 없으므로 기본 GLB 사용
+    return '/default_characters/princess.glb';
+  }
+
+  const animated = animatedNameMap[name];
+  if (animated) {
+    return `/animated_characters/${animated}.glb`;
+  }
+
+  // 매핑이 없으면 기본 GLB로 폴백
+  return `/default_characters/${name}.glb`;
 }
 
 /** useGLTF 등에 넘길 때 공백·+ 인코딩 (cute+girl 등 파일명 404 방지) */
