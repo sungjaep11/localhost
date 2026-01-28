@@ -1652,6 +1652,12 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("song_guess_sync", { roomId, song: { id: song.id, title: song.title, artist: song.artist, mp3Url: song.mp3Url } });
   });
 
+  // 노래 맞추기: 라운드 종료 시 방 전체에 알림 — 비방장도 동시에 "다음 라운드" 모달 보이게
+  socket.on("game_round_end", ({ roomId, round }: { roomId: string; round: number }) => {
+    if (!roomId) return;
+    io.to(roomId).emit("game_round_end", { roomId, round });
+  });
+
   // 사투리 가사 맞추기: 가사/정답 동기화 (방장이 로드 시 전체에게 전파)
   socket.on("sauturi_lyric_sync", ({ roomId, dialect, original, title, artist }: { roomId: string; dialect: string; original?: string; title?: string; artist?: string }) => {
     if (!roomId || !dialect) return;
@@ -1662,6 +1668,12 @@ io.on("connection", (socket) => {
   socket.on("sauturi_turn_end", ({ roomId, nobodyGotIt, answer, title, artist }: { roomId: string; nobodyGotIt: boolean; answer?: string; title?: string; artist?: string }) => {
     if (!roomId) return;
     io.to(roomId).emit("sauturi_turn_end", { roomId, nobodyGotIt: !!nobodyGotIt, answer: answer ?? "", title: title ?? "", artist: artist ?? "" });
+  });
+
+  // 사투리 가사 맞추기: 라운드 종료 시 방 전체에 알림 — 비방장도 동시에 "다음 라운드" 모달 보이게
+  socket.on("sauturi_round_end", ({ roomId, round }: { roomId: string; round: number }) => {
+    if (!roomId) return;
+    io.to(roomId).emit("sauturi_round_end", { roomId, round });
   });
 
   // 연결 해제 처리

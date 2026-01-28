@@ -249,7 +249,6 @@ const HostCharacter = memo(({
   totalDuration,
   currentTime,
   onPlayClick,
-  onSkipClick,
   isCurrentUserHost
 }: { 
   host: Player;
@@ -261,7 +260,6 @@ const HostCharacter = memo(({
   totalDuration: number;
   currentTime: number;
   onPlayClick: () => void;
-  onSkipClick: () => void;
   isCurrentUserHost: boolean;
 }) => {
   return (
@@ -378,8 +376,9 @@ const HostCharacter = memo(({
           {isPlaying ? "🎵 재생 중..." : gamePhase === 'waiting' ? "대기 중" : "정답 공개"}
         </div>
 
-        {/* 재생 버튼 */}
+        {/* 재생 버튼 (방장만 표시) */}
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          {isCurrentUserHost && (
           <button
             onClick={onPlayClick}
             disabled={isPlaying && !lyrics && gamePhase === 'playing'}
@@ -416,6 +415,7 @@ const HostCharacter = memo(({
               </svg>
             )}
           </button>
+          )}
 
           {/* 재생 시간 표시 */}
           {totalDuration > 0 && (
@@ -429,31 +429,6 @@ const HostCharacter = memo(({
             >
               {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
             </div>
-          )}
-
-          {/* 스킵 버튼 (방장만) */}
-          {isCurrentUserHost && isPlaying && (
-            <button
-              onClick={onSkipClick}
-              style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "50%",
-                background: "rgba(255, 165, 0, 0.2)",
-                border: "2px solid rgba(255, 165, 0, 0.6)",
-                color: "#ffa500",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.3s ease",
-              }}
-              title="스킵 (정답 공개)"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-              </svg>
-            </button>
           )}
         </div>
       </div>
@@ -469,6 +444,7 @@ const HostCharacter = memo(({
     prevProps.gamePhase === nextProps.gamePhase &&
     prevProps.lyrics === nextProps.lyrics &&
     prevProps.isAudioPlaying === nextProps.isAudioPlaying &&
+    prevProps.isCurrentUserHost === nextProps.isCurrentUserHost &&
     Math.floor(prevProps.currentTime) === Math.floor(nextProps.currentTime) &&
     Math.floor(prevProps.totalDuration) === Math.floor(nextProps.totalDuration)
   );
@@ -906,12 +882,13 @@ export default function GamePlayPage() {
     setTotalDuration(0);
 
     if (s >= spr) {
-      // 이번 라운드 마지막 곡까지 끝남 → 라운드 종료
+      // 이번 라운드 마지막 곡까지 끝남 → 라운드 종료 (방 전체에 브로드캐스트해 비방장도 동시에 모달)
       if (r >= tr) {
         endGame();
       } else {
         setShowRoundEndModal(true);
         setGamePhase('round_end');
+        if (socket && roomId) socket.emit('game_round_end', { roomId, round: r });
       }
     } else {
       // 다음 곡 (다음 곡은 방장이 재생 버튼 누를 때 API로 장르별 랜덤 로드)
@@ -1133,15 +1110,23 @@ export default function GamePlayPage() {
       });
     };
 
+    const handleGameRoundEnd = (data: { roomId: string; round: number }) => {
+      if (data.roomId !== roomId) return;
+      setShowRoundEndModal(true);
+      setGamePhase('round_end');
+    };
+
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
     socket.on('song_guess_sync', handleSongGuessSync);
+    socket.on('game_round_end', handleGameRoundEnd);
 
     // ❌ cleanup에서 game_leave를 보내면 Strict Mode 시 무한 루프 발생
     return () => {
       socket.off('game_players_update', handlePlayersUpdate);
       socket.off('game_chat', handleChatMessage);
       socket.off('song_guess_sync', handleSongGuessSync);
+      socket.off('game_round_end', handleGameRoundEnd);
       if (answerModalTimeoutRef.current) {
         clearTimeout(answerModalTimeoutRef.current);
         answerModalTimeoutRef.current = null;
@@ -1431,6 +1416,7 @@ export default function GamePlayPage() {
 
       // 실방: 방장이 재생 시 서버로 곡만 보내고, song_guess_sync로 모든 클라이언트(방장 포함)가 같은 곡 재생
       if (roomId !== 'preview-room' && socket) {
+        usedSongIdsRef.current.add(song.id); // 한 게임 내 노래 중복 방지용으로 즉시 기록
         socket.emit('song_guess_play', {
           roomId,
           song: { id: song.id, title: song.title, artist: song.artist, mp3Url: song.mp3Url },
@@ -1575,7 +1561,7 @@ export default function GamePlayPage() {
           );
         })}
       </div>
-      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
       {/* mp3 재생용 오디오 엘리먼트 (friend API는 /api/songs/random → mp3Url 사용) */}
       <div
         id="youtube-player-host"
@@ -1981,6 +1967,7 @@ export default function GamePlayPage() {
         style={{
           display: "flex",
           flex: 1,
+          minHeight: 0,
           gap: "1rem",
         }}
       >
@@ -2007,11 +1994,6 @@ export default function GamePlayPage() {
               } else {
                 console.log('[Play] 조건 불충족 - gamePhase가 waiting이 아님');
               }
-            }}
-            onSkipClick={() => {
-              setIsPlaying(false);
-              setGamePhase('answer_revealed');
-              setShowAnswerModal(true);
             }}
             isCurrentUserHost={host?.id === currentUserId}
           />

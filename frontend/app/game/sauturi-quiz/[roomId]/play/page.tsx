@@ -165,6 +165,7 @@ export default function GamePlayPage() {
         router.push('/main/lobby');
       } else {
         setShowSauturiRoundEndModal(true);
+        if (socket && roomId) socket.emit('sauturi_round_end', { roomId, round: r });
       }
     } else {
       setCurrentSong(s + 1);
@@ -409,10 +410,16 @@ export default function GamePlayPage() {
       setSauturiNobodyGotIt(true);
     };
 
+    const handleSauturiRoundEnd = (data: { roomId: string; round: number }) => {
+      if (data.roomId !== roomId) return;
+      setShowSauturiRoundEndModal(true);
+    };
+
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
     socket.on('sauturi_lyric_sync', handleSauturiLyricSync);
     socket.on('sauturi_turn_end', handleSauturiTurnEnd);
+    socket.on('sauturi_round_end', handleSauturiRoundEnd);
 
     // Cleanup: 리스너만 제거 (game_leave 절대 하지 않음!)
     return () => {
@@ -420,6 +427,7 @@ export default function GamePlayPage() {
       socket.off('game_chat', handleChatMessage);
       socket.off('sauturi_lyric_sync', handleSauturiLyricSync);
       socket.off('sauturi_turn_end', handleSauturiTurnEnd);
+      socket.off('sauturi_round_end', handleSauturiRoundEnd);
     };
   }, [socket, roomId]);
 
@@ -864,7 +872,7 @@ export default function GamePlayPage() {
           );
         })}
       </div>
-      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
       {/* 나가기 확인 모달 */}
       {showExitModal && (
         <div
@@ -1171,6 +1179,7 @@ export default function GamePlayPage() {
         style={{
           display: "flex",
           flex: 1,
+          minHeight: 0,
           gap: "1rem",
         }}
       >
