@@ -14,13 +14,6 @@ interface Character {
   modelUrl: string;
 }
 
-interface Action {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-}
-
 // GLB 로드 시 lib의 toGlbLoadUrl 사용 (공백·+ 인코딩)
 const toGlbUrl = toGlbLoadUrl;
 
@@ -113,9 +106,7 @@ export default function ShopPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string>('');
   const [coins, setCoins] = useState(3000);
-  const [activeTab, setActiveTab] = useState<'character' | 'action'>('character');
   const [purchasedCharacters, setPurchasedCharacters] = useState<string[]>([]);
-  const [purchasedActions, setPurchasedActions] = useState<string[]>([]);
   const [equippedCharacter, setEquippedCharacter] = useState<string>('/character1.glb');
   const characterScrollRef = useRef<HTMLDivElement>(null);
   const [previewCharacter, setPreviewCharacter] = useState<Character | null>(null);
@@ -163,10 +154,6 @@ export default function ShopPage() {
     const purchased = JSON.parse(localStorage.getItem(`purchasedCharacters-${storedUserId}`) || '["char1"]');
     setPurchasedCharacters(purchased);
 
-    // 구매한 행동 불러오기 (사용자별)
-    const purchasedActs = JSON.parse(localStorage.getItem(`purchasedActions-${storedUserId}`) || '[]');
-    setPurchasedActions(purchasedActs);
-
     // 장착한 캐릭터 불러오기 (기존 (1) 경로는 표시용 비(1)로 정규화)
     const equipped = localStorage.getItem(`equipped-character-${storedUserId}`);
     setEquippedCharacter(toDisplayModelUrl(equipped || '') || '/character1.glb');
@@ -184,13 +171,6 @@ export default function ShopPage() {
     { id: 'char8', name: '공주', price: 2000, modelUrl: '/princess.glb' },
     { id: 'char9', name: '스타일리시 소녀', price: 1600, modelUrl: '/stylized+girl.glb' },
     { id: 'char10', name: '마법사', price: 2200, modelUrl: '/wizard.glb' },
-  ];
-
-  // 행동 데이터
-  const actions: Action[] = [
-    { id: 'action1', name: '춤추기', price: 500, description: '신나는 춤을 춥니다' },
-    { id: 'action2', name: '인사하기', price: 300, description: '손을 흔들어 인사합니다' },
-    { id: 'action3', name: '점프', price: 400, description: '높이 점프합니다' },
   ];
 
   const handlePurchaseCharacter = (item: Character) => {
@@ -212,25 +192,6 @@ export default function ShopPage() {
     setPurchaseSuccessModal({ message: `${item.name}을(를) 구매했습니다!` });
   };
 
-  const handlePurchaseAction = (item: Action) => {
-    if (coins < item.price) {
-      setPurchaseSuccessModal({ message: '코인이 부족합니다!', isError: true });
-      return;
-    }
-
-    // 구매 처리
-    const newCoins = coins - item.price;
-    setCoins(newCoins);
-    localStorage.setItem(`userCoins-${userId}`, newCoins.toString());
-
-    // 구매한 아이템 저장 (사용자별)
-    const newPurchased = [...purchasedActions, item.id];
-    setPurchasedActions(newPurchased);
-    localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify(newPurchased));
-
-    setPurchaseSuccessModal({ message: `${item.name}을(를) 구매했습니다!` });
-  };
-
   const handleEquip = (character: Character) => {
     localStorage.setItem(`equipped-character-${userId}`, character.modelUrl);
     setEquippedCharacter(character.modelUrl);
@@ -239,10 +200,6 @@ export default function ShopPage() {
 
   const isCharacterOwned = (characterId: string) => {
     return purchasedCharacters.includes(characterId);
-  };
-
-  const isActionOwned = (actionId: string) => {
-    return purchasedActions.includes(actionId);
   };
 
   const isEquipped = (character: Character) => {
@@ -358,46 +315,9 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* 탭 */}
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", zIndex: 10 }}>
-        <button
-          onClick={() => setActiveTab('character')}
-          style={{
-            padding: "1rem 2rem",
-            background: activeTab === 'character' ? "linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 200, 0, 0.3))" : "rgba(0, 0, 0, 0.5)",
-            border: activeTab === 'character' ? "3px solid rgba(255, 165, 0, 0.8)" : "2px solid rgba(255, 255, 255, 0.3)",
-            borderRadius: "12px",
-            color: "#ffffff",
-            fontSize: "1.1rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-          }}
-        >
-          캐릭터
-        </button>
-        <button
-          onClick={() => setActiveTab('action')}
-          style={{
-            padding: "1rem 2rem",
-            background: activeTab === 'action' ? "linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 200, 0, 0.3))" : "rgba(0, 0, 0, 0.5)",
-            border: activeTab === 'action' ? "3px solid rgba(255, 165, 0, 0.8)" : "2px solid rgba(255, 255, 255, 0.3)",
-            borderRadius: "12px",
-            color: "#ffffff",
-            fontSize: "1.1rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-          }}
-        >
-          행동
-        </button>
-      </div>
-
       {/* 콘텐츠 영역 — minHeight 0으로 flex 스크롤 영역 확보 */}
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
-        {activeTab === 'character' ? (
-          <div style={{ position: "relative", height: "100%", minHeight: "320px", display: "flex", alignItems: "stretch" }}>
+        <div style={{ position: "relative", height: "100%", minHeight: "320px", display: "flex", alignItems: "stretch" }}>
             {/* 왼쪽 스크롤 버튼 */}
             <button
               type="button"
@@ -570,98 +490,6 @@ export default function ShopPage() {
               </svg>
             </button>
           </div>
-        ) : (
-          /* 행동 탭 */
-          <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", padding: "1rem" }}>
-            {actions.map((action) => {
-              const owned = isActionOwned(action.id);
-              return (
-                <div
-                  key={action.id}
-                  style={{
-                    minWidth: "250px", background: "rgba(0, 0, 0, 0.6)",
-                    backdropFilter: "blur(10px)",
-                    border: owned ? "3px solid rgba(0, 255, 0, 0.8)" : "2px solid rgba(255, 0, 255, 0.5)",
-                    borderRadius: "16px", padding: "1.5rem",
-                    display: "flex", flexDirection: "column", gap: "1rem",
-                    position: "relative",
-                    boxShadow: owned ? "0 0 20px rgba(0, 255, 0, 0.4)" : "none",
-                  }}
-                >
-                  {owned && (
-                    <div style={{
-                      position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)",
-                      background: "linear-gradient(135deg, #00ff00, #00cc00)",
-                      padding: "0.25rem 1rem", borderRadius: "20px", color: "#000",
-                      fontSize: "0.75rem", fontWeight: 700,
-                    }}>
-                      보유중
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <div style={{
-                      width: "60px", height: "60px", background: "rgba(255, 0, 255, 0.2)",
-                      borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center",
-                      border: "2px solid rgba(255, 0, 255, 0.5)",
-                    }}>
-                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff00ff" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div style={{ color: "#ffffff", fontSize: "1.2rem", fontWeight: 600 }}>
-                        {action.name}
-                      </div>
-                      <div style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.9rem" }}>
-                        {action.description}
-                      </div>
-                    </div>
-                  </div>
-
-                  {!owned && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ color: "#ffd700" }}>
-                        <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"/>
-                        <path d="M12 6v12M8 10h8M8 14h8" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
-                      <span style={{ color: "#ffd700", fontSize: "1rem", fontWeight: 700 }}>
-                        {action.price.toLocaleString()}p
-                      </span>
-                    </div>
-                  )}
-
-                  {owned ? (
-                    <div style={{
-                      padding: "0.75rem", background: "rgba(0, 255, 0, 0.2)",
-                      border: "2px solid rgba(0, 255, 0, 0.5)", borderRadius: "8px",
-                      color: "rgba(0, 255, 0, 0.8)", fontSize: "1rem", fontWeight: 600,
-                      textAlign: "center",
-                    }}>
-                      보유 중
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handlePurchaseAction(action)}
-                      disabled={coins < action.price}
-                      style={{
-                        padding: "0.75rem",
-                        background: coins >= action.price ? "linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(200, 0, 255, 0.3))" : "rgba(0, 0, 0, 0.3)",
-                        border: coins >= action.price ? "2px solid rgba(255, 0, 255, 0.8)" : "2px solid rgba(255, 0, 0, 0.5)",
-                        borderRadius: "8px", color: coins >= action.price ? "#ff00ff" : "rgba(255, 0, 0, 0.8)",
-                        fontSize: "1rem", fontWeight: 600, cursor: coins >= action.price ? "pointer" : "not-allowed",
-                        transition: "all 0.3s ease",
-                      }}
-                    >
-                      구매하기
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* 구매/장착/에러 알림 모달 — 테마 스타일 */}
