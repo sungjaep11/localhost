@@ -13,12 +13,6 @@ interface Character {
   modelUrl: string;
 }
 
-interface Action {
-  id: string;
-  name: string;
-  description: string;
-}
-
 // 캐릭터 목록 — default_characters/ 로 표시, 애니 필요 시 toAnimatedCharacterPath 사용
 const ALL_CHARACTERS: Character[] = [
   { id: 'char1', name: '기본 캐릭터', modelUrl: '/character1.glb' },
@@ -33,15 +27,12 @@ const ALL_CHARACTERS: Character[] = [
   { id: 'char10', name: '마법사', modelUrl: '/wizard.glb' },
 ];
 
-// 행동 목록
-const ALL_ACTIONS: Action[] = [
-  { id: 'action1', name: '춤추기', description: '신나는 춤을 춥니다' },
-  { id: 'action2', name: '인사하기', description: '손을 흔들어 인사합니다' },
-  { id: 'action3', name: '점프', description: '높이 점프합니다' },
-];
-
 // GLB 로드 시 lib의 toGlbLoadUrl 사용 (공백·+ 인코딩)
 const toGlbUrl = toGlbLoadUrl;
+
+function animationKey(modelUrl: string, index: number): string {
+  return `${toDisplayModelUrl(modelUrl)}:${index}`;
+}
 
 // 3D 모델 컴포넌트 (메인용) — animationName 있으면 animated_characters/ 에서 로드 후 그 행동 반복 재생
 // 애니 재생 시 scene 그대로 사용 (clone 사용 시 mixer가 원본 대상이라 애니메이션이 보이지 않음)
@@ -64,9 +55,9 @@ function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: 
   const isCharacter1 = loadUrl.includes('character1');
   const isPrincess = loadUrl.includes('princess');
   const isAnimFile = loadUrl.includes('animated_characters');
-  const modelScale = isPrincess ? 2.2 : (isCharacter1 ? 2.0 : 4.2);
-  const positionY = isCharacter1 ? -1.0 : -0.2;
-  const rotation: [number, number, number] = isAnimFile ? [0, Math.PI / 2, 0] : [0, -Math.PI / 2, 0];
+  const modelScale = isPrincess ? 2.2 : (isCharacter1 ? 2.0 : 3.6);
+  const positionY = isCharacter1 ? -1.0 : -0.6;
+  const rotation: [number, number, number] = isAnimFile ? [0, Math.PI / 4, 0] : [0, -Math.PI / 2, 0];
   const effectiveScale = scaleProp != null ? scaleProp : modelScale;
   return <primitive ref={group} object={scene} scale={effectiveScale} position={[0, positionY, 0]} rotation={rotation} />;
 }
@@ -96,12 +87,12 @@ function SmallModel({ url }: { url: string }) {
 // 메인 캐릭터 뷰어 — 고른 행동(애니메이션) 재생, 왼쪽 "현재 장착 중인 캐릭터"용
 function MainCharacterViewer({ modelUrl, animationName }: { modelUrl: string; animationName?: string | null }) {
   const isCharacter1 = modelUrl.includes('character1');
-  const cameraY = isCharacter1 ? 0.0 : 0.2;
-  const cameraZ = isCharacter1 ? 4.0 : 4.5;
-  const modelScale = isCharacter1 ? 2.4 : 3.8;
+  const cameraY = isCharacter1 ? 0.0 : 0.15;
+  const cameraZ = isCharacter1 ? 4.0 : 5.0;
+  const modelScale = isCharacter1 ? 2.4 : 3.4;
   return (
     <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
-      <Canvas camera={{ position: [0, cameraY, cameraZ], fov: 48 }}>
+      <Canvas camera={{ position: [0, cameraY, cameraZ], fov: 46 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
@@ -171,7 +162,7 @@ export default function MyPage() {
   const [equippedAction, setEquippedAction] = useState<string | null>(null);
   const [availableActionNames, setAvailableActionNames] = useState<string[]>([]);
   const [ownedCharacters, setOwnedCharacters] = useState<Character[]>([]);
-  const [ownedActions, setOwnedActions] = useState<Action[]>([]);
+  const [purchasedAnimations, setPurchasedAnimations] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'characters' | 'actions'>('characters');
 
   useEffect(() => {
@@ -215,12 +206,9 @@ export default function MyPage() {
     const owned = ALL_CHARACTERS.filter(c => purchasedCharacterIds.includes(c.id));
     setOwnedCharacters(owned);
 
-    // 보유한 행동 불러오기
-    const purchasedActionIds = JSON.parse(
-      localStorage.getItem(`purchasedActions-${storedUserId}`) || '[]'
-    );
-    const ownedActs = ALL_ACTIONS.filter(a => purchasedActionIds.includes(a.id));
-    setOwnedActions(ownedActs);
+    // 구매한 애니메이션 불러오기 (modelUrl:index)
+    const animKeys = JSON.parse(localStorage.getItem(`purchasedAnimations-${storedUserId}`) || '[]');
+    setPurchasedAnimations(animKeys);
   }, [router]);
 
   const handleSaveName = () => {
@@ -680,7 +668,7 @@ export default function MyPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              행동 ({ownedActions.length})
+              행동 ({purchasedAnimations.length})
             </button>
           </div>
 
@@ -851,28 +839,55 @@ export default function MyPage() {
                       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
                         {toAnimatedCharacterPath(equippedCharacter).includes('animated_characters') ? '캐릭터 로딩 중…' : '이 캐릭터에는 애니메이션이 없습니다. animated_characters에 있는 캐릭터만 행동 목록이 표시됩니다.'}
                       </div>
-                    ) : (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                        {availableActionNames.map((name, idx) => (
-                          <button
-                            key={name}
-                            onClick={() => handleEquipAction(name)}
-                            style={{
-                              padding: "0.5rem 1rem",
-                              background: equippedAction === name ? "rgba(0, 255, 255, 0.35)" : "rgba(0, 255, 255, 0.1)",
-                              border: `2px solid ${equippedAction === name ? "rgba(0, 255, 255, 0.9)" : "rgba(0, 255, 255, 0.4)"}`,
-                              borderRadius: "8px",
-                              color: "#00ffff",
-                              cursor: "pointer",
-                              fontSize: "0.9rem",
-                              fontWeight: equippedAction === name ? 700 : 500,
-                            }}
-                          >
-                            애니메이션 {idx + 1}{equippedAction === name ? ' ✓' : ''}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    ) : (() => {
+                      const ownedForChar = availableActionNames
+                        .map((name, idx) => ({ name, idx, key: animationKey(equippedCharacter, idx) }))
+                        .filter(({ key }) => purchasedAnimations.includes(key));
+                      if (ownedForChar.length === 0) {
+                        return (
+                          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
+                            이 캐릭터용 구매한 애니메이션이 없습니다.{' '}
+                            <button
+                              type="button"
+                              onClick={() => router.push('/main/shop')}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "#00ffff",
+                                textDecoration: "underline",
+                                cursor: "pointer",
+                                padding: 0,
+                                fontSize: "inherit",
+                              }}
+                            >
+                              상점에서 구매하세요.
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                          {ownedForChar.map(({ name, idx }) => (
+                            <button
+                              key={name}
+                              onClick={() => handleEquipAction(name)}
+                              style={{
+                                padding: "0.5rem 1rem",
+                                background: equippedAction === name ? "rgba(0, 255, 255, 0.35)" : "rgba(0, 255, 255, 0.1)",
+                                border: `2px solid ${equippedAction === name ? "rgba(0, 255, 255, 0.9)" : "rgba(0, 255, 255, 0.4)"}`,
+                                borderRadius: "8px",
+                                color: "#00ffff",
+                                cursor: "pointer",
+                                fontSize: "0.9rem",
+                                fontWeight: equippedAction === name ? 700 : 500,
+                              }}
+                            >
+                              애니메이션 {idx + 1}{equippedAction === name ? ' ✓' : ''}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -883,7 +898,7 @@ export default function MyPage() {
                     gap: "1rem",
                   }}
                 >
-                {ownedActions.length === 0 ? (
+                {purchasedAnimations.length === 0 ? (
                   <div
                     style={{
                       gridColumn: "1 / -1",
@@ -893,67 +908,80 @@ export default function MyPage() {
                       fontSize: "0.9rem",
                     }}
                   >
-                    상점에서 구매한 행동이 없습니다.
-                  </div>
-                ) : (
-                  ownedActions.map((action) => (
-                    <div
-                      key={action.id}
-                      className="game-action-card"
+                    상점에서 구매한 애니메이션이 없습니다.{' '}
+                    <button
+                      type="button"
+                      onClick={() => router.push('/main/shop')}
                       style={{
-                        background: "linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(200, 0, 255, 0.2))",
-                        border: "3px solid rgba(255, 0, 255, 0.6)",
-                        borderRadius: "16px",
-                        padding: "1.5rem",
-                        transition: "all 0.3s ease",
-                        boxShadow: "0 0 20px rgba(255, 0, 255, 0.3), inset 0 0 15px rgba(255, 0, 255, 0.1)",
-                        position: "relative",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-5px) scale(1.05)";
-                        e.currentTarget.style.boxShadow = "0 0 30px rgba(255, 0, 255, 0.5), inset 0 0 20px rgba(255, 0, 255, 0.15)";
-                        e.currentTarget.style.borderColor = "rgba(255, 0, 255, 0.9)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0) scale(1)";
-                        e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 255, 0.3), inset 0 0 15px rgba(255, 0, 255, 0.1)";
-                        e.currentTarget.style.borderColor = "rgba(255, 0, 255, 0.6)";
+                        background: "none",
+                        border: "none",
+                        color: "#00ffff",
+                        textDecoration: "underline",
+                        cursor: "pointer",
+                        padding: 0,
+                        fontSize: "inherit",
                       }}
                     >
+                      상점에서 구매하세요.
+                    </button>
+                  </div>
+                ) : (
+                  purchasedAnimations.map((key) => {
+                    const i = key.lastIndexOf(':');
+                    const modelUrl = key.slice(0, i);
+                    const index = parseInt(key.slice(i + 1), 10);
+                    const char = ALL_CHARACTERS.find((c) => toDisplayModelUrl(c.modelUrl) === modelUrl);
+                    const label = char ? `${char.name} - 애니메이션 ${index + 1}` : `애니메이션 ${index + 1}`;
+                    return (
                       <div
+                        key={key}
+                        className="game-action-card"
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          marginBottom: "0.5rem",
+                          background: "linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(200, 0, 255, 0.2))",
+                          border: "3px solid rgba(255, 0, 255, 0.6)",
+                          borderRadius: "16px",
+                          padding: "1.5rem",
+                          transition: "all 0.3s ease",
+                          boxShadow: "0 0 20px rgba(255, 0, 255, 0.3), inset 0 0 15px rgba(255, 0, 255, 0.1)",
+                          position: "relative",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-5px) scale(1.05)";
+                          e.currentTarget.style.boxShadow = "0 0 30px rgba(255, 0, 255, 0.5), inset 0 0 20px rgba(255, 0, 255, 0.15)";
+                          e.currentTarget.style.borderColor = "rgba(255, 0, 255, 0.9)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0) scale(1)";
+                          e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 0, 255, 0.3), inset 0 0 15px rgba(255, 0, 255, 0.1)";
+                          e.currentTarget.style.borderColor = "rgba(255, 0, 255, 0.6)";
                         }}
                       >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff00ff" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
                         <div
                           style={{
-                            color: "#ffffff",
-                            fontSize: "1.1rem",
-                            fontWeight: 700,
-                            textShadow: "0 0 10px rgba(255, 0, 255, 0.6)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                            marginBottom: "0.5rem",
                           }}
                         >
-                          {action.name}
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff00ff" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div
+                            style={{
+                              color: "#ffffff",
+                              fontSize: "1.1rem",
+                              fontWeight: 700,
+                              textShadow: "0 0 10px rgba(255, 0, 255, 0.6)",
+                            }}
+                          >
+                            {label}
+                          </div>
                         </div>
                       </div>
-                      <div
-                        style={{
-                          color: "rgba(255, 255, 255, 0.8)",
-                          fontSize: "0.9rem",
-                          marginTop: "0.5rem",
-                        }}
-                      >
-                        {action.description}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
                 </div>
               </div>

@@ -17,6 +17,11 @@ interface Character {
 // GLB 로드 시 lib의 toGlbLoadUrl 사용 (공백·+ 인코딩)
 const toGlbUrl = toGlbLoadUrl;
 
+const ANIMATION_PRICE = 300;
+function animationKey(modelUrl: string, index: number): string {
+  return `${toDisplayModelUrl(modelUrl)}:${index}`;
+}
+
 // Model 컴포넌트 (정적) — 상점 카드용, 250×300 박스에 맞춤. url은 논리 경로 → 실제 로드는 default_characters/
 function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
@@ -78,12 +83,12 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
   
   const isCharacter1 = url.includes('character1');
   const isPrincess = url.includes('princess');
-  const positionY = isCharacter1 ? (scaleModal ? -0.6 : -0.4) : (scaleModal ? 0 : 0);
+  const positionY = isCharacter1 ? (scaleModal ? -0.8 : -0.4) : (scaleModal ? -0.6 : 0);
   const scale = scaleModal
-    ? (isPrincess ? 2.0 : (isCharacter1 ? 1.4 : 2.2))
+    ? (isPrincess ? 1.8 : (isCharacter1 ? 1.3 : 1.9))
     : (isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5));
-  // 미리보기는 정면이 보기 좋게
-  const rotation: [number, number, number] = [0, 0, 0];
+  // 모달: 약간 아래로 내리고, Y 회전으로 정면 보이게, 머리 잘림 방지
+  const rotation: [number, number, number] = scaleModal ? [0, Math.PI / 4, 0] : [0, 0, 0];
   return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
@@ -113,6 +118,7 @@ export default function ShopPage() {
   const [previewAnimationNames, setPreviewAnimationNames] = useState<string[]>([]);
   const [previewPlayingName, setPreviewPlayingName] = useState<string | null>(null);
   const [purchaseSuccessModal, setPurchaseSuccessModal] = useState<{ message: string; isError?: boolean } | null>(null);
+  const [purchasedAnimations, setPurchasedAnimations] = useState<string[]>([]);
 
   // Horizontal wheel scroll: use non-passive listener so preventDefault is allowed
   useEffect(() => {
@@ -153,6 +159,10 @@ export default function ShopPage() {
     // 구매한 캐릭터 불러오기 (사용자별)
     const purchased = JSON.parse(localStorage.getItem(`purchasedCharacters-${storedUserId}`) || '["char1"]');
     setPurchasedCharacters(purchased);
+
+    // 구매한 애니메이션 불러오기 (modelUrl:index)
+    const animKeys = JSON.parse(localStorage.getItem(`purchasedAnimations-${storedUserId}`) || '[]');
+    setPurchasedAnimations(animKeys);
 
     // 장착한 캐릭터 불러오기 (표시용 경로 정규화)
     const equipped = localStorage.getItem(`equipped-character-${storedUserId}`);
@@ -196,6 +206,22 @@ export default function ShopPage() {
     localStorage.setItem(`equipped-character-${userId}`, character.modelUrl);
     setEquippedCharacter(character.modelUrl);
     setPurchaseSuccessModal({ message: `${character.name}을(를) 장착했습니다!` });
+  };
+
+  const handlePurchaseAnimation = (modelUrl: string, index: number) => {
+    if (coins < ANIMATION_PRICE) {
+      setPurchaseSuccessModal({ message: '코인이 부족합니다!', isError: true });
+      return;
+    }
+    const key = animationKey(modelUrl, index);
+    if (purchasedAnimations.includes(key)) return;
+    const newCoins = coins - ANIMATION_PRICE;
+    setCoins(newCoins);
+    localStorage.setItem(`userCoins-${userId}`, newCoins.toString());
+    const next = [...purchasedAnimations, key];
+    setPurchasedAnimations(next);
+    localStorage.setItem(`purchasedAnimations-${userId}`, JSON.stringify(next));
+    setPurchaseSuccessModal({ message: `애니메이션 ${index + 1}을(를) 구매했습니다!` });
   };
 
   const isCharacterOwned = (characterId: string) => {
@@ -391,28 +417,13 @@ export default function ShopPage() {
                     )}
 
                     <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        setPreviewCharacter(character);
-                        setPreviewPlayingName(null);
-                        setPreviewAnimationNames([]);
-                        // 애니 로드 후 첫 애니메이션 자동 선택은 onNames 콜백에서 처리
-                      }}
-                      onKeyDown={(e) => e.key === 'Enter' && (setPreviewCharacter(character), setPreviewPlayingName(null), setPreviewAnimationNames([]))}
                       style={{
                         width: "100%", height: "300px", background: "rgba(0, 0, 0, 0.3)",
                         borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0, 255, 255, 0.3)",
-                        cursor: "pointer", position: "relative",
+                        position: "relative",
                       }}
                     >
                       <CharacterModelViewer modelUrl={character.modelUrl} />
-                      <div style={{
-                        position: "absolute", bottom: "8px", left: "50%", transform: "translateX(-50%)",
-                        background: "rgba(0,0,0,0.7)", color: "#00ffff", fontSize: "0.8rem", padding: "4px 10px", borderRadius: "8px",
-                      }}>
-                        애니메이션 미리보기
-                      </div>
                     </div>
 
                     <div style={{ color: "#ffffff", fontSize: "1.1rem", fontWeight: 600 }}>
@@ -462,6 +473,22 @@ export default function ShopPage() {
                         구매하기
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewCharacter(character);
+                        setPreviewPlayingName(null);
+                        setPreviewAnimationNames([]);
+                      }}
+                      style={{
+                        width: "100%", padding: "0.5rem 0.75rem", marginTop: "0.5rem",
+                        background: "rgba(0, 255, 255, 0.1)", border: "2px solid rgba(0, 255, 255, 0.5)",
+                        borderRadius: "8px", color: "#00ffff", fontSize: "0.9rem", fontWeight: 600,
+                        cursor: "pointer", transition: "all 0.2s ease",
+                      }}
+                    >
+                      애니메이션
+                    </button>
                   </div>
                 );
               })}
@@ -639,7 +666,7 @@ export default function ShopPage() {
             </div>
             <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
               <div style={{ width: "400px", height: "400px", flexShrink: 0 }} key={toAnimatedCharacterPath(previewCharacter.modelUrl)}>
-                <Canvas camera={{ position: [0, 0.3, 2.2], fov: 52 }} frameloop="always">
+                <Canvas camera={{ position: [0, 0.2, 2.8], fov: 48 }} frameloop="always">
                   <ambientLight intensity={0.5} />
                   <directionalLight position={[10, 10, 5]} intensity={1} />
                   <Environment preset="city" />
@@ -663,19 +690,61 @@ export default function ShopPage() {
                   재생할 동작 선택
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {previewAnimationNames.length ? previewAnimationNames.map((name, idx) => (
-                    <button
-                      key={name}
-                      onClick={() => setPreviewPlayingName(name === previewPlayingName ? null : name)}
-                      style={{
-                        padding: "0.6rem 1rem", background: previewPlayingName === name ? "rgba(0,255,255,0.3)" : "rgba(0,255,255,0.1)",
-                        border: `2px solid ${previewPlayingName === name ? "rgba(0,255,255,0.8)" : "rgba(0,255,255,0.4)"}`,
-                        borderRadius: "8px", color: "#00ffff", cursor: "pointer", textAlign: "left", fontSize: "0.9rem",
-                      }}
-                    >
-                      {previewPlayingName === name ? "■ " : "▶ "}애니메이션 {idx + 1}
-                    </button>
-                  )) : (
+                  {previewAnimationNames.length ? previewAnimationNames.map((name, idx) => {
+                    const key = animationKey(previewCharacter!.modelUrl, idx);
+                    const owned = purchasedAnimations.includes(key);
+                    return (
+                      <div
+                        key={name}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "0.5rem",
+                          padding: "0.25rem 0",
+                        }}
+                      >
+                        <button
+                          onClick={() => setPreviewPlayingName(name === previewPlayingName ? null : name)}
+                          style={{
+                            flex: 1,
+                            padding: "0.6rem 1rem",
+                            background: previewPlayingName === name ? "rgba(0,255,255,0.3)" : "rgba(0,255,255,0.1)",
+                            border: `2px solid ${previewPlayingName === name ? "rgba(0,255,255,0.8)" : "rgba(0,255,255,0.4)"}`,
+                            borderRadius: "8px",
+                            color: "#00ffff",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          {previewPlayingName === name ? "■ " : "▶ "}애니메이션 {idx + 1}
+                        </button>
+                        {owned ? (
+                          <span style={{ color: "rgba(0,255,0,0.9)", fontSize: "0.8rem", fontWeight: 600, whiteSpace: "nowrap" }}>보유</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handlePurchaseAnimation(previewCharacter!.modelUrl, idx)}
+                            disabled={coins < ANIMATION_PRICE}
+                            style={{
+                              padding: "0.5rem 0.75rem",
+                              background: coins >= ANIMATION_PRICE ? "linear-gradient(135deg, rgba(255,180,0,0.3), rgba(255,140,0,0.3))" : "rgba(0,0,0,0.3)",
+                              border: `2px solid ${coins >= ANIMATION_PRICE ? "rgba(255,180,0,0.7)" : "rgba(255,255,255,0.2)"}`,
+                              borderRadius: "8px",
+                              color: coins >= ANIMATION_PRICE ? "#ffd700" : "rgba(255,255,255,0.4)",
+                              cursor: coins >= ANIMATION_PRICE ? "pointer" : "not-allowed",
+                              fontSize: "0.85rem",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            구매 {ANIMATION_PRICE}p
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }) : (
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
                       애니메이션 로딩 중… 이 캐릭터에 애니가 없으면 목록이 비어 있을 수 있습니다.
                     </span>

@@ -66,8 +66,8 @@ export default function SignupPage() {
       if (!localStorage.getItem(`userCoins-${userId}`)) {
         localStorage.setItem(`userCoins-${userId}`, '3000');
       }
-      if (!localStorage.getItem(`purchasedActions-${userId}`)) {
-        localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
+      if (!localStorage.getItem(`purchasedAnimations-${userId}`)) {
+        localStorage.setItem(`purchasedAnimations-${userId}`, JSON.stringify([]));
       }
 
       // 예전 localStorage 전용 가입 데이터는 더 이상 쓰지 않음 (DB와 맞추기 위해 제거 권장)

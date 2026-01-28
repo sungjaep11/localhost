@@ -55,9 +55,9 @@ export default function LoginPage() {
         localStorage.setItem(`equipped-character-${userId}`, '/character1.glb');
       }
 
-      // 구매한 행동 확인
-      if (!localStorage.getItem(`purchasedActions-${userId}`)) {
-        localStorage.setItem(`purchasedActions-${userId}`, JSON.stringify([]));
+      // 구매한 애니메이션 확인
+      if (!localStorage.getItem(`purchasedAnimations-${userId}`)) {
+        localStorage.setItem(`purchasedAnimations-${userId}`, JSON.stringify([]));
       }
 
       router.push('/main/lobby');
