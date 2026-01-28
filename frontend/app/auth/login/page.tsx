@@ -133,7 +133,7 @@ export default function LoginPage() {
           음악의 세계로 들어가세요
         </p>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.2rem", alignItems: "center" }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ display: "flex", flexDirection: "column", gap: "1.2rem", alignItems: "center" }}>
           <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <label
               style={{
@@ -204,6 +204,10 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
               className="cyberpunk-input"
               placeholder="••••••••"
               style={{
