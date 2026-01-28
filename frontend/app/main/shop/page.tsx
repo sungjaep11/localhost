@@ -84,8 +84,8 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
   const scale = scaleModal
     ? (isPrincess ? 1.8 : (isCharacter1 ? 1.3 : 1.9))
     : (isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5));
-  // 모달: Y 90° 회전으로 정면 보이게 (왼쪽 옆면 방지)
-  const rotation: [number, number, number] = scaleModal ? [0, Math.PI / 2, 0] : [0, 0, 0];
+  // 모달: Y 180° 회전으로 정면 보이게 (뒤 돌아보는 것 방지)
+  const rotation: [number, number, number] = scaleModal ? [0, Math.PI, 0] : [0, 0, 0];
   return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 

@@ -24,7 +24,7 @@ function LobbyStaticModel({ url }: { url: string }) {
     Object.values(actions).forEach((a) => a?.stop());
   }, [actions]);
   const isCharacter1 = loadUrl.includes('character1');
-  const positionY = isCharacter1 ? -1.0 : -0.3;
+  const positionY = isCharacter1 ? -1.8 : -1.2;
   const baseScale = isCharacter1 ? 1.8 : 2.8;
   const scale = baseScale * scaleMultiplier;
   const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
@@ -68,7 +68,7 @@ function LobbyAnimatedModel({
   }, [actions, nameToPlay]);
 
   const isCharacter1 = loadUrl.includes('character1');
-  const positionY = isCharacter1 ? -1.0 : -0.3;
+  const positionY = isCharacter1 ? -1.8 : -1.2;
   const baseScale = isCharacter1 ? 1.8 : 2.8;
   const scale = baseScale * scaleMultiplier;
   const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
