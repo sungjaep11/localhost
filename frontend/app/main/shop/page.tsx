@@ -70,13 +70,18 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
   useEffect(() => {
     const acts = Object.values(actions);
     acts.forEach(a => a?.stop());
-    if (playingName && actions[playingName]) {
-      const act = actions[playingName];
+    // ✅ 기본 동작: 선택된 이름이 없으면 첫 클립 자동 재생
+    const fallbackName = animations?.[0]?.name ?? null;
+    const nameToPlay = playingName ?? fallbackName;
+    if (nameToPlay && actions[nameToPlay]) {
+      const act = actions[nameToPlay];
       if (loop) act.setLoop(THREE.LoopRepeat, Infinity);
+      act.clampWhenFinished = false;
+      act.enabled = true;
       act.reset().fadeIn(0.2).play();
       return () => { act.stop(); };
     }
-  }, [playingName, actions, loop]);
+  }, [playingName, actions, loop, animations]);
   
   const isCharacter1 = url.includes('character1');
   const isPrincess = url.includes('princess');
@@ -84,7 +89,8 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
   const scale = scaleModal
     ? (isPrincess ? 2.0 : (isCharacter1 ? 1.4 : 2.2))
     : (isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5));
-  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  // 미리보기는 정면이 보기 좋게
+  const rotation: [number, number, number] = [0, 0, 0];
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
@@ -805,7 +811,7 @@ export default function ShopPage() {
             </div>
             <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
               <div style={{ width: "400px", height: "400px", flexShrink: 0 }} key={toAnimatedCharacterPath(previewCharacter.modelUrl)}>
-                <Canvas camera={{ position: [0, 0.3, 2.2], fov: 52 }}>
+                <Canvas camera={{ position: [0, 0.3, 2.2], fov: 52 }} frameloop="always">
                   <ambientLight intensity={0.5} />
                   <directionalLight position={[10, 10, 5]} intensity={1} />
                   <Environment preset="city" />
