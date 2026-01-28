@@ -46,9 +46,12 @@ export function toAnimatedCharacterPath(displayUrl: string): string {
   const ANIMATED_CHARACTERS = [
     'boy',
     'bunny',
+    'character1',
     'cute+girl',
     'gym+rat',
     'hamster',
+    'penguin',
+    'stylized+girl',
     'wizard',
   ] as const;
   const animatedNameMap: Record<string, string> = Object.fromEntries(
