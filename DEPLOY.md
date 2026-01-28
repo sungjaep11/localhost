@@ -1,5 +1,23 @@
 # 서버 배포 가이드
 
+## 커스텀 도메인 (l0calh0st.cloud)
+
+도메인 **l0calh0st.cloud**가 서버 IP(43.201.101.191)로 DNS 설정된 경우, 아래처럼 `.env`에 도메인을 넣어 사용합니다.
+
+- **접속 주소**
+  - 프론트: **http://l0calh0st.cloud:3000** 또는 **http://www.l0calh0st.cloud:3000**
+  - 백엔드/소켓: `http://l0calh0st.cloud:3001` (앱 내부 연결용)
+
+`.env` 예시 (도메인 사용 시):
+```env
+NEXT_PUBLIC_BACKEND_URL=http://l0calh0st.cloud:3001
+NEXT_PUBLIC_SOCKET_URL=http://l0calh0st.cloud:3001
+```
+
+설정 후 **반드시** `docker-compose up --build -d` 로 프론트를 다시 빌드해야 합니다.
+
+---
+
 ## 환경 변수 설정
 
 서버에서 배포하기 전에 `.env` 파일을 생성하세요:
@@ -8,15 +26,21 @@
 cp .env.example .env
 ```
 
-`.env` 파일을 열어서 EC2 서버의 **공인 IP**를 넣으세요:
+`.env` 파일을 열어서 **커스텀 도메인** 또는 EC2 **공인 IP**를 넣으세요.
 
+**옵션 1 – 도메인 사용 (l0calh0st.cloud):**
 ```env
-# 브라우저에서 소켓/백엔드 연결용 (프론트 빌드·실행 시 반드시 필요)
+NEXT_PUBLIC_BACKEND_URL=http://l0calh0st.cloud:3001
+NEXT_PUBLIC_SOCKET_URL=http://l0calh0st.cloud:3001
+```
+
+**옵션 2 – EC2 IP 직접 사용:**
+```env
 NEXT_PUBLIC_BACKEND_URL=http://YOUR_EC2_IP:3001
 NEXT_PUBLIC_SOCKET_URL=http://YOUR_EC2_IP:3001
 ```
 
-예시:
+예시 (IP만 사용할 때):
 ```env
 NEXT_PUBLIC_BACKEND_URL=http://43.201.101.191:3001
 NEXT_PUBLIC_SOCKET_URL=http://43.201.101.191:3001
@@ -54,6 +78,9 @@ docker-compose logs -f
 
 연결 테스트 (로컬 터미널):
 ```bash
+# 도메인 사용 시
+curl -s http://l0calh0st.cloud:3001
+# 또는 EC2 IP 사용 시
 curl -s http://YOUR_EC2_IP:3001
 # 정상이면 {"message":"Backend API Server"} 출력
 ```
