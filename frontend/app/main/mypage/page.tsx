@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
-import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
 
 interface Character {
   id: string;
@@ -40,8 +40,8 @@ const ALL_ACTIONS: Action[] = [
   { id: 'action3', name: '점프', description: '높이 점프합니다' },
 ];
 
-// public 경로 공백 인코딩 (GLB 로드 안정화)
-const toGlbUrl = (path: string) => (path || '').replace(/ /g, '%20');
+// GLB 로드 시 lib의 toGlbLoadUrl 사용 (공백·+ 인코딩)
+const toGlbUrl = toGlbLoadUrl;
 
 // 3D 모델 컴포넌트 (메인용) — animationName 있으면 animated_characters/ 에서 로드 후 그 행동 반복 재생
 function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: number; animationName?: string | null }) {

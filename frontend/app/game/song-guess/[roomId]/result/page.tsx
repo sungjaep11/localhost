@@ -4,7 +4,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
-import { toDisplayModelUrl, toDefaultCharacterPath } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface PlayerResult {
@@ -19,7 +19,7 @@ interface PlayerResult {
 // 3D 모델 — default_characters/ 에서 로드
 function Model({ url, scale = 1.8 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
+  const loadUrl = toGlbLoadUrl(toDefaultCharacterPath(url || ''));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);

@@ -6,7 +6,7 @@ import { Canvas } from "@react-three/fiber";
 import { useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
 import { RoomDeleteModal, type RoomDeleteModalMode } from '@/components/ui/RoomDeleteModal';
-import { toDefaultCharacterPath } from '@/lib/character-paths';
+import { toDefaultCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface BackendRoom {
@@ -41,7 +41,7 @@ interface Room {
 // 방 카드용 작은 3D 캐릭터 (방장) — default_characters/ 에서 로드
 function RoomCardModel({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
+  const loadUrl = toGlbLoadUrl(toDefaultCharacterPath(url || ''));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);

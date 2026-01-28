@@ -5,11 +5,11 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useEffect, useState, useRef, useMemo } from "react";
 import * as THREE from 'three';
-import { toDefaultCharacterPath } from '@/lib/character-paths';
+import { toDefaultCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
 
 function Model({ url, scaleMultiplier = 1 }: { url: string; scaleMultiplier?: number }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toDefaultCharacterPath(url);
+  const loadUrl = toGlbLoadUrl(toDefaultCharacterPath(url));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);

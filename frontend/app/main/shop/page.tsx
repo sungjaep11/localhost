@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
-import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
 
 interface Character {
   id: string;
@@ -21,8 +21,8 @@ interface Action {
   description: string;
 }
 
-// public 폴더 경로의 공백 등을 인코딩해 GLB 로드 안정화 (Next 정적 파일)
-const toGlbUrl = (path: string) => (path || '').replace(/ /g, '%20');
+// GLB 로드 시 lib의 toGlbLoadUrl 사용 (공백·+ 인코딩)
+const toGlbUrl = toGlbLoadUrl;
 
 // Model 컴포넌트 (정적) — 상점 카드용, 250×300 박스에 맞춤. url은 논리 경로 → 실제 로드는 default_characters/
 function Model({ url }: { url: string }) {
@@ -809,7 +809,7 @@ export default function ShopPage() {
                   <ambientLight intensity={0.5} />
                   <directionalLight position={[10, 10, 5]} intensity={1} />
                   <Environment preset="city" />
-                  <Suspense fallback={<div style={{ color: '#fff', padding: 20 }}>캐릭터 로딩 중…</div>}>
+                  <Suspense fallback={null}>
                     <AnimatedModel
                       url={toAnimatedCharacterPath(previewCharacter.modelUrl)}
                       playingName={previewPlayingName}

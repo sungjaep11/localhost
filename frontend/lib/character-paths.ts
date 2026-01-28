@@ -27,3 +27,8 @@ export function toAnimatedCharacterPath(displayUrl: string): string {
   if (name.includes('princess')) return '/default_characters/princess.glb';
   return `/animated_characters/${name} (1).glb`;
 }
+
+/** useGLTF 등에 넘길 때 공백·+ 인코딩 (cute+girl 등 파일명 404 방지) */
+export function toGlbLoadUrl(path: string): string {
+  return (path || '').replace(/ /g, '%20').replace(/\+/g, '%2B');
+}

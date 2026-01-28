@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
-import { toDisplayModelUrl, toDefaultCharacterPath } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface Player {
@@ -60,7 +60,7 @@ const TTS_VOICE_STORAGE_KEY = 'tts-voice-id';
 // 3D 모델 컴포넌트 — default_characters/ 에서 로드
 function Model({ url, scale = 2 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
+  const loadUrl = toGlbLoadUrl(toDefaultCharacterPath(url || ''));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);

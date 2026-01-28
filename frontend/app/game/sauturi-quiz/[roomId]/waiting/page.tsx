@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
-import { toDisplayModelUrl, toDefaultCharacterPath } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toGlbLoadUrl } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface Player {
@@ -21,7 +21,7 @@ const STORAGE_KEY = 'sauturi-quiz-rooms';
 // 3D 모델 — default_characters/ 에서 로드
 function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
+  const loadUrl = toGlbLoadUrl(toDefaultCharacterPath(url || ''));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
