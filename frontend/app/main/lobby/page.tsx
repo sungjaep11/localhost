@@ -38,7 +38,7 @@ function LobbyAnimatedModel({
   onNames,
 }: {
   url: string;
-  selectedOwnedIndex: number;
+  selectedOwnedIndex: number | null;
   owned: { name: string; idx: number }[];
   onNames: (names: string[]) => void;
 }) {
@@ -53,7 +53,10 @@ function LobbyAnimatedModel({
     else onNames([]);
   }, [animations, onNames]);
 
-  const nameToPlay = owned.length ? (owned[selectedOwnedIndex]?.name ?? owned[0]?.name) : null;
+  const nameToPlay =
+    owned.length && selectedOwnedIndex != null
+      ? (owned[selectedOwnedIndex]?.name ?? null)
+      : null;
 
   useEffect(() => {
     Object.values(actions).forEach((a) => a?.stop());
@@ -83,7 +86,7 @@ function LobbyCharacterViewer({
 }) {
   const displayUrl = toDisplayModelUrl(equippedCharacter);
   const [clipNames, setClipNames] = useState<string[] | null>(null);
-  const [selectedOwnedIndex, setSelectedOwnedIndex] = useState(0);
+  const [selectedOwnedIndex, setSelectedOwnedIndex] = useState<number | null>(null);
 
   const owned = useMemo(() => {
     if (!clipNames?.length) return [];
@@ -93,50 +96,39 @@ function LobbyCharacterViewer({
       .sort((a, b) => a.idx - b.idx);
   }, [clipNames, displayUrl, purchasedAnimations]);
 
-  const hasSetInitial = useRef(false);
   useEffect(() => {
-    hasSetInitial.current = false;
-  }, [equippedCharacter]);
-  useEffect(() => {
-    if (!owned.length || hasSetInitial.current) return;
-    hasSetInitial.current = true;
-    const i = equippedAction ? owned.findIndex((o) => o.name === equippedAction) : -1;
-    setSelectedOwnedIndex(i >= 0 ? i : 0);
-  }, [owned, equippedAction]);
-
-  useEffect(() => {
-    if (owned.length && selectedOwnedIndex >= owned.length) {
-      setSelectedOwnedIndex(0);
+    if (owned.length && selectedOwnedIndex != null && selectedOwnedIndex >= owned.length) {
+      setSelectedOwnedIndex(null);
     }
   }, [owned.length, selectedOwnedIndex]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', minHeight: 0 }}>
-      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-        <Canvas camera={{ position: [0, 0.5, 5], fov: 45 }} style={{ width: '100%', height: '100%' }}>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <Environment preset="city" />
-          <Suspense fallback={<LobbyStaticModel url={equippedCharacter} />}>
-            <LobbyAnimatedModel
-              url={equippedCharacter}
-              selectedOwnedIndex={selectedOwnedIndex}
-              owned={owned}
-              onNames={setClipNames}
-            />
-          </Suspense>
-          <OrbitControls autoRotate={false} enableZoom={false} enablePan={false} enableRotate={true} />
-        </Canvas>
-      </div>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <Canvas camera={{ position: [0, 0.5, 5], fov: 45 }} style={{ width: '100%', height: '100%' }}>
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <Environment preset="city" />
+        <Suspense fallback={<LobbyStaticModel url={equippedCharacter} />}>
+          <LobbyAnimatedModel
+            url={equippedCharacter}
+            selectedOwnedIndex={selectedOwnedIndex}
+            owned={owned}
+            onNames={setClipNames}
+          />
+        </Suspense>
+        <OrbitControls autoRotate={false} enableZoom={false} enablePan={false} enableRotate={true} />
+      </Canvas>
       {owned.length > 0 && (
         <div
           style={{
+            position: 'absolute',
+            bottom: 12,
+            left: 0,
+            right: 0,
             display: 'flex',
             gap: '0.5rem',
             justifyContent: 'center',
-            padding: '0.5rem 0',
             pointerEvents: 'auto',
-            flexShrink: 0,
           }}
         >
           {owned.map((_, i) => (
