@@ -923,11 +923,9 @@ export default function GamePlayPage() {
     setTimeLeft(30);
   };
 
-  // 게임 종료
+  // 게임 종료 (마지막 라운드에서 "다음" 클릭 시 호출 — 결과 저장·페이즈만 변경, 리다이렉트는 서버 game_finished 수신 시 모두 동시에)
   const endGame = () => {
     setGamePhase('game_end');
-    
-    // 결과 저장
     const resultsKey = `song-guess-room-${roomId}-results`;
     const results = players.map(p => ({
       id: p.id,
@@ -937,17 +935,13 @@ export default function GamePlayPage() {
       coinEarned: 0,
       rank: 0,
     }));
-    localStorage.setItem(resultsKey, JSON.stringify(results));
-    
-    // 백엔드에 게임 종료 알림 → 방 즉시 삭제
+    try {
+      localStorage.setItem(resultsKey, JSON.stringify(results));
+    } catch (_) {}
     if (socket && roomId) {
       socket.emit('game_end_request', { roomId });
     }
-    
-    // 결과 페이지로 이동
-    setTimeout(() => {
-      router.push(`/game/song-guess/${roomId}/result`);
-    }, 1500);
+    // 리다이렉트는 game_finished 리스너에서 모두 동시에 처리
   };
 
   // =============================================================
@@ -1115,10 +1109,35 @@ export default function GamePlayPage() {
       setGamePhase('round_end');
     };
 
+    // 게임 종료 시 모든 유저가 동시에 결과 화면으로 이동 (서버가 방 전체에 game_finished 브로드캐스트)
+    const handleGameFinished = (data: { roomId: string; results: Array<{ userId: string; nickname: string; score: number; rank: number }> }) => {
+      if (data.roomId !== roomId || !data.results?.length) return;
+      const playersMap = new Map((gameStateRef.current.players || []).map(p => [p.id, p]));
+      const coinByRank = (rank: number) => (rank === 1 ? 300 : rank === 2 ? 200 : rank === 3 ? 100 : 50);
+      const results = data.results.map(r => {
+        const p = playersMap.get(r.userId);
+        return {
+          id: r.userId,
+          name: r.nickname,
+          score: r.score,
+          character: p?.character || '/character1.glb',
+          coinEarned: coinByRank(r.rank),
+          rank: r.rank,
+        };
+      });
+      const resultsKey = `song-guess-room-${roomId}-results`;
+      try {
+        localStorage.setItem(resultsKey, JSON.stringify(results));
+      } catch (_) {}
+      setGamePhase('game_end');
+      setTimeout(() => router.push(`/game/song-guess/${roomId}/result`), 1500);
+    };
+
     socket.on('game_players_update', handlePlayersUpdate);
     socket.on('game_chat', handleChatMessage);
     socket.on('song_guess_sync', handleSongGuessSync);
     socket.on('game_round_end', handleGameRoundEnd);
+    socket.on('game_finished', handleGameFinished);
 
     // ❌ cleanup에서 game_leave를 보내면 Strict Mode 시 무한 루프 발생
     return () => {
@@ -1126,6 +1145,7 @@ export default function GamePlayPage() {
       socket.off('game_chat', handleChatMessage);
       socket.off('song_guess_sync', handleSongGuessSync);
       socket.off('game_round_end', handleGameRoundEnd);
+      socket.off('game_finished', handleGameFinished);
       if (answerModalTimeoutRef.current) {
         clearTimeout(answerModalTimeoutRef.current);
         answerModalTimeoutRef.current = null;
