@@ -1,8 +1,11 @@
 /**
  * public/default_characters/ = 기본 정적 GLB
- * public/animated_characters/ = 애니메이션 포함 GLB (boy_ani.glb 등)
+ * public/animated_characters/ = 애니메이션 포함 GLB (boy_ani.glb, bunny_ani.glb 등)
  * 저장/API에서는 기존 경로(/character1.glb, /cute+girl.glb 등) 유지하고,
  * 실제 로드 시 toDefaultCharacterPath / toAnimatedCharacterPath 사용.
+ *
+ * 새 애니메이션 추가: public/animated_characters/ 에 {name}_ani.glb 추가 후
+ * 아래 ANIMATED_CHARACTERS 에 display 경로의 base name 추가 (예: 'penguin' → penguin_ani.glb).
  */
 
 /** (1) 붙은 경로를 논리 경로로: /cute+girl (1).glb → /cute+girl.glb (저장·비교용) */
@@ -39,15 +42,18 @@ export function toAnimatedCharacterPath(displayUrl: string): string {
   const base = displayUrl.replace(/\s*\(1\)\s*\.glb$/i, '.glb').trim();
   const name = base.replace(/^\/+/, '').split('/').pop()?.replace(/\.glb$/i, '') || 'character1';
 
-  // 캐릭터별 애니메이션 파일 매핑 (_ani 접미사)
-  const animatedNameMap: Record<string, string> = {
-    'boy': 'boy_ani',
-    'bunny': 'bunny_ani',
-    'cute+girl': 'cute+girl_ani',
-    'gym+rat': 'gym+rat_ani',
-    'hamster': 'hamster_ani',
-    'wizard': 'wizard_ani',
-  };
+  /** animated_characters/ 에 있는 캐릭터. 추가 시 여기만 수정. */
+  const ANIMATED_CHARACTERS = [
+    'boy',
+    'bunny',
+    'cute+girl',
+    'gym+rat',
+    'hamster',
+    'wizard',
+  ] as const;
+  const animatedNameMap: Record<string, string> = Object.fromEntries(
+    ANIMATED_CHARACTERS.map((n) => [n, `${n}_ani`])
+  );
 
   if (name.includes('princess')) {
     // 공주는 별도 애니 파일이 없으므로 기본 GLB 사용

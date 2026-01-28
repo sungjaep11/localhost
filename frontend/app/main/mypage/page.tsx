@@ -63,7 +63,7 @@ function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: 
   
   const isCharacter1 = loadUrl.includes('character1');
   const isPrincess = loadUrl.includes('princess');
-  const isAnimFile = loadUrl.includes('(1)');
+  const isAnimFile = loadUrl.includes('animated_characters');
   const modelScale = isPrincess ? 2.2 : (isCharacter1 ? 2.0 : 4.2);
   const positionY = isCharacter1 ? -1.0 : -0.2;
   const rotation: [number, number, number] = isAnimFile ? [0, Math.PI / 2, 0] : [0, -Math.PI / 2, 0];
@@ -117,7 +117,7 @@ function MainCharacterViewer({ modelUrl, animationName }: { modelUrl: string; an
   );
 }
 
-// 현재 장착 캐릭터의 애니메이션 이름 — (1) 붙은 GLB = 애니메이션 포함, animations에서 직접 추출
+// 현재 장착 캐릭터의 애니메이션 이름 — animated_characters/ GLB에서 clip 이름 추출
 function ActionNamesReporter({ modelUrl, onNames }: { modelUrl: string; onNames: (names: string[]) => void }) {
   const group = useRef<THREE.Group>(null);
   const loadUrl = toGlbUrl(modelUrl);
@@ -201,7 +201,7 @@ export default function MyPage() {
       setCoins(3000);
     }
 
-    // 장착된 캐릭터 불러오기 (기존 (1) 경로는 표시용 비(1)로 정규화)
+    // 장착된 캐릭터 불러오기 (표시용 경로 정규화)
     const equipped = localStorage.getItem(`equipped-character-${storedUserId}`);
     setEquippedCharacter(toDisplayModelUrl(equipped || '') || '/character1.glb');
     // 장착된 행동(애니메이션 이름) 불러오기
@@ -849,7 +849,7 @@ export default function MyPage() {
                     </div>
                     {availableActionNames.length === 0 ? (
                       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
-                        {equippedCharacter.includes('(1)') ? '캐릭터 로딩 중…' : '이 캐릭터 GLB에는 애니메이션이 없습니다. 상점의 “(1)” 붙은 캐릭터만 행동 목록이 표시됩니다.'}
+                        {toAnimatedCharacterPath(equippedCharacter).includes('animated_characters') ? '캐릭터 로딩 중…' : '이 캐릭터에는 애니메이션이 없습니다. animated_characters에 있는 캐릭터만 행동 목록이 표시됩니다.'}
                       </div>
                     ) : (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>

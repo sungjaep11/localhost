@@ -54,7 +54,7 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
       }
     } else {
       onNames([]);
-      if (process.env.NODE_ENV === 'development' && url.includes('(1)')) {
+      if (process.env.NODE_ENV === 'development' && url.includes('animated_characters')) {
         console.warn(`[GLB 애니메이션] ${url}: animations 배열이 비어 있음.`);
       }
     }
@@ -154,12 +154,12 @@ export default function ShopPage() {
     const purchased = JSON.parse(localStorage.getItem(`purchasedCharacters-${storedUserId}`) || '["char1"]');
     setPurchasedCharacters(purchased);
 
-    // 장착한 캐릭터 불러오기 (기존 (1) 경로는 표시용 비(1)로 정규화)
+    // 장착한 캐릭터 불러오기 (표시용 경로 정규화)
     const equipped = localStorage.getItem(`equipped-character-${storedUserId}`);
     setEquippedCharacter(toDisplayModelUrl(equipped || '') || '/character1.glb');
   }, [router]);
 
-  // 캐릭터 데이터 — (1) 없는 GLB로 표시, 애니 필요 시 getAnimationModelUrl 사용
+  // 캐릭터 데이터 — default GLB로 표시, 애니 미리보기 시 toAnimatedCharacterPath 사용
   const characters: Character[] = [
     { id: 'char1', name: '기본 캐릭터', price: 0, modelUrl: '/character1.glb' },
     { id: 'char2', name: '소년', price: 600, modelUrl: '/boy.glb' },
@@ -663,7 +663,7 @@ export default function ShopPage() {
                   재생할 동작 선택
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
-                  아래 버튼을 누르면 미리보기에서 해당 애니메이션이 재생됩니다. (1) 붙은 파일에만 행동이 있습니다.
+                  아래 버튼을 누르면 미리보기에서 해당 애니메이션이 재생됩니다. animated_characters에 있는 캐릭터만 행동 목록이 표시됩니다.
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {previewAnimationNames.length ? previewAnimationNames.map((name) => (
@@ -680,7 +680,7 @@ export default function ShopPage() {
                     </button>
                   )) : (
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
-                      캐릭터 (1) 버전 로딩 중… 이 캐릭터에 애니가 없으면 목록이 비어 있을 수 있습니다.
+                      애니메이션 로딩 중… 이 캐릭터에 애니가 없으면 목록이 비어 있을 수 있습니다.
                     </span>
                   )}
                 </div>
