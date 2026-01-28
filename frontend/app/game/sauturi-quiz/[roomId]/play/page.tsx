@@ -123,8 +123,10 @@ export default function GamePlayPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
+  const [sauturiTimeLeft, setSauturiTimeLeft] = useState(0); // 재생 시 상단 15초 타이머
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const sauturiTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 사투리 퀴즈 정답/턴 state (가사는 모두에게 동기화, 정답 맞추면 모달 후 다음 턴)
   const [currentRoundAnswer, setCurrentRoundAnswer] = useState<string>(''); // 원문 가사(정답)
@@ -840,6 +842,11 @@ export default function GamePlayPage() {
           clearInterval(simulationIntervalRef.current);
           simulationIntervalRef.current = null;
         }
+        if (sauturiTimerRef.current) {
+          clearInterval(sauturiTimerRef.current);
+          sauturiTimerRef.current = null;
+        }
+        setSauturiTimeLeft(0);
         if (typeof window !== "undefined" && window.speechSynthesis) {
           window.speechSynthesis.cancel();
         }
@@ -1162,15 +1169,40 @@ export default function GamePlayPage() {
         >
           <img src="/logo2.png" alt="LOCAL HOST" style={{ height: "96px", width: "auto" }} />
         </button>
-        <div
-          style={{
-            color: "#ffffff",
-            fontSize: "1.2rem",
-            fontWeight: 700,
-            textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
-          }}
-        >
-          Round {currentRound} {currentSong}/{songsPerRound}
+        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+          {/* 15초 타이머 — 노래 맞추기처럼 재생 중일 때만 */}
+          {isPlaying && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 1rem",
+                background: sauturiTimeLeft <= 5 ? "rgba(255, 100, 100, 0.3)" : "rgba(0, 255, 255, 0.2)",
+                border: `2px solid ${sauturiTimeLeft <= 5 ? "rgba(255, 100, 100, 0.8)" : "rgba(0, 255, 255, 0.5)"}`,
+                borderRadius: "20px",
+                animation: sauturiTimeLeft <= 5 ? "pulse 0.5s infinite" : "none",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={sauturiTimeLeft <= 5 ? "#ff6b6b" : "#00ffff"} strokeWidth={2}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+              <span style={{ color: sauturiTimeLeft <= 5 ? "#ff6b6b" : "#00ffff", fontSize: "1.3rem", fontWeight: 800, minWidth: "2rem", textAlign: "center" }}>
+                {sauturiTimeLeft}
+              </span>
+            </div>
+          )}
+          <div
+            style={{
+              color: "#ffffff",
+              fontSize: "1.2rem",
+              fontWeight: 700,
+              textShadow: "0 0 10px rgba(0, 255, 255, 0.8)",
+            }}
+          >
+            Round {currentRound} {currentSong}/{songsPerRound}
+          </div>
         </div>
       </div>
 
@@ -1303,11 +1335,6 @@ export default function GamePlayPage() {
                     </svg>
                   )}
                 </button>
-              )}
-              {totalDuration > 0 && isPlaying && (
-                <div style={{ color: "#ffffff", fontSize: "0.85rem", textAlign: "center" }}>
-                  {Math.floor(currentTime)}s / {Math.floor(totalDuration)}s
-                </div>
               )}
               {/* TTS 목소리 설정 — 선택 값은 localStorage에 저장되며 다음 재생부터 적용 */}
               {((isCurrentUserHost && !showSauturiAnswerModal) || lyrics) && (

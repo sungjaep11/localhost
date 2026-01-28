@@ -486,7 +486,8 @@ export default function SongGuessPage() {
           </div>
         </div>
 
-        {/* 방 목록 그리드 */}
+        {/* 방 목록 그리드 — 검색창 너비(800px)에 맞춰 가운데 */}
+        <div style={{ maxWidth: "800px", width: "95%", margin: "0 auto", boxSizing: "border-box" }}>
         <div
           style={{
             display: "grid",
@@ -674,6 +675,7 @@ export default function SongGuessPage() {
               );
             })
           )}
+        </div>
         </div>
       </div>
       </div>

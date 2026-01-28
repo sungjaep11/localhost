@@ -172,11 +172,12 @@ export default function CountdownPage() {
           </div>
         </div>
 
-        {/* 오른쪽 - 대기방(참가자들), 칸 늘림 */}
+        {/* 오른쪽 - 대기방(참가자들), 조금 왼쪽으로 */}
         <div
           style={{
             flex: 1,
-            marginRight: "96px",
+            marginRight: "48px",
+            marginLeft: "-24px",
             maxWidth: "420px",
             display: "flex",
             flexDirection: "column",

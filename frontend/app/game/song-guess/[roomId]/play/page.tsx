@@ -1608,13 +1608,10 @@ export default function GamePlayPage() {
               정답 공개
             </div>
 
-            {/* 정답 강조 영역 — 제목·아티스트 잘 보이게 */}
+            {/* 정답 강조 영역 — 제목·아티스트 (한 번만 표시) */}
             <h2 style={{ color: correctPlayers.length > 0 ? "#00ff00" : "#ffd700", fontSize: "1.8rem", marginBottom: "0.5rem" }}>
               {correctPlayers.length > 0 ? "맞췄다!" : "정답은..."}
             </h2>
-            <h1 style={{ color: "#ffffff", fontSize: "2rem", marginBottom: "0.5rem" }}>
-              {currentSongData?.title}
-            </h1>
             <div
               style={{
                 marginBottom: "1.5rem",
@@ -2010,63 +2007,6 @@ export default function GamePlayPage() {
             position: "relative",
           }}
         >
-          {/* 중앙 음악 아이콘 (동적) - 재생 중일 때만 표시 */}
-          {isAudioPlaying && (
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                zIndex: 5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "300px",
-                height: "300px",
-              }}
-            >
-              {/* 펄스하는 원들 - 재생 중일 때만 애니메이션 */}
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`sound-wave-circle circle-${i}`}
-                  style={{
-                    position: "absolute",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "50%",
-                    border: `3px solid rgba(100, 200, 255, ${0.8 - i * 0.12})`,
-                    boxShadow: `0 0 ${20 + i * 10}px rgba(100, 200, 255, ${0.5 - i * 0.08})`,
-                    animation: `soundPulse ${1.0 + i * 0.2}s ease-in-out infinite`,
-                    animationDelay: `${i * 0.15}s`,
-                  }}
-                />
-              ))}
-              
-              {/* 고정된 음표 아이콘 */}
-              <div
-                className="music-note-icon"
-                style={{
-                  position: "relative",
-                  zIndex: 10,
-                  width: "120px",
-                  height: "120px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#64c8ff",
-                  filter: "drop-shadow(0 0 30px rgba(100, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(100, 200, 255, 0.4))",
-                  animation: "notePulse 1.2s ease-in-out infinite",
-                }}
-              >
-                <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                </svg>
-              </div>
-            </div>
-          )}
-
           {/* 가사 표시 영역 (노래방 스타일) - 화면 하단에 위치 */}
           {lyrics && (
             <div
@@ -2119,17 +2059,18 @@ export default function GamePlayPage() {
             </div>
           )}
 
-          {/* 다른 플레이어들 캐릭터 */}
+          {/* 중앙 — 함께 접속한 다른 플레이어 캐릭터 + 말풍선 */}
           <div
             style={{
               flex: 1,
               display: "flex",
               flexWrap: "wrap",
               justifyContent: "center",
-              alignItems: "flex-start",
-              alignContent: "flex-start",
+              alignItems: "center",
+              alignContent: "center",
               gap: "2rem",
               padding: "1rem",
+              minHeight: 0,
             }}
           >
           {otherPlayers.map((player) => (
