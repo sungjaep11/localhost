@@ -587,7 +587,9 @@ export default function GamePlayPage() {
   }, [ttsAudio]);
 
 
-  // 가사 색상 계산 (노래방 스타일) - 문장 단위로 나누기
+  const LYRICS_CHARS_PER_LINE = 15;
+
+  // 가사 색상 계산 (노래방 스타일) - 문장 단위로 나누기, 10글자마다 줄바꿈
   const getLyricsWithColors = () => {
     if (!lyrics) return null;
     
@@ -1569,50 +1571,49 @@ export default function GamePlayPage() {
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "0",
+                  gap: "0.2rem",
                   letterSpacing: "0.05em",
                   width: "100%",
                   maxWidth: "100%",
-                  overflow: "hidden",
                 }}
               >
-                {getLyricsWithColors()?.map((sentenceData, sentenceIndex) => (
-                  <div
-                    key={sentenceIndex}
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      flexWrap: "nowrap",
-                      gap: "0.15rem",
-                      width: "100%",
-                      minWidth: 0,
-                      maxWidth: "100%",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {sentenceData.chars.map((item, charIndex) => (
-                      <span
-                        key={`${sentenceIndex}-${charIndex}`}
-                        style={{
-                          color: item.color,
-                          textShadow: item.isCurrent 
-                            ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 170, 255, 1), 0 0 30px rgba(0, 170, 255, 0.6), 0 0 40px rgba(0, 170, 255, 0.3)"
-                            : item.color === '#00ffff'
-                              ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 255, 255, 0.5)"
-                              : "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 5px rgba(255, 255, 255, 0.2)",
-                          transition: "all 0.3s ease",
-                          display: "inline-block",
-                          transform: item.isCurrent ? "scale(1.15)" : "scale(1)",
-                        }}
-                      >
-                        {item.char === ' ' ? '\u00A0' : item.char}
-                      </span>
-                    ))}
-                  </div>
-                ))}
+                {getLyricsWithColors()?.flatMap((sentenceData, sentenceIndex) => {
+                  const lines: typeof sentenceData.chars[] = [];
+                  for (let i = 0; i < sentenceData.chars.length; i += LYRICS_CHARS_PER_LINE) {
+                    lines.push(sentenceData.chars.slice(i, i + LYRICS_CHARS_PER_LINE));
+                  }
+                  return lines.map((lineChars, lineIndex) => (
+                    <div
+                      key={`${sentenceIndex}-${lineIndex}`}
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        flexWrap: "nowrap",
+                        gap: "0.15rem",
+                      }}
+                    >
+                      {lineChars.map((item, charIndex) => (
+                        <span
+                          key={`${sentenceIndex}-${lineIndex}-${charIndex}`}
+                          style={{
+                            color: item.color,
+                            textShadow: item.isCurrent 
+                              ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 170, 255, 1), 0 0 30px rgba(0, 170, 255, 0.6), 0 0 40px rgba(0, 170, 255, 0.3)"
+                              : item.color === '#00ffff'
+                                ? "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 255, 255, 0.5)"
+                                : "2px 2px 8px rgba(0, 0, 0, 0.9), 4px 4px 12px rgba(0, 0, 0, 0.7), 0 0 5px rgba(255, 255, 255, 0.2)",
+                            transition: "all 0.3s ease",
+                            display: "inline-block",
+                            transform: item.isCurrent ? "scale(1.15)" : "scale(1)",
+                          }}
+                        >
+                          {item.char === ' ' ? '\u00A0' : item.char}
+                        </span>
+                      ))}
+                    </div>
+                  ));
+                })}
               </div>
               
             </div>
