@@ -80,7 +80,7 @@ function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: 
   
   const isCharacter1 = url.includes('character1');
   const isPrincess = url.includes('princess');
-  const positionY = isCharacter1 ? (scaleModal ? -0.8 : -0.4) : (scaleModal ? -0.6 : 0);
+  const positionY = isCharacter1 ? (scaleModal ? -0.95 : -0.4) : (scaleModal ? -0.75 : 0);
   const scale = scaleModal
     ? (isPrincess ? 1.8 : (isCharacter1 ? 1.3 : 1.9))
     : (isPrincess ? 1.0 : (isCharacter1 ? 0.95 : 1.5));

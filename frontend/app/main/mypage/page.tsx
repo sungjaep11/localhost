@@ -53,7 +53,7 @@ function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: 
   const isAnimFile = loadUrl.includes('animated_characters');
   const modelScale = isPrincess ? 2.2 : (isCharacter1 ? 2.0 : 3.6);
   const positionY = isCharacter1 ? -1.0 : -0.6;
-  const rotation: [number, number, number] = isAnimFile ? [0, Math.PI, 0] : [0, -Math.PI / 2, 0];
+  const rotation: [number, number, number] = isAnimFile ? [0, -Math.PI / 2, 0] : [0, -Math.PI / 2, 0];
   const effectiveScale = scaleProp != null ? scaleProp : modelScale;
   return <primitive ref={group} object={scene} scale={effectiveScale} position={[0, positionY, 0]} rotation={rotation} />;
 }
