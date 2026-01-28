@@ -167,7 +167,21 @@ export default function GamePlayPage() {
     const { currentRound: r, currentSong: s, songsPerRound: spr, totalRounds: tr } = roundSongRef.current;
     if (s >= spr) {
       if (r >= tr) {
-        router.push('/main/lobby');
+        // 게임 종료 — 결과 저장 후 결과 화면으로 이동
+        const resultsKey = `sauturi-quiz-room-${roomId}-results`;
+        const results = players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          score: p.score ?? 0,
+          character: toDisplayModelUrl(p.character || p.characterUrl || '/character1.glb'),
+          coinEarned: 0,
+          rank: 0,
+        }));
+        try {
+          localStorage.setItem(resultsKey, JSON.stringify(results));
+        } catch (_) {}
+        if (socket && roomId) socket.emit('game_end_request', { roomId });
+        setTimeout(() => router.push(`/game/sauturi-quiz/${roomId}/result`), 1500);
       } else {
         setShowSauturiRoundEndModal(true);
         if (socket && roomId) socket.emit('sauturi_round_end', { roomId, round: r });

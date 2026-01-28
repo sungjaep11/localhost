@@ -923,7 +923,7 @@ export default function GamePlayPage() {
     setTimeLeft(30);
   };
 
-  // 게임 종료 (마지막 라운드에서 "다음" 클릭 시 호출 — 결과 저장·페이즈만 변경, 리다이렉트는 서버 game_finished 수신 시 모두 동시에)
+  // 게임 종료 (마지막 라운드에서 "결과 보기" 클릭 시 호출 — 결과 저장 후 결과 화면으로 이동)
   const endGame = () => {
     setGamePhase('game_end');
     const resultsKey = `song-guess-room-${roomId}-results`;
@@ -941,7 +941,8 @@ export default function GamePlayPage() {
     if (socket && roomId) {
       socket.emit('game_end_request', { roomId });
     }
-    // 리다이렉트는 game_finished 리스너에서 모두 동시에 처리
+    // game_finished는 서버에서 오지 않을 수 있음(노래 맞추기) → 저장된 결과로 바로 결과 화면 이동
+    setTimeout(() => router.push(`/game/song-guess/${roomId}/result`), 1500);
   };
 
   // =============================================================
