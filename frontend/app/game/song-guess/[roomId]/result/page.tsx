@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
-import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl, animationKey } from '@/lib/character-paths';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath, toGlbLoadUrl, animationKey, hasAnimatedVersion } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface PlayerResult {
@@ -77,6 +77,32 @@ function ResultAnimatedModel({
   return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
+// 다른 참가자용 — 첫 번째 클립 무한 재생 (모두 애니메이션 표시)
+function ResultAnimatedModelDefault({ characterUrl, scale }: { characterUrl: string; scale: number }) {
+  const group = useRef<THREE.Group>(null);
+  const displayUrl = toDisplayModelUrl(characterUrl);
+  const animPath = toAnimatedCharacterPath(displayUrl);
+  const loadUrl = toGlbLoadUrl(animPath);
+  const { scene, animations } = useGLTF(loadUrl);
+  const { actions } = useAnimations(animations, group);
+
+  const firstClip = animations?.[0]?.name ?? null;
+
+  useEffect(() => {
+    Object.values(actions).forEach((a) => a?.stop());
+    if (firstClip && actions[firstClip]) {
+      const act = actions[firstClip];
+      act.reset().fadeIn(0.3).setLoop(THREE.LoopRepeat, Infinity).play();
+      return () => { act.stop(); };
+    }
+  }, [actions, firstClip]);
+
+  const isCharacter1 = loadUrl.includes('character1');
+  const positionY = isCharacter1 ? -1.0 : -0.5;
+  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  return <primitive ref={group} object={scene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
+}
+
 function CharacterViewer({
   characterUrl,
   size = 150,
@@ -95,7 +121,8 @@ function CharacterViewer({
   const scale = isChar1 ? (size > 150 ? 1.4 : 1.0) : (size > 150 ? 2.2 : 1.6);
   const camZ = size > 150 ? 3.5 : 3.2;
 
-  const useAnimated = isMe && purchasedAnimations.some((k) => k.startsWith(`${displayUrl}:`));
+  const hasAni = hasAnimatedVersion(displayUrl);
+  const useMine = isMe && purchasedAnimations.some((k) => k.startsWith(`${displayUrl}:`));
 
   return (
     <div style={{ width: size, height: size, overflow: "hidden" }}>
@@ -103,15 +130,21 @@ function CharacterViewer({
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <Environment preset="city" />
-        {useAnimated ? (
-          <Suspense fallback={<Model url={displayUrl} scale={scale} />}>
-            <ResultAnimatedModel
-              characterUrl={displayUrl}
-              scale={scale}
-              purchasedAnimations={purchasedAnimations}
-              equippedAction={equippedAction}
-            />
-          </Suspense>
+        {hasAni ? (
+          useMine ? (
+            <Suspense fallback={<Model url={displayUrl} scale={scale} />}>
+              <ResultAnimatedModel
+                characterUrl={displayUrl}
+                scale={scale}
+                purchasedAnimations={purchasedAnimations}
+                equippedAction={equippedAction}
+              />
+            </Suspense>
+          ) : (
+            <Suspense fallback={<Model url={displayUrl} scale={scale} />}>
+              <ResultAnimatedModelDefault characterUrl={displayUrl} scale={scale} />
+            </Suspense>
+          )
         ) : (
           <Model url={displayUrl} scale={scale} />
         )}
@@ -142,10 +175,10 @@ const calculateCoins = (rank: number, totalPlayers: number): number => {
 export default function GameResultPage() {
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
   const roomId = params.roomId as string;
   const [results, setResults] = useState<PlayerResult[]>([]);
   const [showCoinAnimation, setShowCoinAnimation] = useState(false);
+  const [showFullResult, setShowFullResult] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [myResult, setMyResult] = useState<PlayerResult | null>(null);
   const [purchasedAnimations, setPurchasedAnimations] = useState<string[]>([]);
@@ -160,53 +193,49 @@ export default function GameResultPage() {
       setEquippedAction(localStorage.getItem(`equipped-action-${userId}`) || null);
     }
 
-    // 게임 결과 불러오기
     const resultsKey = `song-guess-room-${roomId}-results`;
     const storedResults = localStorage.getItem(resultsKey);
-    
-    if (storedResults) {
-      try {
-        const parsedResults: PlayerResult[] = JSON.parse(storedResults);
-        // 점수 순으로 정렬하고 순위 부여
-        const sortedResults = parsedResults
-          .sort((a, b) => b.score - a.score)
-          .map((player, index) => ({
-            ...player,
-            rank: index + 1,
-            coinEarned: calculateCoins(index + 1, parsedResults.length),
-          }));
-        
-        setResults(sortedResults);
-        
-        // 내 결과 찾기
-        const myRes = sortedResults.find(r => r.id === userId);
-        if (myRes) {
-          setMyResult(myRes);
-          
-          // 코인 지급
-          const currentCoins = parseInt(localStorage.getItem(`userCoins-${userId}`) || '3000', 10);
-          const newCoins = currentCoins + myRes.coinEarned;
-          localStorage.setItem(`userCoins-${userId}`, newCoins.toString());
-        }
-        
-        // 코인 애니메이션 표시
+
+    if (!storedResults) {
+      setShowFullResult(true);
+      return;
+    }
+    try {
+      const parsedResults: PlayerResult[] = JSON.parse(storedResults);
+      const sortedResults = parsedResults
+        .sort((a, b) => b.score - a.score)
+        .map((player, index) => ({
+          ...player,
+          rank: index + 1,
+          coinEarned: calculateCoins(index + 1, parsedResults.length),
+        }));
+
+      setResults(sortedResults);
+
+      const myRes = sortedResults.find((r) => r.id === userId);
+      if (myRes) {
+        setMyResult(myRes);
+        const currentCoins = parseInt(localStorage.getItem(`userCoins-${userId}`) || '3000', 10);
+        const newCoins = currentCoins + myRes.coinEarned;
+        localStorage.setItem(`userCoins-${userId}`, newCoins.toString());
         setTimeout(() => setShowCoinAnimation(true), 500);
-      } catch (e) {
-        console.error('Failed to parse results', e);
+      } else {
+        setShowFullResult(true);
       }
+    } catch (e) {
+      console.error('Failed to parse results', e);
+      setShowFullResult(true);
     }
   }, [roomId]);
 
-  const handleGoToLobby = () => {
-    // 게임 데이터 정리
-    localStorage.removeItem(`song-guess-room-${roomId}-results`);
-    router.push('/main/lobby');
+  const handleDismissPopup = () => {
+    setShowCoinAnimation(false);
+    setShowFullResult(true);
   };
 
-  const handlePlayAgain = () => {
-    // 게임 데이터 정리
+  const handleGoToLobby = () => {
     localStorage.removeItem(`song-guess-room-${roomId}-results`);
-    router.push(`/game/song-guess/${roomId}/waiting`);
+    router.push('/main/lobby');
   };
 
   return (
@@ -240,33 +269,7 @@ export default function GameResultPage() {
         })}
       </div>
       <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem 0.75rem', width: '100%', boxSizing: 'border-box' }}>
-      {/* 헤더 */}
-      <h1
-        style={{
-          fontSize: "2.5rem",
-          fontWeight: 800,
-          background: "linear-gradient(135deg, #ffd700, #ff6b6b, #00ffff)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-          marginBottom: "0.5rem",
-          textShadow: "0 0 30px rgba(255, 215, 0, 0.5)",
-        }}
-      >
-        게임 종료!
-      </h1>
-
-      <p
-        style={{
-          color: "rgba(255, 255, 255, 0.8)",
-          fontSize: "1.1rem",
-          marginBottom: "2rem",
-        }}
-      >
-        최종 결과입니다
-      </p>
-
-      {/* 코인 획득 애니메이션 */}
+      {/* 팝업 먼저: N등 + 코인 (확인 후 순위 화면) */}
       {showCoinAnimation && myResult && (
         <div
           style={{
@@ -320,7 +323,7 @@ export default function GameResultPage() {
             +{myResult.coinEarned}
           </div>
           <button
-            onClick={() => setShowCoinAnimation(false)}
+            onClick={handleDismissPopup}
             style={{
               marginTop: "1.5rem",
               padding: "0.75rem 2rem",
@@ -338,17 +341,37 @@ export default function GameResultPage() {
         </div>
       )}
 
-      {/* 결과 리스트 */}
-      <div
-        style={{
-          width: "100%",
-          flex: 1,
-          boxSizing: "border-box",
-          overflowY: "auto",
-          marginBottom: "1.5rem",
-        }}
-      >
-        {/* 상위 3명 (트로피 영역) */}
+      {showFullResult && (
+        <>
+          <h1
+            style={{
+              fontSize: "2.5rem",
+              fontWeight: 800,
+              background: "linear-gradient(135deg, #ffd700, #ff6b6b, #00ffff)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              marginBottom: "0.5rem",
+              textShadow: "0 0 30px rgba(255, 215, 0, 0.5)",
+            }}
+          >
+            게임 종료!
+          </h1>
+          <p style={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "1.1rem", marginBottom: "2rem" }}>
+            최종 결과입니다
+          </p>
+
+          {/* 결과 리스트 */}
+          <div
+            style={{
+              width: "100%",
+              flex: 1,
+              boxSizing: "border-box",
+              overflowY: "auto",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {/* 상위 3명 (트로피 영역) */}
         <div
           style={{
             display: "flex",
@@ -567,59 +590,29 @@ export default function GameResultPage() {
         )}
       </div>
 
-      {/* 버튼들 */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-        }}
-      >
-        <button
-          onClick={handleGoToLobby}
-          style={{
-            padding: "1rem 2.5rem",
-            background: "rgba(100, 100, 100, 0.3)",
-            border: "2px solid rgba(255, 255, 255, 0.5)",
-            borderRadius: "12px",
-            color: "#ffffff",
-            fontSize: "1.1rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(100, 100, 100, 0.5)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(100, 100, 100, 0.3)";
-          }}
-        >
-          로비로 돌아가기
-        </button>
-        <button
-          onClick={handlePlayAgain}
-          style={{
-            padding: "1rem 2.5rem",
-            background: "linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 200, 200, 0.3))",
-            border: "2px solid rgba(0, 255, 255, 0.8)",
-            borderRadius: "12px",
-            color: "#00ffff",
-            fontSize: "1.1rem",
-            fontWeight: 700,
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-            boxShadow: "0 0 20px rgba(0, 255, 255, 0.3)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 30px rgba(0, 255, 255, 0.5)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 255, 255, 0.3)";
-          }}
-        >
-          한판 더!
-        </button>
-      </div>
+          {/* 버튼 */}
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <button
+              onClick={handleGoToLobby}
+              style={{
+                padding: "1rem 2.5rem",
+                background: "rgba(100, 100, 100, 0.3)",
+                border: "2px solid rgba(255, 255, 255, 0.5)",
+                borderRadius: "12px",
+                color: "#ffffff",
+                fontSize: "1.1rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(100, 100, 100, 0.5)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(100, 100, 100, 0.3)"; }}
+            >
+              로비로 돌아가기
+            </button>
+          </div>
+        </>
+      )}
 
       <style jsx>{`
         @keyframes coinPopup {

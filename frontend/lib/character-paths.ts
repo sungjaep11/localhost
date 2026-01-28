@@ -81,3 +81,8 @@ export function toGlbLoadUrl(path: string): string {
 export function animationKey(modelUrl: string, index: number): string {
   return `${toDisplayModelUrl(modelUrl)}:${index}`;
 }
+
+/** 캐릭터에 animated_characters용 GLB가 있는지 (princess 등은 false) */
+export function hasAnimatedVersion(displayUrl: string): boolean {
+  return toAnimatedCharacterPath(displayUrl || '').includes('animated_characters');
+}
