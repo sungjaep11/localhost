@@ -39,7 +39,7 @@ export const dialectLyrics: DialectLyric[] = [
 { genre: GENRE.BALLAD, title: "너의 번호를 누르고", artist: "#안녕", original: "너의 번호를 누르고 설레임을 가득 채우다", dialect: "니 번호 누르니까 가슴이 막 설레더라" },
 { genre: GENRE.BALLAD, title: "비의 랩소디", artist: "임재현", original: "떠나가요, 아주 먼 곳으로 그대 소식 내게 올 수 없을 그만큼", dialect: "아주 먼 데로 가버리자, 니 소식도 안 들릴 만큼" },
 { genre: GENRE.BALLAD, title: "사랑인가 봐", artist: "멜로망스", original: "이건 누가 봐도 사랑일 텐데, 종일 함께면 질릴 텐데", dialect: "이건 누가 봐도 사랑인갑다, 하루 종일 같이 있어도" },
-{ genre: GENRE.BALLAD, title: "첫 눈", artist: "EXO", original: "너를 만나면 눈물 차올라", dialect: "니만 만나면 눈물이 차오른다 아이가" },
+{ genre: GENRE.BALLAD, title: "끝사랑", artist: "김범수", original: "그대 오직 그대만이 내 첫사랑 내 끝사랑", dialect: "니만 딱 니만 내 첫사랑이고 내 끝사랑이다" },
 
   // 2. K-pop
   { genre: GENRE.KPOP, title: "Supernova", artist: "에스파", original: "사건은 다가와 Ah Oh Ay", dialect: "큰일이 다가온다 안 카나 Ah Oh Ay" },
