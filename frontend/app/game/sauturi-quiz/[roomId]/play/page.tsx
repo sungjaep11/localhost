@@ -1536,14 +1536,20 @@ export default function GamePlayPage() {
               </div>
             </div>
 
-          {/* 가사 표시 영역 (노래방 스타일) - 화면 하단에 위치 */}
+          {/* 가사 표시 영역 (노래방 스타일) - 화면 하단에 위치, 채팅 영역 침범 방지 */}
           {lyrics && (
             <div
               style={{
                 position: "absolute",
                 bottom: "5%",
-                left: "50%",
-                transform: "translateX(-50%)",
+                left: 0,
+                right: 0,
+                width: "100%",
+                maxWidth: "100%",
+                boxSizing: "border-box",
+                overflow: "hidden",
+                paddingLeft: "1rem",
+                paddingRight: "1rem",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -1565,6 +1571,9 @@ export default function GamePlayPage() {
                   justifyContent: "center",
                   gap: "0",
                   letterSpacing: "0.05em",
+                  width: "100%",
+                  maxWidth: "100%",
+                  overflow: "hidden",
                 }}
               >
                 {getLyricsWithColors()?.map((sentenceData, sentenceIndex) => (
@@ -1577,7 +1586,11 @@ export default function GamePlayPage() {
                       flexWrap: "nowrap",
                       gap: "0.15rem",
                       width: "100%",
+                      minWidth: 0,
+                      maxWidth: "100%",
                       whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                   >
                     {sentenceData.chars.map((item, charIndex) => (
