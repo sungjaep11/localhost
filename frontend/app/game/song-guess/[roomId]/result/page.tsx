@@ -4,6 +4,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
+import { toDisplayModelUrl, toDefaultCharacterPath } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface PlayerResult {
@@ -15,17 +16,15 @@ interface PlayerResult {
   rank: number;
 }
 
-const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
-
-// 3D 모델 — (1) 없는 GLB, 박스에 맞춤
+// 3D 모델 — default_characters/ 에서 로드
 function Model({ url, scale = 1.8 }: { url: string; scale?: number }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = (url || '').replace(/ /g, '%20');
+  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   useEffect(() => { Object.values(actions).forEach(a => a?.stop()); }, [actions]);
-  const isCharacter1 = url.includes('character1');
+  const isCharacter1 = loadUrl.includes('character1');
   const positionY = isCharacter1 ? -1.0 : -0.5;
   const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;

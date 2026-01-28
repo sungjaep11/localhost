@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath } from '@/lib/character-paths';
 
 interface Character {
   id: string;
@@ -23,21 +24,10 @@ interface Action {
 // public 폴더 경로의 공백 등을 인코딩해 GLB 로드 안정화 (Next 정적 파일)
 const toGlbUrl = (path: string) => (path || '').replace(/ /g, '%20');
 
-// 같은 파일명의 (1) 버전에서 행동(애니메이션) 로드. 예: bunny.glb → bunny (1).glb
-const getAnimationModelUrl = (displayUrl: string): string => {
-  if (!displayUrl) return displayUrl;
-  if (displayUrl.includes('(1)')) return displayUrl;
-  if (displayUrl.includes('princess')) return displayUrl;
-  return displayUrl.replace(/\.glb$/i, ' (1).glb');
-};
-
-// (1) 붙은 저장값을 표시용(비1) 경로로 통일
-const toDisplayModelUrl = (url: string): string => (url || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
-
-// Model 컴포넌트 (정적) — 상점 카드용, 250×300 박스에 맞춤
+// Model 컴포넌트 (정적) — 상점 카드용, 250×300 박스에 맞춤. url은 논리 경로 → 실제 로드는 default_characters/
 function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toGlbUrl(url);
+  const loadUrl = toGlbUrl(toDefaultCharacterPath(url));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
@@ -54,8 +44,8 @@ function Model({ url }: { url: string }) {
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
-// 애니메이션 재생 가능 Model — (1) 붙은 GLB = 애니메이션 포함. scaleModal=true면 400×400 모달용 크기
-function AnimatedModel({ url, playingName, onNames, scaleModal }: { url: string; playingName: string | null; onNames: (names: string[]) => void; scaleModal?: boolean }) {
+// 애니메이션 재생 가능 Model — animated_characters/ GLB. scaleModal=true면 모달용, loop=true면 무한 재생
+function AnimatedModel({ url, playingName, onNames, scaleModal, loop = false }: { url: string; playingName: string | null; onNames: (names: string[]) => void; scaleModal?: boolean; loop?: boolean }) {
   const group = useRef<THREE.Group>(null);
   const loadUrl = toGlbUrl(url);
   const { scene, animations } = useGLTF(loadUrl);
@@ -72,7 +62,7 @@ function AnimatedModel({ url, playingName, onNames, scaleModal }: { url: string;
     } else {
       onNames([]);
       if (process.env.NODE_ENV === 'development' && url.includes('(1)')) {
-        console.warn(`[GLB 애니메이션] ${url}: animations 배열이 비어 있음. 이 파일에 클립이 있는지 확인해 보세요.`);
+        console.warn(`[GLB 애니메이션] ${url}: animations 배열이 비어 있음.`);
       }
     }
   }, [animations, onNames, url]);
@@ -82,10 +72,11 @@ function AnimatedModel({ url, playingName, onNames, scaleModal }: { url: string;
     acts.forEach(a => a?.stop());
     if (playingName && actions[playingName]) {
       const act = actions[playingName];
+      if (loop) act.setLoop(THREE.LoopRepeat, Infinity);
       act.reset().fadeIn(0.2).play();
       return () => { act.stop(); };
     }
-  }, [playingName, actions]);
+  }, [playingName, actions, loop]);
   
   const isCharacter1 = url.includes('character1');
   const isPrincess = url.includes('princess');
@@ -97,7 +88,7 @@ function AnimatedModel({ url, playingName, onNames, scaleModal }: { url: string;
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
-// 캐릭터 모델 뷰어 (카드용) — 250×300 박스에 맞게 정면
+// 캐릭터 모델 뷰어 (카드용) — default_characters/ 에서 로드
 function CharacterModelViewer({ modelUrl }: { modelUrl: string }) {
   return (
     <div style={{ width: "100%", height: "100%" }}>
@@ -480,6 +471,7 @@ export default function ShopPage() {
                         setPreviewCharacter(character);
                         setPreviewPlayingName(null);
                         setPreviewAnimationNames([]);
+                        // 애니 로드 후 첫 애니메이션 자동 선택은 onNames 콜백에서 처리
                       }}
                       onKeyDown={(e) => e.key === 'Enter' && (setPreviewCharacter(character), setPreviewPlayingName(null), setPreviewAnimationNames([]))}
                       style={{
@@ -812,13 +804,22 @@ export default function ShopPage() {
               </button>
             </div>
             <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-              <div style={{ width: "400px", height: "400px", flexShrink: 0 }} key={getAnimationModelUrl(previewCharacter.modelUrl)}>
+              <div style={{ width: "400px", height: "400px", flexShrink: 0 }} key={toAnimatedCharacterPath(previewCharacter.modelUrl)}>
                 <Canvas camera={{ position: [0, 0.3, 2.2], fov: 52 }}>
                   <ambientLight intensity={0.5} />
                   <directionalLight position={[10, 10, 5]} intensity={1} />
                   <Environment preset="city" />
-                  <Suspense fallback={null}>
-                    <AnimatedModel url={getAnimationModelUrl(previewCharacter.modelUrl)} playingName={previewPlayingName} onNames={setPreviewAnimationNames} scaleModal />
+                  <Suspense fallback={<div style={{ color: '#fff', padding: 20 }}>캐릭터 로딩 중…</div>}>
+                    <AnimatedModel
+                      url={toAnimatedCharacterPath(previewCharacter.modelUrl)}
+                      playingName={previewPlayingName}
+                      onNames={(names) => {
+                        setPreviewAnimationNames(names);
+                        if (names.length > 0) setPreviewPlayingName(prev => prev ?? names[0]);
+                      }}
+                      scaleModal
+                      loop
+                    />
                   </Suspense>
                   <OrbitControls autoRotate={false} enableZoom={false} enablePan={false} enableRotate={true} />
                 </Canvas>

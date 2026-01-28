@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
+import { toDisplayModelUrl, toDefaultCharacterPath } from '@/lib/character-paths';
 import * as THREE from 'three';
 import type { RefObject } from 'react';
 
@@ -85,13 +86,10 @@ function randomSongToGameSong(s: RandomSongFromApi): GameSong {
 // 선착순 점수 (1등부터)
 const RANKING_POINTS = [100, 80, 60, 40, 30];
 
-// 표시용만 — (1) 붙은 저장값을 비(1) 경로로
-const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
-
-// 3D 모델 — (1) 없는 GLB, 박스 크기에 맞춤
+// 3D 모델 — default_characters/ 에서 로드
 const Model = memo(({ url, scale = 2 }: { url: string; scale?: number }) => {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = (url || '').replace(/ /g, '%20');
+  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
@@ -101,7 +99,7 @@ const Model = memo(({ url, scale = 2 }: { url: string; scale?: number }) => {
     return () => { Object.values(actions).forEach(a => { a?.stop(); a?.reset(); }); };
   }, [actions]);
   
-  const isCharacter1 = url.includes('character1');
+  const isCharacter1 = loadUrl.includes('character1');
   const positionY = isCharacter1 ? -1.2 : -0.6;
   const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
@@ -960,23 +958,21 @@ export default function GamePlayPage() {
   useEffect(() => {
     if (roomId === 'preview-room' || !socket || !roomId) return;
 
-    // 플레이어 목록 업데이트 리스너
+    // 플레이어 목록 업데이트 리스너 (서버가 각 유저의 character/characterUrl 전달 — 다른 유저도 선택한 캐릭터로 표시)
     const handlePlayersUpdate = (data: { 
       roomId: string; 
-      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number }>;
+      players: Array<{ id: string; name: string; isHost: boolean; joinedAt: number; score?: number; character?: string; characterUrl?: string }>;
       sessionStatus: string;
     }) => {
       if (data.roomId === roomId) {
         const playersWithCharacters = data.players.map((player) => {
-          const equippedCharacter = typeof window !== 'undefined' 
-            ? localStorage.getItem(`equipped-character-${player.id}`) 
-            : null;
-          const displayUrl = toDisplayModelUrl(equippedCharacter || '/character1.glb');
+          const fromServer = player.character ?? player.characterUrl;
+          const displayUrl = toDisplayModelUrl(fromServer || '/character1.glb');
           return {
             id: player.id,
             name: player.name,
             isHost: player.isHost,
-            score: 0,
+            score: player.score ?? 0,
             character: displayUrl,
             characterUrl: displayUrl,
             joinedAt: player.joinedAt,

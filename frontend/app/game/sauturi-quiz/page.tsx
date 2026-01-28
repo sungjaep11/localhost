@@ -6,6 +6,7 @@ import { Canvas } from "@react-three/fiber";
 import { useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
 import { RoomDeleteModal, type RoomDeleteModalMode } from '@/components/ui/RoomDeleteModal';
+import { toDefaultCharacterPath } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface BackendRoom {
@@ -37,18 +38,19 @@ interface Room {
   createdAt: number;
 }
 
-// 방 카드용 작은 3D 캐릭터 (방장)
+// 방 카드용 작은 3D 캐릭터 (방장) — default_characters/ 에서 로드
 function RoomCardModel({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = (url || '').replace(/ /g, '%20');
+  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   useEffect(() => { Object.values(actions).forEach(a => a?.stop()); }, [actions]);
-  const isCharacter1 = url.includes('character1');
+  const isCharacter1 = loadUrl.includes('character1');
   const positionY = isCharacter1 ? -0.8 : -0.5;
   const scale = isCharacter1 ? 1.2 : 1.6;
-  const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
+  // Y: 옆모습, X: 살짝 위를 보게 (양수 = 머리 들어올림)
+  const rotation: [number, number, number] = [0.15, -Math.PI / 2, 0];
   return <primitive ref={group} object={clonedScene} scale={scale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 

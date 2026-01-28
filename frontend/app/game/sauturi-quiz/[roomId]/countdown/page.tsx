@@ -3,6 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '@/context/SocketContext';
+import { toDisplayModelUrl } from '@/lib/character-paths';
 
 interface Player {
   id: string;
@@ -15,8 +16,6 @@ interface Player {
 }
 
 const PLAYERS_KEY = (rid: string) => `sauturi-quiz-room-${rid}-players`;
-
-const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
 
 export default function CountdownPage() {
   const router = useRouter();

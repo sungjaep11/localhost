@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useSocket } from '@/context/SocketContext';
+import { toDisplayModelUrl, toDefaultCharacterPath } from '@/lib/character-paths';
 import * as THREE from 'three';
 
 interface Player {
@@ -17,18 +18,15 @@ interface Player {
 
 const STORAGE_KEY = 'song-guess-rooms';
 
-// 표시용만 사용 — (1) 붙은 저장값을 비(1) 경로로
-const toDisplayModelUrl = (u: string) => (u || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
-
-// 3D 모델 — character1은 프레임 안에 들어오도록 더 작게
+// 3D 모델 — default_characters/ 에서 로드
 function Model({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = (url || '').replace(/ /g, '%20');
+  const loadUrl = toDefaultCharacterPath(url || '').replace(/ /g, '%20');
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   useEffect(() => { Object.values(actions).forEach(a => a?.stop()); }, [actions]);
-  const isCharacter1 = url.includes('character1');
+  const isCharacter1 = loadUrl.includes('character1');
   const positionY = isCharacter1 ? -0.8 : -0.5;
   const scale = isCharacter1 ? 1.5 : 2.1;
   const rotation: [number, number, number] = [0, -Math.PI / 2, 0];

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import * as THREE from 'three';
+import { toDisplayModelUrl, toDefaultCharacterPath, toAnimatedCharacterPath } from '@/lib/character-paths';
 
 interface Character {
   id: string;
@@ -18,7 +19,7 @@ interface Action {
   description: string;
 }
 
-// 캐릭터 목록 — (1) 없는 GLB로 표시, 애니 필요 시 getAnimationModelUrl 사용
+// 캐릭터 목록 — default_characters/ 로 표시, 애니 필요 시 toAnimatedCharacterPath 사용
 const ALL_CHARACTERS: Character[] = [
   { id: 'char1', name: '기본 캐릭터', modelUrl: '/character1.glb' },
   { id: 'char2', name: '소년', modelUrl: '/boy.glb' },
@@ -42,21 +43,11 @@ const ALL_ACTIONS: Action[] = [
 // public 경로 공백 인코딩 (GLB 로드 안정화)
 const toGlbUrl = (path: string) => (path || '').replace(/ /g, '%20');
 
-// 표시용 url → 애니메이션용 (1) GLB. 애니 보일 때만 사용.
-const getAnimationModelUrl = (displayUrl: string): string => {
-  if (!displayUrl) return displayUrl;
-  if (displayUrl.includes('(1)')) return displayUrl;
-  if (displayUrl.includes('princess')) return displayUrl;
-  return displayUrl.replace(/\.glb$/i, ' (1).glb');
-};
-
-// (1) 붙은 저장값을 표시용(비1) 경로로 통일
-const toDisplayModelUrl = (url: string): string => (url || '').replace(/\s*\(1\)\s*\.glb$/i, '.glb') || '/character1.glb';
-
-// 3D 모델 컴포넌트 (메인용) — animationName 있으면 그 행동 반복 재생
+// 3D 모델 컴포넌트 (메인용) — animationName 있으면 animated_characters/ 에서 로드 후 그 행동 반복 재생
 function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: number; animationName?: string | null }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toGlbUrl(url);
+  const isFullPath = url.startsWith('/default_characters/') || url.startsWith('/animated_characters/');
+  const loadUrl = toGlbUrl(isFullPath ? url : (animationName ? toAnimatedCharacterPath(url) : toDefaultCharacterPath(url)));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
@@ -70,9 +61,9 @@ function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: 
     }
   }, [actions, animationName]);
   
-  const isCharacter1 = url.includes('character1');
-  const isPrincess = url.includes('princess');
-  const isAnimFile = url.includes('(1)');
+  const isCharacter1 = loadUrl.includes('character1');
+  const isPrincess = loadUrl.includes('princess');
+  const isAnimFile = loadUrl.includes('(1)');
   const modelScale = isPrincess ? 2.2 : (isCharacter1 ? 2.0 : 4.2);
   const positionY = isCharacter1 ? -1.0 : -0.2;
   const rotation: [number, number, number] = isAnimFile ? [0, Math.PI / 2, 0] : [0, -Math.PI / 2, 0];
@@ -80,10 +71,10 @@ function Model({ url, scale: scaleProp, animationName }: { url: string; scale?: 
   return <primitive ref={group} object={clonedScene} scale={effectiveScale} position={[0, positionY, 0]} rotation={rotation} />;
 }
 
-// 3D 모델 컴포넌트 (작은 박스용)
+// 3D 모델 컴포넌트 (작은 박스용) — default_characters/ 에서 로드
 function SmallModel({ url }: { url: string }) {
   const group = useRef<THREE.Group>(null);
-  const loadUrl = toGlbUrl(url);
+  const loadUrl = toGlbUrl(toDefaultCharacterPath(url));
   const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
@@ -94,8 +85,8 @@ function SmallModel({ url }: { url: string }) {
     });
   }, [actions]);
   
-  const isCharacter1 = url.includes('character1');
-  const isPrincess = url.includes('princess');
+  const isCharacter1 = loadUrl.includes('character1');
+  const isPrincess = loadUrl.includes('princess');
   const modelScale = isPrincess ? 1.2 : (isCharacter1 ? 1.4 : 2.4);
   const positionY = isCharacter1 ? -0.7 : 0.05;
   const rotation: [number, number, number] = [0, -Math.PI / 2, 0];
@@ -556,7 +547,7 @@ export default function MyPage() {
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2)",
               }}
             >
-              <MainCharacterViewer modelUrl={equippedAction ? getAnimationModelUrl(equippedCharacter) : equippedCharacter} animationName={equippedAction} />
+              <MainCharacterViewer modelUrl={equippedAction ? toAnimatedCharacterPath(equippedCharacter) : equippedCharacter} animationName={equippedAction} />
             </div>
 
             <div
@@ -844,7 +835,7 @@ export default function MyPage() {
                       <directionalLight position={[10, 10, 5]} intensity={1} />
                       <Environment preset="city" />
                       <Suspense fallback={null}>
-                        <ActionNamesReporter modelUrl={getAnimationModelUrl(equippedCharacter)} onNames={setAvailableActionNames} />
+                        <ActionNamesReporter modelUrl={toAnimatedCharacterPath(equippedCharacter)} onNames={setAvailableActionNames} />
                       </Suspense>
                       <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} />
                     </Canvas>

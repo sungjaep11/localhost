@@ -5,10 +5,12 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useAnimations, Environment } from "@react-three/drei";
 import { useEffect, useState, useRef, useMemo } from "react";
 import * as THREE from 'three';
+import { toDefaultCharacterPath } from '@/lib/character-paths';
 
 function Model({ url, scaleMultiplier = 1 }: { url: string; scaleMultiplier?: number }) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF(url);
+  const loadUrl = toDefaultCharacterPath(url);
+  const { scene, animations } = useGLTF(loadUrl);
   const { actions } = useAnimations(animations, group);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   
@@ -16,7 +18,7 @@ function Model({ url, scaleMultiplier = 1 }: { url: string; scaleMultiplier?: nu
     Object.values(actions).forEach(action => action?.stop());
   }, [actions]);
   
-  const isCharacter1 = url.includes('character1');
+  const isCharacter1 = loadUrl.includes('character1');
   const positionY = isCharacter1 ? -1.0 : -0.3;
   const baseScale = isCharacter1 ? 1.8 : 2.8;
   const scale = baseScale * scaleMultiplier;
@@ -61,7 +63,7 @@ export default function ModelViewer({ modelUrl, scaleMultiplier = 1 }: ModelView
         {/* 환경광 (주변 반사광) - city, sunset, dawn 등 프리셋 사용 가능 */}
         <Environment preset="city" />
 
-        {/* 모델 렌더링 */}
+        {/* 모델 렌더링 — default_characters/ 에서 로드 */}
         <Model url={equippedCharacter} scaleMultiplier={scaleMultiplier} />
 
         {/* 마우스로 돌려보기 */}
